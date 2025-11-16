@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon } from './icons.js';
-import { downloadJsonFile } from '../utils.js';
+import { saveJsonFile } from '../utils.js';
 
 const Settings = ({
     defaultFields,
@@ -23,16 +23,16 @@ const Settings = ({
         }
     };
     
-    const handleManualBackup = () => {
+    const handleManualBackup = async () => {
         const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-        downloadJsonFile(appStateForBackup, `contacts-backup-${timestamp}.json`);
+        await saveJsonFile(appStateForBackup, `contacts-backup-${timestamp}.json`);
     };
 
-    const handleDownloadAutoBackup = () => {
+    const handleDownloadAutoBackup = async () => {
         if (lastAutoBackup) {
             const backupData = JSON.parse(lastAutoBackup.data);
             const timestamp = new Date(lastAutoBackup.timestamp).toISOString().slice(0, 10);
-            downloadJsonFile(backupData, `contacts-auto-backup-${timestamp}.json`);
+            await saveJsonFile(backupData, `contacts-auto-backup-${timestamp}.json`);
         }
     };
     
