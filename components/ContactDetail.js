@@ -35,7 +35,7 @@ const jobStatusColors = {
   Invoiced: { base: 'bg-slate-200', text: 'text-slate-700' },
 };
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -257,7 +257,11 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                         ),
                                         React.createElement("div", { className: "text-right flex-shrink-0 ml-4" },
                                             React.createElement("p", { className: "font-bold text-lg text-slate-800" }, `$${totalCost.toFixed(2)}`),
-                                            React.createElement("div", { className: "mt-2 space-x-1" },
+                                            React.createElement("div", { className: "mt-2 flex items-center justify-end space-x-1" },
+                                                React.createElement("button", { 
+                                                    onClick: () => onViewInvoice(contact.id, ticket.id),
+                                                    className: "px-3 py-1 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 rounded-md"
+                                                }, "View/Print"),
                                                 React.createElement("button", { 
                                                     onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
                                                     className: "p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full",
