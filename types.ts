@@ -54,10 +54,19 @@ export interface Contact {
   jobTickets: JobTicket[];
 }
 
+export interface BusinessInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  logoUrl: string; // Base64 data URL
+}
+
 export type ViewState = 
   | { type: 'list' }
   | { type: 'detail'; id: string }
   | { type: 'new_form' }
   | { type: 'edit_form'; id: string }
   | { type: 'settings' }
-  | { type: 'dashboard' };
+  | { type: 'dashboard' }
+  | { type: 'invoice'; contactId: string; ticketId: string };
