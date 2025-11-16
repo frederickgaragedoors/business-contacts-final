@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
-import WorkLogModal from './WorkLogModal.js';
+import JobTicketModal from './JobTicketModal.js';
 import {
   PhoneIcon,
   MailIcon,
@@ -27,12 +27,20 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactWorkLogs }) => {
+const jobStatusColors = {
+  Scheduled: { base: 'bg-sky-100', text: 'text-sky-800' },
+  'In Progress': { base: 'bg-yellow-100', text: 'text-yellow-800' },
+  'Awaiting Parts': { base: 'bg-purple-100', text: 'text-purple-800' },
+  Completed: { base: 'bg-green-100', text: 'text-green-800' },
+  Invoiced: { base: 'bg-slate-200', text: 'text-slate-700' },
+};
+
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
-    const [isWorkLogModalOpen, setIsWorkLogModalOpen] = useState(false);
-    const [editingWorkLog, setEditingWorkLog] = useState(null);
+    const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
+    const [editingJobTicket, setEditingJobTicket] = useState(null);
 
     const imageUploadRef = useRef(null);
     const cameraInputRef = useRef(null);
@@ -94,29 +102,36 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
         setIsGalleryOpen(true);
     };
 
-    const handleSaveWorkLog = (entry) => {
-        let updatedLogs;
+    const handleSaveJobTicket = (entry) => {
+        let updatedTickets;
         if (entry.id) {
-            updatedLogs = contact.workLogs.map(log => log.id === entry.id ? { ...log, date: entry.date, description: entry.description } : log);
+            updatedTickets = contact.jobTickets.map(ticket => ticket.id === entry.id ? { ...ticket, ...entry } : ticket);
         } else {
-            const newLog = { id: generateId(), date: entry.date, description: entry.description };
-            updatedLogs = [newLog, ...contact.workLogs];
+            const newTicket = { 
+                id: generateId(), 
+                date: entry.date, 
+                notes: entry.notes,
+                status: entry.status,
+                parts: entry.parts,
+                laborCost: entry.laborCost,
+            };
+            updatedTickets = [newTicket, ...contact.jobTickets];
         }
-        updateContactWorkLogs(contact.id, updatedLogs);
-        setIsWorkLogModalOpen(false);
-        setEditingWorkLog(null);
+        updateContactJobTickets(contact.id, updatedTickets);
+        setIsJobTicketModalOpen(false);
+        setEditingJobTicket(null);
     };
     
-    const handleDeleteWorkLog = (id) => {
-        if (window.confirm('Are you sure you want to delete this work log?')) {
-            const updatedLogs = contact.workLogs.filter(log => log.id !== id);
-            updateContactWorkLogs(contact.id, updatedLogs);
+    const handleDeleteJobTicket = (id) => {
+        if (window.confirm('Are you sure you want to delete this job ticket?')) {
+            const updatedTickets = contact.jobTickets.filter(ticket => ticket.id !== id);
+            updateContactJobTickets(contact.id, updatedTickets);
         }
     };
     
-    const sortedWorkLogs = useMemo(() => {
-        return [...contact.workLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [contact.workLogs]);
+    const sortedJobTickets = useMemo(() => {
+        return [...contact.jobTickets].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [contact.jobTickets]);
 
     return (
         React.createElement(React.Fragment, null,
@@ -218,42 +233,50 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     React.createElement("div", { className: "flex justify-between items-center mb-4" },
                         React.createElement("div", { className: "flex items-center" },
                             React.createElement(BriefcaseIcon, { className: "w-5 h-5 text-slate-400" }),
-                            React.createElement("h2", { className: "ml-3 text-lg font-semibold text-slate-800" }, "Work Done")
+                            React.createElement("h2", { className: "ml-3 text-lg font-semibold text-slate-800" }, "Jobs")
                         ),
                         React.createElement("button", { 
-                            onClick: () => { setEditingWorkLog(null); setIsWorkLogModalOpen(true); },
+                            onClick: () => { setEditingJobTicket(null); setIsJobTicketModalOpen(true); },
                             className: "p-2 rounded-full text-slate-500 hover:bg-slate-200",
-                            "aria-label": "Log work done"
+                            "aria-label": "Add Job Ticket"
                         }, React.createElement(PlusIcon, { className: "w-5 h-5" }))
                     ),
-                    sortedWorkLogs.length > 0 ? (
+                    sortedJobTickets.length > 0 ? (
                         React.createElement("ul", { className: "space-y-4" },
-                            sortedWorkLogs.map(log => (
-                                React.createElement("li", { key: log.id, className: "p-4 bg-slate-50 rounded-lg" },
+                            sortedJobTickets.map(ticket => {
+                                const totalCost = ticket.laborCost + ticket.parts.reduce((sum, part) => sum + part.cost, 0);
+                                const statusColor = jobStatusColors[ticket.status];
+                                return React.createElement("li", { key: ticket.id, className: "p-4 bg-slate-50 rounded-lg" },
                                     React.createElement("div", { className: "flex justify-between items-start" },
                                         React.createElement("div", null,
-                                            React.createElement("p", { className: "font-semibold text-slate-700" }, new Date(log.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })),
-                                            React.createElement("p", { className: "mt-1 text-sm text-slate-600 whitespace-pre-wrap" }, log.description)
+                                            React.createElement("div", { className: "flex items-center gap-x-3" },
+                                                React.createElement("p", { className: "font-semibold text-slate-700" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })),
+                                                React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` }, ticket.status)
+                                            ),
+                                            React.createElement("p", { className: "mt-2 text-sm text-slate-600 whitespace-pre-wrap" }, ticket.notes)
                                         ),
-                                        React.createElement("div", { className: "flex-shrink-0 ml-4 space-x-1" },
-                                            React.createElement("button", { 
-                                                onClick: () => { setEditingWorkLog(log); setIsWorkLogModalOpen(true); },
-                                                className: "p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full",
-                                                "aria-label": "Edit work log"
-                                            }, React.createElement(EditIcon, { className: "w-4 h-4" })),
-                                            React.createElement("button", {
-                                                onClick: () => handleDeleteWorkLog(log.id),
-                                                className: "p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full",
-                                                "aria-label": "Delete work log"
-                                            }, React.createElement(TrashIcon, { className: "w-4 h-4" }))
+                                        React.createElement("div", { className: "text-right flex-shrink-0 ml-4" },
+                                            React.createElement("p", { className: "font-bold text-lg text-slate-800" }, `$${totalCost.toFixed(2)}`),
+                                            React.createElement("div", { className: "mt-2 space-x-1" },
+                                                React.createElement("button", { 
+                                                    onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
+                                                    className: "p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full",
+                                                    "aria-label": "Edit job ticket"
+                                                }, React.createElement(EditIcon, { className: "w-4 h-4" })),
+                                                React.createElement("button", {
+                                                    onClick: () => handleDeleteJobTicket(ticket.id),
+                                                    className: "p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full",
+                                                    "aria-label": "Delete job ticket"
+                                                }, React.createElement(TrashIcon, { className: "w-4 h-4" }))
+                                            )
                                         )
                                     )
-                                )
-                            ))
+                                );
+                            })
                         )
                     ) : (
                         React.createElement("div", { className: "text-center text-slate-500 py-4" },
-                            React.createElement("p", null, "No work has been logged for this contact.")
+                            React.createElement("p", null, "No jobs have been logged for this contact.")
                         )
                     )
                 ),
@@ -343,11 +366,11 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     onClose: () => setIsGalleryOpen(false)
                 })
             ),
-            isWorkLogModalOpen && (
-                React.createElement(WorkLogModal, {
-                    entry: editingWorkLog,
-                    onSave: handleSaveWorkLog,
-                    onClose: () => { setIsWorkLogModalOpen(false); setEditingWorkLog(null); }
+            isJobTicketModalOpen && (
+                React.createElement(JobTicketModal, {
+                    entry: editingJobTicket,
+                    onSave: handleSaveJobTicket,
+                    onClose: () => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); }
                 })
             )
         )
