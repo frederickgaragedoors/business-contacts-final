@@ -1,17 +1,29 @@
 import React, { useState } from 'react';
-import { Contact } from '../types.ts';
+import { Contact, ViewState } from '../types.ts';
 import ContactListItem from './ContactListItem.tsx';
-import { PlusIcon, SettingsIcon, SearchIcon } from './icons.tsx';
+import { PlusIcon, SettingsIcon, SearchIcon, ClipboardListIcon, UsersIcon } from './icons.tsx';
 
 interface ContactListProps {
   contacts: Contact[];
   selectedContactId: string | null;
+  currentView: ViewState['type'];
   onSelectContact: (id: string) => void;
   onNewContact: () => void;
   onGoToSettings: () => void;
+  onGoToDashboard: () => void;
+  onGoToList: () => void;
 }
 
-const ContactList: React.FC<ContactListProps> = ({ contacts, selectedContactId, onSelectContact, onNewContact, onGoToSettings }) => {
+const ContactList: React.FC<ContactListProps> = ({ 
+    contacts, 
+    selectedContactId, 
+    currentView,
+    onSelectContact, 
+    onNewContact, 
+    onGoToSettings,
+    onGoToDashboard,
+    onGoToList,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredContacts = contacts.filter(contact =>
@@ -23,7 +35,24 @@ const ContactList: React.FC<ContactListProps> = ({ contacts, selectedContactId, 
   return (
     <div className="h-full bg-slate-50 border-r border-slate-200 flex flex-col">
       <div className="p-4 border-b border-slate-200 flex justify-between items-center space-x-2">
-        <h1 className="text-2xl font-bold text-slate-800">Contacts</h1>
+        <div className="flex items-center space-x-1 p-1 bg-slate-200 rounded-lg">
+            <button
+                onClick={onGoToDashboard}
+                className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentView === 'dashboard' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:bg-slate-300'}`}
+                aria-label="Dashboard"
+            >
+                <ClipboardListIcon className="w-5 h-5" />
+                <span>Dashboard</span>
+            </button>
+            <button
+                onClick={onGoToList}
+                className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentView !== 'dashboard' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:bg-slate-300'}`}
+                aria-label="Contacts"
+            >
+                <UsersIcon className="w-5 h-5" />
+                <span>Contacts</span>
+            </button>
+        </div>
         <div className="flex items-center space-x-2">
           <button
             onClick={onGoToSettings}
