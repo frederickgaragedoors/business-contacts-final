@@ -4,6 +4,7 @@ import ContactList from './components/ContactList.tsx';
 import ContactDetail from './components/ContactDetail.tsx';
 import ContactForm from './components/ContactForm.tsx';
 import Settings from './components/Settings.tsx';
+import Dashboard from './components/Dashboard.tsx';
 import { UserCircleIcon } from './components/icons.tsx';
 import { generateId } from './utils.ts';
 
@@ -18,8 +19,9 @@ const initialContacts: Contact[] = [
     files: [],
     customFields: [{id: 'cf1', label: 'Company', value: 'CorpNet Inc.'}],
     jobTickets: [
-        { id: 'jt1', date: '2023-10-15', notes: 'Customer reported grinding noise when opening door. Inspected tracks and rollers.', status: 'Completed', parts: [], laborCost: 150 },
+        { id: 'jt1', date: '2024-07-15', notes: 'Customer reported grinding noise when opening door. Inspected tracks and rollers.', status: 'Scheduled', parts: [], laborCost: 150 },
         { id: 'jt2', date: '2023-10-22', notes: 'Replaced both torsion springs and lubricated all moving parts. Door is now operating smoothly.', status: 'Invoiced', parts: [{id: 'p1', name: 'Torsion Spring (x2)', cost: 120}], laborCost: 200 },
+        { id: 'jt3', date: '2024-06-01', notes: 'Needs new logic board for opener. Part ordered.', status: 'Awaiting Parts', parts: [], laborCost: 75 },
     ],
   },
   {
@@ -31,7 +33,9 @@ const initialContacts: Contact[] = [
     photoUrl: 'https://picsum.photos/id/1005/200/200',
     files: [],
     customFields: [{id: 'cf2', label: 'Company', value: 'Synergy Systems'}],
-    jobTickets: [],
+    jobTickets: [
+        { id: 'jt4', date: '2024-08-01', notes: 'Scheduled annual maintenance.', status: 'Scheduled', parts: [], laborCost: 90 }
+    ],
   },
    {
     id: '3',
@@ -42,7 +46,9 @@ const initialContacts: Contact[] = [
     photoUrl: '',
     files: [],
     customFields: [{id: 'cf3', label: 'Company', value: 'Quantum Dynamics'}],
-    jobTickets: [],
+    jobTickets: [
+        { id: 'jt5', date: '2024-07-20', notes: 'Install new smart garage opener.', status: 'In Progress', parts: [{id: 'p2', name: 'Smart Opener', cost: 350}], laborCost: 150}
+    ],
   },
 ];
 
@@ -98,11 +104,7 @@ const App: React.FC = () => {
         };
     });
 
-    const [viewState, setViewState] = useState<ViewState>(() => {
-        const savedData = localStorage.getItem(APP_STORAGE_KEY);
-        const contacts = savedData ? JSON.parse(savedData).contacts : initialContacts;
-        return contacts.length > 0 ? { type: 'detail', id: contacts[0].id } : { type: 'list' };
-    });
+    const [viewState, setViewState] = useState<ViewState>({ type: 'dashboard' });
 
     // Effect to persist the entire app state to localStorage
     useEffect(() => {
@@ -177,11 +179,7 @@ const App: React.FC = () => {
             setAppState(current => ({ ...current, contacts: remainingContacts }));
             
             if ((viewState.type === 'detail' || viewState.type === 'edit_form') && viewState.id === id) {
-                if (remainingContacts.length > 0) {
-                    setViewState({ type: 'detail', id: remainingContacts[0].id });
-                } else {
-                    setViewState({ type: 'list' });
-                }
+                 setViewState({ type: 'dashboard' });
             }
         }
     };
@@ -218,11 +216,7 @@ const App: React.FC = () => {
                         defaultFields: backupData.defaultFields,
                     }));
                     if (!silent) alert('Backup restored successfully!');
-                    if (backupData.contacts.length > 0) {
-                        setViewState({ type: 'detail', id: backupData.contacts[0].id });
-                    } else {
-                        setViewState({ type: 'list' });
-                    }
+                    setViewState({ type: 'dashboard' });
                 };
 
                 if (silent || window.confirm('Are you sure you want to restore this backup? This will overwrite all current data.')) {
@@ -272,13 +266,13 @@ const App: React.FC = () => {
 
     const renderRightPanel = () => {
         switch (viewState.type) {
+            case 'dashboard':
+                 return <Dashboard contacts={appState.contacts} onSelectContact={(id) => setViewState({ type: 'detail', id })} />;
             case 'detail':
                 if (!selectedContact) {
-                    if (appState.contacts.length > 0) {
-                        setViewState({ type: 'detail', id: appState.contacts[0].id });
-                        return null;
-                    }
-                    return <WelcomeMessage />;
+                    // Fallback if contact is deleted or ID is invalid
+                    setViewState({ type: 'dashboard' });
+                    return null;
                 }
                 return (
                     <ContactDetail
@@ -286,7 +280,7 @@ const App: React.FC = () => {
                         defaultFields={appState.defaultFields}
                         onEdit={() => setViewState({ type: 'edit_form', id: selectedContact.id })}
                         onDelete={() => deleteContact(selectedContact.id)}
-                        onClose={() => setViewState({ type: 'list' })}
+                        onClose={() => setViewState({ type: 'dashboard' })}
                         addFilesToContact={addFilesToContact}
                         updateContactJobTickets={updateContactJobTickets}
                     />
@@ -295,7 +289,7 @@ const App: React.FC = () => {
                 return (
                     <ContactForm
                         onSave={addContact}
-                        onCancel={() => appState.contacts.length > 0 ? setViewState({ type: 'detail', id: appState.contacts[0].id }) : setViewState({ type: 'list' })}
+                        onCancel={() => setViewState({ type: 'dashboard' })}
                         defaultFields={appState.defaultFields}
                     />
                 );
@@ -314,7 +308,7 @@ const App: React.FC = () => {
                         defaultFields={appState.defaultFields}
                         onAddDefaultField={addDefaultField}
                         onDeleteDefaultField={deleteDefaultField}
-                        onBack={() => appState.contacts.length > 0 ? setViewState({ type: 'detail', id: appState.contacts[0].id }) : setViewState({ type: 'list' })}
+                        onBack={() => setViewState({ type: 'dashboard' })}
                         appStateForBackup={{ contacts: appState.contacts, defaultFields: appState.defaultFields }}
                         autoBackupEnabled={appState.autoBackupEnabled}
                         onToggleAutoBackup={handleToggleAutoBackup}
@@ -322,12 +316,16 @@ const App: React.FC = () => {
                         onRestoreBackup={(content) => restoreData(content, false)}
                     />
                 );
-            default:
+            default: // Catches 'list' and any other case
+                if (appState.contacts.length > 0) {
+                     setViewState({ type: 'detail', id: appState.contacts[0].id });
+                     return null;
+                }
                 return <WelcomeMessage />;
         }
     };
   
-    const showListOnMobile = viewState.type === 'list';
+    const showListOnMobile = viewState.type === 'list' || viewState.type === 'dashboard';
 
     return (
         <div className="h-screen w-screen flex antialiased text-slate-700 relative">
@@ -359,9 +357,12 @@ const App: React.FC = () => {
                 <ContactList
                     contacts={appState.contacts}
                     selectedContactId={selectedContactId}
+                    currentView={viewState.type}
                     onSelectContact={(id) => setViewState({ type: 'detail', id })}
                     onNewContact={() => setViewState({ type: 'new_form' })}
                     onGoToSettings={() => setViewState({ type: 'settings' })}
+                    onGoToDashboard={() => setViewState({ type: 'dashboard' })}
+                    onGoToList={() => setViewState(appState.contacts.length > 0 ? { type: 'detail', id: appState.contacts[0].id } : { type: 'list' })}
                 />
             </div>
             <main className={`flex-grow bg-white ${!showListOnMobile ? 'block' : 'hidden md:block'}`}>
