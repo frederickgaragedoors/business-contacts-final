@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Contact, ViewState, DefaultFieldSetting, FileAttachment, JobTicket } from './types.ts';
+import { Contact, ViewState, DefaultFieldSetting, FileAttachment, JobTicket, BusinessInfo } from './types.ts';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
 import ContactDetail from './components/ContactDetail.tsx';
 import ContactForm from './components/ContactForm.tsx';
 import Settings from './components/Settings.tsx';
 import Dashboard from './components/Dashboard.tsx';
+import InvoiceView from './components/InvoiceView.tsx';
 import { UserCircleIcon } from './components/icons.tsx';
 import { generateId } from './utils.ts';
 
@@ -58,13 +59,22 @@ const initialDefaultFields: DefaultFieldSetting[] = [
     { id: 'df2', label: 'Job Title' },
 ];
 
+const initialBusinessInfo: BusinessInfo = {
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    logoUrl: '',
+};
+
 interface AppState {
     contacts: Contact[];
     defaultFields: DefaultFieldSetting[];
+    businessInfo: BusinessInfo;
     autoBackupEnabled: boolean;
     lastAutoBackup: {
         timestamp: string; // ISO string
-        data: string;      // JSON string of contacts and defaultFields
+        data: string;      // JSON string of all app state
     } | null;
 }
 
@@ -93,6 +103,7 @@ const App: React.FC = () => {
             return {
                 contacts: parsed.contacts || initialContacts,
                 defaultFields: parsed.defaultFields || initialDefaultFields,
+                businessInfo: parsed.businessInfo || initialBusinessInfo,
                 autoBackupEnabled: parsed.autoBackupEnabled || false,
                 lastAutoBackup: parsed.lastAutoBackup || null,
             };
@@ -100,6 +111,7 @@ const App: React.FC = () => {
         return {
             contacts: initialContacts,
             defaultFields: initialDefaultFields,
+            businessInfo: initialBusinessInfo,
             autoBackupEnabled: false,
             lastAutoBackup: null,
         };
@@ -118,6 +130,7 @@ const App: React.FC = () => {
             const backupData = {
                 contacts: appState.contacts,
                 defaultFields: appState.defaultFields,
+                businessInfo: appState.businessInfo,
             };
             const newBackup = {
                 timestamp: new Date().toISOString(),
@@ -130,8 +143,12 @@ const App: React.FC = () => {
              // Also save to sessionStorage for recovery
             sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
-    }, [appState.contacts, appState.defaultFields, appState.autoBackupEnabled]);
+    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled]);
 
+    const updateBusinessInfo = (info: BusinessInfo) => {
+        setAppState(current => ({ ...current, businessInfo: info }));
+        alert('Business information saved!');
+    };
 
     const addContact = (contactData: Omit<Contact, 'id'>) => {
         const newContact: Contact = {
@@ -215,6 +232,7 @@ const App: React.FC = () => {
                         ...current,
                         contacts: backupData.contacts,
                         defaultFields: backupData.defaultFields,
+                        businessInfo: backupData.businessInfo || initialBusinessInfo, // Restore business info
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
@@ -252,8 +270,9 @@ const App: React.FC = () => {
     };
 
     const selectedContact = useMemo(() => {
-        if (viewState.type === 'detail' || viewState.type === 'edit_form') {
-            return appState.contacts.find(c => c.id === viewState.id);
+        if (viewState.type === 'detail' || viewState.type === 'edit_form' || viewState.type === 'invoice') {
+            const id = viewState.type === 'invoice' ? viewState.contactId : viewState.id;
+            return appState.contacts.find(c => c.id === id);
         }
         return undefined;
     }, [viewState, appState.contacts]);
@@ -266,8 +285,6 @@ const App: React.FC = () => {
     }, [viewState]);
 
     const renderMainContent = () => {
-        // Main content view is determined by what's NOT the contact list panel on mobile.
-        // On desktop, it's determined by the viewState type.
         switch (viewState.type) {
             case 'dashboard':
                  return <Dashboard 
@@ -275,32 +292,31 @@ const App: React.FC = () => {
                     onSelectContact={(id) => setViewState({ type: 'detail', id })}
                  />;
             case 'list':
-                 // When the view is 'list', the main panel shows a welcome message or the first contact on desktop.
                 if (window.innerWidth >= 768 && appState.contacts.length > 0) {
-                     if (!selectedContactId || !appState.contacts.some(c => c.id === selectedContactId)) {
+                     const listSelectedId = viewState.type === 'detail' ? viewState.id : selectedContactId;
+                     if (!listSelectedId || !appState.contacts.some(c => c.id === listSelectedId)) {
                         setViewState({ type: 'detail', id: appState.contacts[0].id });
+                        return null;
                      }
-                     // If a contact is selected, show it. This happens after the state update above.
-                     const contactToShow = appState.contacts.find(c => c.id === selectedContactId) || appState.contacts[0];
-                     if (contactToShow) {
-                         return (
-                            <ContactDetail
-                                contact={contactToShow}
-                                defaultFields={appState.defaultFields}
-                                onEdit={() => setViewState({ type: 'edit_form', id: contactToShow.id })}
-                                onDelete={() => deleteContact(contactToShow.id)}
-                                onClose={() => setViewState({ type: 'list' })}
-                                addFilesToContact={addFilesToContact}
-                                updateContactJobTickets={updateContactJobTickets}
-                            />
-                        );
-                     }
+                     const contactToShow = appState.contacts.find(c => c.id === listSelectedId) || appState.contacts[0];
+                      return (
+                        <ContactDetail
+                            contact={contactToShow}
+                            defaultFields={appState.defaultFields}
+                            onEdit={() => setViewState({ type: 'edit_form', id: contactToShow.id })}
+                            onDelete={() => deleteContact(contactToShow.id)}
+                            onClose={() => setViewState({ type: 'list' })}
+                            addFilesToContact={addFilesToContact}
+                            updateContactJobTickets={updateContactJobTickets}
+                            onViewInvoice={(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId })}
+                        />
+                    );
                 }
                 return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
 
             case 'detail':
                 if (!selectedContact) {
-                    setViewState({ type: 'dashboard' }); // Default to dashboard if contact not found
+                    setViewState({ type: 'dashboard' });
                     return null;
                 }
                 return (
@@ -312,13 +328,14 @@ const App: React.FC = () => {
                         onClose={() => setViewState({ type: 'list' })}
                         addFilesToContact={addFilesToContact}
                         updateContactJobTickets={updateContactJobTickets}
+                        onViewInvoice={(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId })}
                     />
                 );
             case 'new_form':
                 return (
                     <ContactForm
                         onSave={addContact}
-                        onCancel={() => appState.contacts.length > 0 ? setViewState({ type: 'detail', id: appState.contacts[0].id }) : setViewState({type: 'list'})}
+                        onCancel={() => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'list'})}
                         defaultFields={appState.defaultFields}
                     />
                 );
@@ -338,11 +355,28 @@ const App: React.FC = () => {
                         onAddDefaultField={addDefaultField}
                         onDeleteDefaultField={deleteDefaultField}
                         onBack={() => setViewState({ type: 'dashboard' })}
-                        appStateForBackup={{ contacts: appState.contacts, defaultFields: appState.defaultFields }}
+                        appStateForBackup={{ ...appState }}
                         autoBackupEnabled={appState.autoBackupEnabled}
                         onToggleAutoBackup={handleToggleAutoBackup}
                         lastAutoBackup={appState.lastAutoBackup}
                         onRestoreBackup={(content) => restoreData(content, false)}
+                        businessInfo={appState.businessInfo}
+                        onUpdateBusinessInfo={updateBusinessInfo}
+                    />
+                );
+            case 'invoice':
+                const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
+                const ticketForInvoice = contactForInvoice?.jobTickets.find(t => t.id === viewState.ticketId);
+                if (!contactForInvoice || !ticketForInvoice) {
+                    setViewState({ type: 'dashboard' });
+                    return null;
+                }
+                return (
+                    <InvoiceView 
+                        contact={contactForInvoice}
+                        ticket={ticketForInvoice}
+                        businessInfo={appState.businessInfo}
+                        onClose={() => setViewState({ type: 'detail', id: viewState.contactId })}
                     />
                 );
             default:
@@ -350,8 +384,7 @@ const App: React.FC = () => {
         }
     };
     
-    // On mobile, if the view is a detail type, the list should be hidden.
-    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard'].includes(viewState.type);
+    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice'].includes(viewState.type);
 
     return (
         <div className="h-screen w-screen flex flex-col antialiased text-slate-700 relative">
