@@ -16,9 +16,9 @@ const initialContacts = [
     photoUrl: 'https://picsum.photos/id/1027/200/200',
     files: [],
     customFields: [{id: 'cf1', label: 'Company', value: 'CorpNet Inc.'}],
-    workLogs: [
-        { id: 'wl1', date: '2023-10-15', description: 'Initial consultation and project scope definition.' },
-        { id: 'wl2', date: '2023-10-22', description: 'Completed phase 1 of the project deliverables.' },
+    jobTickets: [
+        { id: 'jt1', date: '2023-10-15', notes: 'Customer reported grinding noise when opening door. Inspected tracks and rollers.', status: 'Completed', parts: [], laborCost: 150 },
+        { id: 'jt2', date: '2023-10-22', notes: 'Replaced both torsion springs and lubricated all moving parts. Door is now operating smoothly.', status: 'Invoiced', parts: [{id: 'p1', name: 'Torsion Spring (x2)', cost: 120}], laborCost: 200 },
     ],
   },
   {
@@ -30,7 +30,7 @@ const initialContacts = [
     photoUrl: 'https://picsum.photos/id/1005/200/200',
     files: [],
     customFields: [{id: 'cf2', label: 'Company', value: 'Synergy Systems'}],
-    workLogs: [],
+    jobTickets: [],
   },
    {
     id: '3',
@@ -41,7 +41,7 @@ const initialContacts = [
     photoUrl: '',
     files: [],
     customFields: [{id: 'cf3', label: 'Company', value: 'Quantum Dynamics'}],
-    workLogs: [],
+    jobTickets: [],
   },
 ];
 
@@ -116,7 +116,7 @@ const App = () => {
         const newContact = {
             ...contactData,
             id: generateId(),
-            workLogs: [],
+            jobTickets: [],
         };
         setAppState(current => {
             const newContacts = [newContact, ...current.contacts];
@@ -144,11 +144,11 @@ const App = () => {
         }));
     };
   
-    const updateContactWorkLogs = (contactId, workLogs) => {
+    const updateContactJobTickets = (contactId, jobTickets) => {
         setAppState(current => ({
             ...current,
             contacts: current.contacts.map(c =>
-                c.id === contactId ? { ...c, workLogs } : c
+                c.id === contactId ? { ...c, jobTickets } : c
             )
         }));
     };
@@ -269,7 +269,7 @@ const App = () => {
                     onDelete: () => deleteContact(selectedContact.id),
                     onClose: () => setViewState({ type: 'list' }),
                     addFilesToContact: addFilesToContact,
-                    updateContactWorkLogs: updateContactWorkLogs,
+                    updateContactJobTickets: updateContactJobTickets,
                 });
             case 'new_form':
                 return React.createElement(ContactForm, {
