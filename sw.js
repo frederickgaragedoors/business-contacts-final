@@ -1,4 +1,4 @@
-const CACHE_NAME = 'business-contacts-v9-js'; // Incremented version
+const CACHE_NAME = 'business-contacts-v10-js'; // Incremented version
 const urlsToCache = [
   './',
   './index.html',
@@ -7,7 +7,7 @@ const urlsToCache = [
   './icons/icon.svg',
   './utils.js',
   './App.js',
-  './components/Header.js', // Added Header
+  './components/Header.js',
   './components/Dashboard.js',
   './components/ContactList.js',
   './components/ContactListItem.js',
@@ -16,6 +16,7 @@ const urlsToCache = [
   './components/Settings.js',
   './components/PhotoGalleryModal.js',
   './components/JobTicketModal.js',
+  './components/InvoiceView.js', // Added InvoiceView
   './components/icons.js',
   'https://cdn.tailwindcss.com'
 ];
@@ -47,7 +48,7 @@ self.addEventListener('fetch', event => {
         // Fetch from network if not in cache
         return fetch(event.request).then(networkResponse => {
           // A response must be valid to be cached
-          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          if (networkResponse && networkResponse.status === 200 && (networkResponse.type === 'basic' || event.request.url.startsWith('https://esm.sh'))) {
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
