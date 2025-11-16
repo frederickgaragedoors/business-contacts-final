@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import ContactListItem from './ContactListItem.js';
-import { PlusIcon, SettingsIcon, SearchIcon } from './icons.js';
+import { PlusIcon, SettingsIcon, SearchIcon, ClipboardListIcon, UsersIcon } from './icons.js';
 
-const ContactList = ({ contacts, selectedContactId, onSelectContact, onNewContact, onGoToSettings }) => {
+const ContactList = ({ contacts, selectedContactId, currentView, onSelectContact, onNewContact, onGoToSettings, onGoToDashboard, onGoToList }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredContacts = contacts.filter(contact =>
@@ -14,7 +14,24 @@ const ContactList = ({ contacts, selectedContactId, onSelectContact, onNewContac
   return (
     React.createElement("div", { className: "h-full bg-slate-50 border-r border-slate-200 flex flex-col" },
       React.createElement("div", { className: "p-4 border-b border-slate-200 flex justify-between items-center space-x-2" },
-        React.createElement("h1", { className: "text-2xl font-bold text-slate-800" }, "Contacts"),
+        React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 rounded-lg" },
+            React.createElement("button", {
+                onClick: onGoToDashboard,
+                className: `flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentView === 'dashboard' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:bg-slate-300'}`,
+                "aria-label": "Dashboard"
+            },
+                React.createElement(ClipboardListIcon, { className: "w-5 h-5" }),
+                React.createElement("span", null, "Dashboard")
+            ),
+            React.createElement("button", {
+                onClick: onGoToList,
+                className: `flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentView !== 'dashboard' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:bg-slate-300'}`,
+                "aria-label": "Contacts"
+            },
+                React.createElement(UsersIcon, { className: "w-5 h-5" }),
+                React.createElement("span", null, "Contacts")
+            )
+        ),
         React.createElement("div", { className: "flex items-center space-x-2" },
           React.createElement("button", {
             onClick: onGoToSettings,
