@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ClipboardListIcon } from './icons.js';
+import { ClipboardListIcon, UsersIcon } from './icons.js';
 
 const jobStatusColors = {
   Scheduled: { base: 'bg-sky-100', text: 'text-sky-800' },
@@ -9,7 +9,7 @@ const jobStatusColors = {
   Invoiced: { base: 'bg-slate-200', text: 'text-slate-700' },
 };
 
-const Dashboard = ({ contacts, onSelectContact }) => {
+const Dashboard = ({ contacts, onSelectContact, onGoToList }) => {
 
     const getLocalDateAsString = (date) => {
         const year = date.getFullYear();
@@ -92,7 +92,18 @@ const Dashboard = ({ contacts, onSelectContact }) => {
 
     return (
         React.createElement("div", { className: "h-full flex flex-col bg-slate-100 overflow-y-auto" },
-            React.createElement("div", { className: "p-6 border-b border-slate-200 bg-white" },
+            React.createElement("div", { className: "p-4 flex items-center justify-between md:hidden border-b border-slate-200 bg-white" },
+                React.createElement("h1", { className: "font-bold text-lg text-slate-700" }, "Dashboard"),
+                React.createElement("button", {
+                    onClick: onGoToList,
+                    className: "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200",
+                    "aria-label": "View Contacts"
+                },
+                    React.createElement(UsersIcon, { className: "w-5 h-5" }),
+                    React.createElement("span", null, "Contacts")
+                )
+            ),
+            React.createElement("div", { className: "p-6 border-b border-slate-200 bg-white hidden md:block" },
                 React.createElement("h1", { className: "text-3xl font-bold text-slate-800" }, "Jobs Dashboard"),
                 React.createElement("p", { className: "mt-1 text-slate-500" }, "A summary of your active jobs.")
             ),
