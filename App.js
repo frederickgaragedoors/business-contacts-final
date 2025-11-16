@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import Header from './components/Header.js';
 import ContactList from './components/ContactList.js';
 import ContactDetail from './components/ContactDetail.js';
 import ContactForm from './components/ContactForm.js';
@@ -246,27 +247,35 @@ const App = () => {
         return null;
     }, [viewState]);
 
-    const renderRightPanel = () => {
+    const renderMainContent = () => {
         switch (viewState.type) {
             case 'dashboard':
                  return React.createElement(Dashboard, { 
                     contacts: appState.contacts, 
                     onSelectContact: (id) => setViewState({ type: 'detail', id }),
-                    onGoToList: () => setViewState({ type: 'list' })
                 });
             case 'list':
                 if (window.innerWidth >= 768 && appState.contacts.length > 0) {
                      if (!selectedContactId || !appState.contacts.some(c => c.id === selectedContactId)) {
                         setViewState({ type: 'detail', id: appState.contacts[0].id });
                      }
-                }
-                if (appState.contacts.length === 0) {
-                    return React.createElement(WelcomeMessage, { onNewContact: () => setViewState({ type: 'new_form' }) });
+                     const contactToShow = appState.contacts.find(c => c.id === selectedContactId) || appState.contacts[0];
+                     if (contactToShow) {
+                         return React.createElement(ContactDetail, {
+                            contact: contactToShow,
+                            defaultFields: appState.defaultFields,
+                            onEdit: () => setViewState({ type: 'edit_form', id: contactToShow.id }),
+                            onDelete: () => deleteContact(contactToShow.id),
+                            onClose: () => setViewState({ type: 'list' }),
+                            addFilesToContact: addFilesToContact,
+                            updateContactJobTickets: updateContactJobTickets,
+                        });
+                     }
                 }
                 return React.createElement(WelcomeMessage, { onNewContact: () => setViewState({ type: 'new_form' }) });
             case 'detail':
                 if (!selectedContact) {
-                    setViewState({ type: 'list' });
+                    setViewState({ type: 'dashboard' });
                     return null;
                 }
                 return React.createElement(ContactDetail, {
@@ -281,7 +290,7 @@ const App = () => {
             case 'new_form':
                 return React.createElement(ContactForm, {
                     onSave: addContact,
-                    onCancel: () => setViewState({ type: 'list' }),
+                    onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'detail', id: appState.contacts[0].id }) : setViewState({type: 'list'}),
                     defaultFields: appState.defaultFields,
                 });
             case 'edit_form':
@@ -308,7 +317,9 @@ const App = () => {
         }
     };
   
-    return React.createElement("div", { className: "h-screen w-screen flex antialiased text-slate-700 relative" },
+    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard'].includes(viewState.type);
+
+    return React.createElement("div", { className: "h-screen w-screen flex flex-col antialiased text-slate-700 relative" },
         recoveryBackup && (
             React.createElement("div", { className: "absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg" },
                 React.createElement("div", null,
@@ -329,20 +340,26 @@ const App = () => {
                 )
             )
         ),
-        React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${viewState.type === 'list' ? 'block' : 'hidden md:block'}` },
-            React.createElement(ContactList, {
-                contacts: appState.contacts,
-                selectedContactId: selectedContactId,
-                currentView: viewState.type,
-                onSelectContact: (id) => setViewState({ type: 'detail', id }),
-                onNewContact: () => setViewState({ type: 'new_form' }),
-                onGoToSettings: () => setViewState({ type: 'settings' }),
-                onGoToDashboard: () => setViewState({ type: 'dashboard' }),
-                onGoToList: () => setViewState({ type: 'list' }),
-            })
-        ),
-        React.createElement("main", { className: `flex-grow bg-white ${viewState.type !== 'list' ? 'block' : 'hidden md:block'}` },
-            renderRightPanel()
+
+        React.createElement(Header, {
+            currentView: viewState.type,
+            onNewContact: () => setViewState({ type: 'new_form' }),
+            onGoToSettings: () => setViewState({ type: 'settings' }),
+            onGoToDashboard: () => setViewState({ type: 'dashboard' }),
+            onGoToList: () => setViewState({ type: 'list' }),
+        }),
+
+        React.createElement("div", { className: "flex flex-grow h-0" },
+            React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'}` },
+                React.createElement(ContactList, {
+                    contacts: appState.contacts,
+                    selectedContactId: selectedContactId,
+                    onSelectContact: (id) => setViewState({ type: 'detail', id }),
+                })
+            ),
+            React.createElement("main", { className: `flex-grow bg-white h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'}` },
+                renderMainContent()
+            )
         )
     );
 };
