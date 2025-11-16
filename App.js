@@ -3,6 +3,7 @@ import ContactList from './components/ContactList.js';
 import ContactDetail from './components/ContactDetail.js';
 import ContactForm from './components/ContactForm.js';
 import Settings from './components/Settings.js';
+import Dashboard from './components/Dashboard.js';
 import { UserCircleIcon } from './components/icons.js';
 import { generateId } from './utils.js';
 
@@ -17,8 +18,9 @@ const initialContacts = [
     files: [],
     customFields: [{id: 'cf1', label: 'Company', value: 'CorpNet Inc.'}],
     jobTickets: [
-        { id: 'jt1', date: '2023-10-15', notes: 'Customer reported grinding noise when opening door. Inspected tracks and rollers.', status: 'Completed', parts: [], laborCost: 150 },
+        { id: 'jt1', date: '2024-07-15', notes: 'Customer reported grinding noise when opening door. Inspected tracks and rollers.', status: 'Scheduled', parts: [], laborCost: 150 },
         { id: 'jt2', date: '2023-10-22', notes: 'Replaced both torsion springs and lubricated all moving parts. Door is now operating smoothly.', status: 'Invoiced', parts: [{id: 'p1', name: 'Torsion Spring (x2)', cost: 120}], laborCost: 200 },
+        { id: 'jt3', date: '2024-06-01', notes: 'Needs new logic board for opener. Part ordered.', status: 'Awaiting Parts', parts: [], laborCost: 75 },
     ],
   },
   {
@@ -30,7 +32,9 @@ const initialContacts = [
     photoUrl: 'https://picsum.photos/id/1005/200/200',
     files: [],
     customFields: [{id: 'cf2', label: 'Company', value: 'Synergy Systems'}],
-    jobTickets: [],
+    jobTickets: [
+        { id: 'jt4', date: '2024-08-01', notes: 'Scheduled annual maintenance.', status: 'Scheduled', parts: [], laborCost: 90 }
+    ],
   },
    {
     id: '3',
@@ -41,7 +45,9 @@ const initialContacts = [
     photoUrl: '',
     files: [],
     customFields: [{id: 'cf3', label: 'Company', value: 'Quantum Dynamics'}],
-    jobTickets: [],
+    jobTickets: [
+        { id: 'jt5', date: '2024-07-20', notes: 'Install new smart garage opener.', status: 'In Progress', parts: [{id: 'p2', name: 'Smart Opener', cost: 350}], laborCost: 150}
+    ],
   },
 ];
 
@@ -84,11 +90,7 @@ const App = () => {
         };
     });
 
-    const [viewState, setViewState] = useState(() => {
-        const savedData = localStorage.getItem(APP_STORAGE_KEY);
-        const contacts = savedData ? JSON.parse(savedData).contacts : initialContacts;
-        return contacts.length > 0 ? { type: 'detail', id: contacts[0].id } : { type: 'list' };
-    });
+    const [viewState, setViewState] = useState({ type: 'dashboard' });
 
     useEffect(() => {
         localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
@@ -159,11 +161,7 @@ const App = () => {
             setAppState(current => ({ ...current, contacts: remainingContacts }));
             
             if ((viewState.type === 'detail' || viewState.type === 'edit_form') && viewState.id === id) {
-                if (remainingContacts.length > 0) {
-                    setViewState({ type: 'detail', id: remainingContacts[0].id });
-                } else {
-                    setViewState({ type: 'list' });
-                }
+                 setViewState({ type: 'dashboard' });
             }
         }
     };
@@ -200,11 +198,7 @@ const App = () => {
                         defaultFields: backupData.defaultFields,
                     }));
                     if (!silent) alert('Backup restored successfully!');
-                    if (backupData.contacts.length > 0) {
-                        setViewState({ type: 'detail', id: backupData.contacts[0].id });
-                    } else {
-                        setViewState({ type: 'list' });
-                    }
+                    setViewState({ type: 'dashboard' });
                 };
 
                 if (silent || window.confirm('Are you sure you want to restore this backup? This will overwrite all current data.')) {
@@ -254,27 +248,26 @@ const App = () => {
 
     const renderRightPanel = () => {
         switch (viewState.type) {
+            case 'dashboard':
+                 return React.createElement(Dashboard, { contacts: appState.contacts, onSelectContact: (id) => setViewState({ type: 'detail', id }) });
             case 'detail':
                 if (!selectedContact) {
-                    if (appState.contacts.length > 0) {
-                        setViewState({ type: 'detail', id: appState.contacts[0].id });
-                        return null;
-                    }
-                    return React.createElement(WelcomeMessage, null);
+                    setViewState({ type: 'dashboard' });
+                    return null;
                 }
                 return React.createElement(ContactDetail, {
                     contact: selectedContact,
                     defaultFields: appState.defaultFields,
                     onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }),
                     onDelete: () => deleteContact(selectedContact.id),
-                    onClose: () => setViewState({ type: 'list' }),
+                    onClose: () => setViewState({ type: 'dashboard' }),
                     addFilesToContact: addFilesToContact,
                     updateContactJobTickets: updateContactJobTickets,
                 });
             case 'new_form':
                 return React.createElement(ContactForm, {
                     onSave: addContact,
-                    onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'detail', id: appState.contacts[0].id }) : setViewState({ type: 'list' }),
+                    onCancel: () => setViewState({ type: 'dashboard' }),
                     defaultFields: appState.defaultFields,
                 });
             case 'edit_form':
@@ -289,19 +282,23 @@ const App = () => {
                     defaultFields: appState.defaultFields,
                     onAddDefaultField: addDefaultField,
                     onDeleteDefaultField: deleteDefaultField,
-                    onBack: () => appState.contacts.length > 0 ? setViewState({ type: 'detail', id: appState.contacts[0].id }) : setViewState({ type: 'list' }),
+                    onBack: () => setViewState({ type: 'dashboard' }),
                     appStateForBackup: { contacts: appState.contacts, defaultFields: appState.defaultFields },
                     autoBackupEnabled: appState.autoBackupEnabled,
                     onToggleAutoBackup: handleToggleAutoBackup,
                     lastAutoBackup: appState.lastAutoBackup,
                     onRestoreBackup: (content) => restoreData(content, false),
                 });
-            default:
+            default: // Catches 'list' and any other case
+                if (appState.contacts.length > 0) {
+                     setViewState({ type: 'detail', id: appState.contacts[0].id });
+                     return null;
+                }
                 return React.createElement(WelcomeMessage, null);
         }
     };
   
-    const showListOnMobile = viewState.type === 'list';
+    const showListOnMobile = viewState.type === 'list' || viewState.type === 'dashboard';
 
     return React.createElement("div", { className: "h-screen w-screen flex antialiased text-slate-700 relative" },
         recoveryBackup && (
@@ -328,9 +325,12 @@ const App = () => {
             React.createElement(ContactList, {
                 contacts: appState.contacts,
                 selectedContactId: selectedContactId,
+                currentView: viewState.type,
                 onSelectContact: (id) => setViewState({ type: 'detail', id }),
                 onNewContact: () => setViewState({ type: 'new_form' }),
                 onGoToSettings: () => setViewState({ type: 'settings' }),
+                onGoToDashboard: () => setViewState({ type: 'dashboard' }),
+                onGoToList: () => setViewState(appState.contacts.length > 0 ? { type: 'detail', id: appState.contacts[0].id } : { type: 'list' }),
             })
         ),
         React.createElement("main", { className: `flex-grow bg-white ${!showListOnMobile ? 'block' : 'hidden md:block'}` },
