@@ -5,6 +5,7 @@ import ContactDetail from './components/ContactDetail.js';
 import ContactForm from './components/ContactForm.js';
 import Settings from './components/Settings.js';
 import Dashboard from './components/Dashboard.js';
+import InvoiceView from './components/InvoiceView.js';
 import { UserCircleIcon } from './components/icons.js';
 import { generateId } from './utils.js';
 
@@ -57,6 +58,14 @@ const initialDefaultFields = [
     { id: 'df2', label: 'Job Title' },
 ];
 
+const initialBusinessInfo = {
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    logoUrl: '',
+};
+
 const APP_STORAGE_KEY = 'businessContactsApp';
 const RECOVERY_STORAGE_KEY = 'businessContactsRecoveryBackup';
 
@@ -79,6 +88,7 @@ const App = () => {
             return {
                 contacts: parsed.contacts || initialContacts,
                 defaultFields: parsed.defaultFields || initialDefaultFields,
+                businessInfo: parsed.businessInfo || initialBusinessInfo,
                 autoBackupEnabled: parsed.autoBackupEnabled || false,
                 lastAutoBackup: parsed.lastAutoBackup || null,
             };
@@ -86,6 +96,7 @@ const App = () => {
         return {
             contacts: initialContacts,
             defaultFields: initialDefaultFields,
+            businessInfo: initialBusinessInfo,
             autoBackupEnabled: false,
             lastAutoBackup: null,
         };
@@ -102,6 +113,7 @@ const App = () => {
             const backupData = {
                 contacts: appState.contacts,
                 defaultFields: appState.defaultFields,
+                businessInfo: appState.businessInfo,
             };
             const newBackup = {
                 timestamp: new Date().toISOString(),
@@ -113,8 +125,13 @@ const App = () => {
             }));
             sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
-    }, [appState.contacts, appState.defaultFields, appState.autoBackupEnabled]);
+    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled]);
 
+    const updateBusinessInfo = (info) => {
+        setAppState(current => ({ ...current, businessInfo: info }));
+        alert('Business information saved!');
+    };
+    
     const addContact = (contactData) => {
         const newContact = {
             ...contactData,
@@ -197,6 +214,7 @@ const App = () => {
                         ...current,
                         contacts: backupData.contacts,
                         defaultFields: backupData.defaultFields,
+                        businessInfo: backupData.businessInfo || initialBusinessInfo,
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
@@ -234,8 +252,9 @@ const App = () => {
     };
 
     const selectedContact = useMemo(() => {
-        if (viewState.type === 'detail' || viewState.type === 'edit_form') {
-            return appState.contacts.find(c => c.id === viewState.id);
+        if (viewState.type === 'detail' || viewState.type === 'edit_form' || viewState.type === 'invoice') {
+            const id = viewState.type === 'invoice' ? viewState.contactId : viewState.id;
+            return appState.contacts.find(c => c.id === id);
         }
         return undefined;
     }, [viewState, appState.contacts]);
@@ -256,21 +275,22 @@ const App = () => {
                 });
             case 'list':
                 if (window.innerWidth >= 768 && appState.contacts.length > 0) {
-                     if (!selectedContactId || !appState.contacts.some(c => c.id === selectedContactId)) {
+                     const listSelectedId = viewState.type === 'detail' ? viewState.id : selectedContactId;
+                     if (!listSelectedId || !appState.contacts.some(c => c.id === listSelectedId)) {
                         setViewState({ type: 'detail', id: appState.contacts[0].id });
+                        return null;
                      }
-                     const contactToShow = appState.contacts.find(c => c.id === selectedContactId) || appState.contacts[0];
-                     if (contactToShow) {
-                         return React.createElement(ContactDetail, {
-                            contact: contactToShow,
-                            defaultFields: appState.defaultFields,
-                            onEdit: () => setViewState({ type: 'edit_form', id: contactToShow.id }),
-                            onDelete: () => deleteContact(contactToShow.id),
-                            onClose: () => setViewState({ type: 'list' }),
-                            addFilesToContact: addFilesToContact,
-                            updateContactJobTickets: updateContactJobTickets,
-                        });
-                     }
+                     const contactToShow = appState.contacts.find(c => c.id === listSelectedId) || appState.contacts[0];
+                     return React.createElement(ContactDetail, {
+                        contact: contactToShow,
+                        defaultFields: appState.defaultFields,
+                        onEdit: () => setViewState({ type: 'edit_form', id: contactToShow.id }),
+                        onDelete: () => deleteContact(contactToShow.id),
+                        onClose: () => setViewState({ type: 'list' }),
+                        addFilesToContact: addFilesToContact,
+                        updateContactJobTickets: updateContactJobTickets,
+                        onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }),
+                    });
                 }
                 return React.createElement(WelcomeMessage, { onNewContact: () => setViewState({ type: 'new_form' }) });
             case 'detail':
@@ -286,11 +306,12 @@ const App = () => {
                     onClose: () => setViewState({ type: 'list' }),
                     addFilesToContact: addFilesToContact,
                     updateContactJobTickets: updateContactJobTickets,
+                    onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }),
                 });
             case 'new_form':
                 return React.createElement(ContactForm, {
                     onSave: addContact,
-                    onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'detail', id: appState.contacts[0].id }) : setViewState({type: 'list'}),
+                    onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'list'}),
                     defaultFields: appState.defaultFields,
                 });
             case 'edit_form':
@@ -306,18 +327,33 @@ const App = () => {
                     onAddDefaultField: addDefaultField,
                     onDeleteDefaultField: deleteDefaultField,
                     onBack: () => setViewState({ type: 'dashboard' }),
-                    appStateForBackup: { contacts: appState.contacts, defaultFields: appState.defaultFields },
+                    appStateForBackup: { ...appState },
                     autoBackupEnabled: appState.autoBackupEnabled,
                     onToggleAutoBackup: handleToggleAutoBackup,
                     lastAutoBackup: appState.lastAutoBackup,
                     onRestoreBackup: (content) => restoreData(content, false),
+                    businessInfo: appState.businessInfo,
+                    onUpdateBusinessInfo: updateBusinessInfo,
+                });
+            case 'invoice':
+                const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
+                const ticketForInvoice = contactForInvoice?.jobTickets.find(t => t.id === viewState.ticketId);
+                if (!contactForInvoice || !ticketForInvoice) {
+                    setViewState({ type: 'dashboard' });
+                    return null;
+                }
+                return React.createElement(InvoiceView, {
+                    contact: contactForInvoice,
+                    ticket: ticketForInvoice,
+                    businessInfo: appState.businessInfo,
+                    onClose: () => setViewState({ type: 'detail', id: viewState.contactId }),
                 });
             default:
                 return React.createElement(WelcomeMessage, { onNewContact: () => setViewState({ type: 'new_form' }) });
         }
     };
   
-    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard'].includes(viewState.type);
+    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice'].includes(viewState.type);
 
     return React.createElement("div", { className: "h-screen w-screen flex flex-col antialiased text-slate-700 relative" },
         recoveryBackup && (
