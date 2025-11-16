@@ -51,8 +51,20 @@ const initialDefaultFields = [
 ];
 
 const APP_STORAGE_KEY = 'businessContactsApp';
+const RECOVERY_STORAGE_KEY = 'businessContactsRecoveryBackup';
 
 const App = () => {
+    const [recoveryBackup, setRecoveryBackup] = useState(() => {
+        const savedDataString = localStorage.getItem(APP_STORAGE_KEY);
+        if (!savedDataString) {
+            const recoveryDataString = sessionStorage.getItem(RECOVERY_STORAGE_KEY);
+            if (recoveryDataString) {
+                return JSON.parse(recoveryDataString);
+            }
+        }
+        return null;
+    });
+
     const [appState, setAppState] = useState(() => {
         const savedData = localStorage.getItem(APP_STORAGE_KEY);
         if (savedData) {
@@ -88,13 +100,15 @@ const App = () => {
                 contacts: appState.contacts,
                 defaultFields: appState.defaultFields,
             };
+            const newBackup = {
+                timestamp: new Date().toISOString(),
+                data: JSON.stringify(backupData),
+            };
             setAppState(current => ({
                 ...current,
-                lastAutoBackup: {
-                    timestamp: new Date().toISOString(),
-                    data: JSON.stringify(backupData),
-                }
+                lastAutoBackup: newBackup
             }));
+            sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
     }, [appState.contacts, appState.defaultFields, appState.autoBackupEnabled]);
 
@@ -175,30 +189,53 @@ const App = () => {
         setAppState(current => ({ ...current, autoBackupEnabled: enabled }));
     };
 
-    const handleRestoreBackup = (fileContent) => {
+    const restoreData = (fileContent, silent = false) => {
         try {
             const backupData = JSON.parse(fileContent);
             if (backupData.contacts && Array.isArray(backupData.contacts) && backupData.defaultFields && Array.isArray(backupData.defaultFields)) {
-                if (window.confirm('Are you sure you want to restore this backup? This will overwrite all current data.')) {
+                 const performRestore = () => {
                     setAppState(current => ({
                         ...current,
                         contacts: backupData.contacts,
                         defaultFields: backupData.defaultFields,
                     }));
-                    alert('Backup restored successfully!');
+                    if (!silent) alert('Backup restored successfully!');
                     if (backupData.contacts.length > 0) {
                         setViewState({ type: 'detail', id: backupData.contacts[0].id });
                     } else {
                         setViewState({ type: 'list' });
                     }
+                };
+
+                if (silent || window.confirm('Are you sure you want to restore this backup? This will overwrite all current data.')) {
+                    performRestore();
+                    return true;
                 }
             } else {
-                alert('Invalid backup file format.');
+                if (!silent) alert('Invalid backup file format.');
             }
         } catch (error) {
-            alert('Failed to read or parse the backup file.');
+            if (!silent) alert('Failed to read or parse the backup file.');
             console.error("Backup restore error:", error);
         }
+        return false;
+    };
+    
+    const handleAcceptRecovery = () => {
+        if (recoveryBackup) {
+            if (restoreData(recoveryBackup.data, true)) { // Silent restore
+                setRecoveryBackup(null);
+                sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
+            } else {
+                alert('Could not restore the automatic backup. It may be corrupted.');
+                handleDismissRecovery();
+            }
+        }
+    };
+
+    const handleDismissRecovery = () => {
+        setRecoveryBackup(null);
+        sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
     };
 
     const selectedContact = useMemo(() => {
@@ -257,7 +294,7 @@ const App = () => {
                     autoBackupEnabled: appState.autoBackupEnabled,
                     onToggleAutoBackup: handleToggleAutoBackup,
                     lastAutoBackup: appState.lastAutoBackup,
-                    onRestoreBackup: handleRestoreBackup,
+                    onRestoreBackup: (content) => restoreData(content, false),
                 });
             default:
                 return React.createElement(WelcomeMessage, null);
@@ -266,7 +303,27 @@ const App = () => {
   
     const showListOnMobile = viewState.type === 'list';
 
-    return React.createElement("div", { className: "h-screen w-screen flex antialiased text-slate-700" },
+    return React.createElement("div", { className: "h-screen w-screen flex antialiased text-slate-700 relative" },
+        recoveryBackup && (
+            React.createElement("div", { className: "absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg" },
+                React.createElement("div", null,
+                    React.createElement("p", { className: "font-bold text-yellow-800" }, "Data Recovery"),
+                    React.createElement("p", { className: "text-sm text-yellow-700" },
+                        `We found an automatic backup from ${new Date(recoveryBackup.timestamp).toLocaleString()}. Would you like to restore it?`
+                    )
+                ),
+                React.createElement("div", { className: "flex space-x-2 flex-shrink-0 ml-4" },
+                    React.createElement("button", {
+                        onClick: handleAcceptRecovery,
+                        className: "px-3 py-1 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
+                    }, "Restore"),
+                    React.createElement("button", {
+                        onClick: handleDismissRecovery,
+                        className: "px-3 py-1 rounded-md text-sm font-medium text-slate-700 bg-slate-200 hover:bg-slate-300 transition-colors"
+                    }, "Dismiss")
+                )
+            )
+        ),
         React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${showListOnMobile ? 'block' : 'hidden md:block'}` },
             React.createElement(ContactList, {
                 contacts: appState.contacts,
