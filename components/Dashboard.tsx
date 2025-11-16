@@ -30,7 +30,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
     const jobsAwaitingParts = useMemo(() => {
         return allJobs
             .filter(job => job.status === 'Awaiting Parts')
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            .sort((a, b) => a.date.localeCompare(b.date)); // Use string compare for robust sorting
     }, [allJobs]);
     
     const todaysJobs = useMemo(() => {
@@ -40,19 +40,20 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
                 (job.status === 'Scheduled' || job.status === 'In Progress') &&
                 job.date === todayStr
             )
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            .sort((a, b) => a.date.localeCompare(b.date)); // Use string compare for robust sorting
     }, [allJobs, today]);
 
     const upcomingJobs = useMemo(() => {
         const tomorrow = new Date(today);
         tomorrow.setDate(today.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
         return allJobs
             .filter(job => 
                 job.status === 'Scheduled' &&
-                new Date(job.date).getTime() >= tomorrow.getTime()
+                job.date >= tomorrowStr // Use string comparison to avoid timezone issues
             )
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            .sort((a, b) => a.date.localeCompare(b.date)); // Use string compare for robust sorting
     }, [allJobs, today]);
 
     const JobCard: React.FC<{ job: JobWithContact }> = ({ job }) => {
