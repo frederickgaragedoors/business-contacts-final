@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { Contact, FileAttachment, DefaultFieldSetting, WorkLogEntry } from '../types.ts';
+import { Contact, FileAttachment, DefaultFieldSetting, JobTicket, jobStatusColors } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
-import WorkLogModal from './WorkLogModal.tsx';
+import JobTicketModal from './JobTicketModal.tsx';
 import {
   PhoneIcon,
   MailIcon,
@@ -26,7 +26,7 @@ interface ContactDetailProps {
   onDelete: () => void;
   onClose: () => void;
   addFilesToContact: (contactId: string, files: FileAttachment[]) => void;
-  updateContactWorkLogs: (contactId: string, workLogs: WorkLogEntry[]) => void;
+  updateContactJobTickets: (contactId: string, jobTickets: JobTicket[]) => void;
 }
 
 const VIEWABLE_MIME_TYPES = [
@@ -38,12 +38,12 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactWorkLogs }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
-    const [isWorkLogModalOpen, setIsWorkLogModalOpen] = useState(false);
-    const [editingWorkLog, setEditingWorkLog] = useState<WorkLogEntry | null>(null);
+    const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
+    const [editingJobTicket, setEditingJobTicket] = useState<JobTicket | null>(null);
 
     const imageUploadRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -106,31 +106,38 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
         setIsGalleryOpen(true);
     };
 
-    const handleSaveWorkLog = (entry: Omit<WorkLogEntry, 'id'> & { id?: string }) => {
-        let updatedLogs;
+    const handleSaveJobTicket = (entry: Omit<JobTicket, 'id'> & { id?: string }) => {
+        let updatedTickets;
         if (entry.id) {
             // Editing existing entry
-            updatedLogs = contact.workLogs.map(log => log.id === entry.id ? { ...log, date: entry.date, description: entry.description } : log);
+            updatedTickets = contact.jobTickets.map(ticket => ticket.id === entry.id ? { ...ticket, ...entry } : ticket);
         } else {
             // Adding new entry
-            const newLog: WorkLogEntry = { id: generateId(), date: entry.date, description: entry.description };
-            updatedLogs = [newLog, ...contact.workLogs];
+            const newTicket: JobTicket = { 
+                id: generateId(), 
+                date: entry.date, 
+                notes: entry.notes,
+                status: entry.status,
+                parts: entry.parts,
+                laborCost: entry.laborCost,
+            };
+            updatedTickets = [newTicket, ...contact.jobTickets];
         }
-        updateContactWorkLogs(contact.id, updatedLogs);
-        setIsWorkLogModalOpen(false);
-        setEditingWorkLog(null);
+        updateContactJobTickets(contact.id, updatedTickets);
+        setIsJobTicketModalOpen(false);
+        setEditingJobTicket(null);
     };
     
-    const handleDeleteWorkLog = (id: string) => {
-        if (window.confirm('Are you sure you want to delete this work log?')) {
-            const updatedLogs = contact.workLogs.filter(log => log.id !== id);
-            updateContactWorkLogs(contact.id, updatedLogs);
+    const handleDeleteJobTicket = (id: string) => {
+        if (window.confirm('Are you sure you want to delete this job ticket?')) {
+            const updatedTickets = contact.jobTickets.filter(ticket => ticket.id !== id);
+            updateContactJobTickets(contact.id, updatedTickets);
         }
     };
     
-    const sortedWorkLogs = useMemo(() => {
-        return [...contact.workLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [contact.workLogs]);
+    const sortedJobTickets = useMemo(() => {
+        return [...contact.jobTickets].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [contact.jobTickets]);
 
     return (
         <>
@@ -238,53 +245,65 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 </div>
             )}
             
-            {/* Work Done Section */}
+            {/* Jobs Section */}
             <div className="p-6 border-t border-slate-200">
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center">
                         <BriefcaseIcon className="w-5 h-5 text-slate-400" />
-                        <h2 className="ml-3 text-lg font-semibold text-slate-800">Work Done</h2>
+                        <h2 className="ml-3 text-lg font-semibold text-slate-800">Jobs</h2>
                     </div>
                     <button 
-                        onClick={() => { setEditingWorkLog(null); setIsWorkLogModalOpen(true); }}
+                        onClick={() => { setEditingJobTicket(null); setIsJobTicketModalOpen(true); }}
                         className="p-2 rounded-full text-slate-500 hover:bg-slate-200"
-                        aria-label="Log work done"
+                        aria-label="Add Job Ticket"
                     >
                         <PlusIcon className="w-5 h-5" />
                     </button>
                 </div>
-                {sortedWorkLogs.length > 0 ? (
+                {sortedJobTickets.length > 0 ? (
                     <ul className="space-y-4">
-                        {sortedWorkLogs.map(log => (
-                            <li key={log.id} className="p-4 bg-slate-50 rounded-lg">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-semibold text-slate-700">{new Date(log.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
-                                        <p className="mt-1 text-sm text-slate-600 whitespace-pre-wrap">{log.description}</p>
+                        {sortedJobTickets.map(ticket => {
+                             const totalCost = ticket.laborCost + ticket.parts.reduce((sum, part) => sum + part.cost, 0);
+                             const statusColor = jobStatusColors[ticket.status];
+                             return (
+                                <li key={ticket.id} className="p-4 bg-slate-50 rounded-lg">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="flex items-center gap-x-3">
+                                                <p className="font-semibold text-slate-700">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                                                    {ticket.status}
+                                                </span>
+                                            </div>
+                                            <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">{ticket.notes}</p>
+                                        </div>
+                                        <div className="text-right flex-shrink-0 ml-4">
+                                            <p className="font-bold text-lg text-slate-800">${totalCost.toFixed(2)}</p>
+                                             <div className="mt-2 space-x-1">
+                                                <button 
+                                                    onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
+                                                    className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full"
+                                                    aria-label="Edit job ticket"
+                                                >
+                                                    <EditIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteJobTicket(ticket.id)}
+                                                    className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full"
+                                                    aria-label="Delete job ticket"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex-shrink-0 ml-4 space-x-1">
-                                        <button 
-                                            onClick={() => { setEditingWorkLog(log); setIsWorkLogModalOpen(true); }}
-                                            className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full"
-                                            aria-label="Edit work log"
-                                        >
-                                            <EditIcon className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteWorkLog(log.id)}
-                                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full"
-                                            aria-label="Delete work log"
-                                        >
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
+                                </li>
+                             )
+                        })}
                     </ul>
                 ) : (
                     <div className="text-center text-slate-500 py-4">
-                        <p>No work has been logged for this contact.</p>
+                        <p>No jobs have been logged for this contact.</p>
                     </div>
                 )}
             </div>
@@ -386,11 +405,11 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 onClose={() => setIsGalleryOpen(false)}
             />
         )}
-        {isWorkLogModalOpen && (
-            <WorkLogModal
-                entry={editingWorkLog}
-                onSave={handleSaveWorkLog}
-                onClose={() => { setIsWorkLogModalOpen(false); setEditingWorkLog(null); }}
+        {isJobTicketModalOpen && (
+            <JobTicketModal
+                entry={editingJobTicket}
+                onSave={handleSaveJobTicket}
+                onClose={() => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); }}
             />
         )}
         </>
