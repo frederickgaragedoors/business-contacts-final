@@ -64,7 +64,7 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const finalFiles = [...files, ...stagedFiles];
-    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, workLogs: initialContact?.workLogs || [] });
+    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, jobTickets: initialContact?.jobTickets || [] });
   };
 
   return (
