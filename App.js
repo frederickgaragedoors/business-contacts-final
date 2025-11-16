@@ -298,7 +298,7 @@ const App = () => {
         }
     };
   
-    const showListOnMobile = viewState.type === 'list' || viewState.type === 'dashboard';
+    const showLeftPanelOnMobile = viewState.type === 'list';
 
     return React.createElement("div", { className: "h-screen w-screen flex antialiased text-slate-700 relative" },
         recoveryBackup && (
@@ -321,7 +321,7 @@ const App = () => {
                 )
             )
         ),
-        React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${showListOnMobile ? 'block' : 'hidden md:block'}` },
+        React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${showLeftPanelOnMobile ? 'block' : 'hidden md:block'}` },
             React.createElement(ContactList, {
                 contacts: appState.contacts,
                 selectedContactId: selectedContactId,
@@ -333,7 +333,7 @@ const App = () => {
                 onGoToList: () => setViewState(appState.contacts.length > 0 ? { type: 'detail', id: appState.contacts[0].id } : { type: 'list' }),
             })
         ),
-        React.createElement("main", { className: `flex-grow bg-white ${!showListOnMobile ? 'block' : 'hidden md:block'}` },
+        React.createElement("main", { className: `flex-grow bg-white ${!showLeftPanelOnMobile ? 'block' : 'hidden md:block'}` },
             renderRightPanel()
         )
     );
