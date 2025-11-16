@@ -179,7 +179,7 @@ const App: React.FC = () => {
             setAppState(current => ({ ...current, contacts: remainingContacts }));
             
             if ((viewState.type === 'detail' || viewState.type === 'edit_form') && viewState.id === id) {
-                 setViewState({ type: 'dashboard' });
+                 setViewState({ type: 'list' });
             }
         }
     };
@@ -267,11 +267,29 @@ const App: React.FC = () => {
     const renderRightPanel = () => {
         switch (viewState.type) {
             case 'dashboard':
-                 return <Dashboard contacts={appState.contacts} onSelectContact={(id) => setViewState({ type: 'detail', id })} />;
+                 return <Dashboard 
+                    contacts={appState.contacts} 
+                    onSelectContact={(id) => setViewState({ type: 'detail', id })}
+                    onGoToList={() => setViewState({ type: 'list' })}
+                 />;
+            case 'list':
+                // On desktop, if list is shown, auto-select first contact
+                if (window.innerWidth >= 768 && appState.contacts.length > 0) {
+                     if (!selectedContactId || !appState.contacts.some(c => c.id === selectedContactId)) {
+                        setViewState({ type: 'detail', id: appState.contacts[0].id });
+                     }
+                }
+                // On mobile, this will show a welcome message if no contact is selected yet after list is shown
+                if (appState.contacts.length === 0) {
+                    return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
+                }
+                // Fallback for mobile or empty desktop
+                return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
+
             case 'detail':
                 if (!selectedContact) {
                     // Fallback if contact is deleted or ID is invalid
-                    setViewState({ type: 'dashboard' });
+                    setViewState({ type: 'list' });
                     return null;
                 }
                 return (
@@ -280,7 +298,7 @@ const App: React.FC = () => {
                         defaultFields={appState.defaultFields}
                         onEdit={() => setViewState({ type: 'edit_form', id: selectedContact.id })}
                         onDelete={() => deleteContact(selectedContact.id)}
-                        onClose={() => setViewState({ type: 'dashboard' })}
+                        onClose={() => setViewState({ type: 'list' })}
                         addFilesToContact={addFilesToContact}
                         updateContactJobTickets={updateContactJobTickets}
                     />
@@ -289,12 +307,12 @@ const App: React.FC = () => {
                 return (
                     <ContactForm
                         onSave={addContact}
-                        onCancel={() => setViewState({ type: 'dashboard' })}
+                        onCancel={() => setViewState({ type: 'list' })}
                         defaultFields={appState.defaultFields}
                     />
                 );
             case 'edit_form':
-                if (!selectedContact) return <WelcomeMessage />;
+                if (!selectedContact) return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
                 return (
                     <ContactForm
                         initialContact={selectedContact}
@@ -316,16 +334,14 @@ const App: React.FC = () => {
                         onRestoreBackup={(content) => restoreData(content, false)}
                     />
                 );
-            default: // Catches 'list' and any other case
-                if (appState.contacts.length > 0) {
-                     setViewState({ type: 'detail', id: appState.contacts[0].id });
-                     return null;
-                }
-                return <WelcomeMessage />;
+            default:
+                return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
         }
     };
   
-    const showLeftPanelOnMobile = viewState.type === 'list';
+    const showLeftPanelOnMobile = viewState.type === 'list' || (viewState.type === 'detail' && window.innerWidth < 768 && selectedContactId === null);
+    const showMainPanelOnMobile = !showLeftPanelOnMobile;
+
 
     return (
         <div className="h-screen w-screen flex antialiased text-slate-700 relative">
@@ -353,7 +369,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
             )}
-            <div className={`w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${showLeftPanelOnMobile ? 'block' : 'hidden md:block'}`}>
+            <div className={`w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${viewState.type === 'list' ? 'block' : 'hidden md:block'}`}>
                 <ContactList
                     contacts={appState.contacts}
                     selectedContactId={selectedContactId}
@@ -362,21 +378,29 @@ const App: React.FC = () => {
                     onNewContact={() => setViewState({ type: 'new_form' })}
                     onGoToSettings={() => setViewState({ type: 'settings' })}
                     onGoToDashboard={() => setViewState({ type: 'dashboard' })}
-                    onGoToList={() => setViewState(appState.contacts.length > 0 ? { type: 'detail', id: appState.contacts[0].id } : { type: 'list' })}
+                    onGoToList={() => setViewState({ type: 'list' })}
                 />
             </div>
-            <main className={`flex-grow bg-white ${!showLeftPanelOnMobile ? 'block' : 'hidden md:block'}`}>
+            <main className={`flex-grow bg-white ${viewState.type !== 'list' ? 'block' : 'hidden md:block'}`}>
                 {renderRightPanel()}
             </main>
         </div>
     );
 };
 
-const WelcomeMessage: React.FC = () => (
+const WelcomeMessage: React.FC<{onNewContact?: () => void}> = ({ onNewContact }) => (
   <div className="h-full flex flex-col justify-center items-center text-center p-8 bg-slate-50">
     <UserCircleIcon className="w-24 h-24 text-slate-300" />
     <h2 className="mt-4 text-2xl font-bold text-slate-600">Welcome to your Contacts</h2>
-    <p className="mt-2 text-slate-500">Select a contact from the list to view their details or add a new one.</p>
+    <p className="mt-2 text-slate-500">Select a contact to view their details or add a new one.</p>
+    {onNewContact && (
+        <button 
+            onClick={onNewContact} 
+            className="mt-6 px-4 py-2 bg-sky-500 text-white font-medium rounded-md hover:bg-sky-600 transition-colors"
+        >
+            Add First Contact
+        </button>
+    )}
   </div>
 );
 
