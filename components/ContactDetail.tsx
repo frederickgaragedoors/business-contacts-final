@@ -51,7 +51,8 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
 
     const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            const newFilesPromises = Array.from(e.target.files).map(async (file) => {
+            // FIX: Explicitly type the 'file' parameter as 'File' to resolve type inference issues.
+            const newFilesPromises = Array.from(e.target.files).map(async (file: File) => {
                 const dataUrl = await fileToDataUrl(file);
                 return {
                     id: generateId(),
