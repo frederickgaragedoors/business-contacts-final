@@ -72,7 +72,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalFiles = [...files, ...stagedFiles];
-    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, workLogs: initialContact?.workLogs || [] });
+    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, jobTickets: initialContact?.jobTickets || [] });
   };
 
   return (
