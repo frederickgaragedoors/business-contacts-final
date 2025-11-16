@@ -293,7 +293,11 @@ const App: React.FC = () => {
                  />;
             case 'list':
                 if (window.innerWidth >= 768 && appState.contacts.length > 0) {
-                     const listSelectedId = viewState.type === 'detail' ? viewState.id : selectedContactId;
+                     // FIX: The original check `viewState.type === 'detail'` was impossible within this
+                     // case block, causing a TypeScript error. The logic is simplified to just use
+                     // selectedContactId, which correctly reflects the intended behavior of selecting
+                     // the first contact if none is active.
+                     const listSelectedId = selectedContactId;
                      if (!listSelectedId || !appState.contacts.some(c => c.id === listSelectedId)) {
                         setViewState({ type: 'detail', id: appState.contacts[0].id });
                         return null;
