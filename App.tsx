@@ -325,7 +325,7 @@ const App: React.FC = () => {
         }
     };
   
-    const showListOnMobile = viewState.type === 'list' || viewState.type === 'dashboard';
+    const showLeftPanelOnMobile = viewState.type === 'list';
 
     return (
         <div className="h-screen w-screen flex antialiased text-slate-700 relative">
@@ -353,7 +353,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
             )}
-            <div className={`w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${showListOnMobile ? 'block' : 'hidden md:block'}`}>
+            <div className={`w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${showLeftPanelOnMobile ? 'block' : 'hidden md:block'}`}>
                 <ContactList
                     contacts={appState.contacts}
                     selectedContactId={selectedContactId}
@@ -365,7 +365,7 @@ const App: React.FC = () => {
                     onGoToList={() => setViewState(appState.contacts.length > 0 ? { type: 'detail', id: appState.contacts[0].id } : { type: 'list' })}
                 />
             </div>
-            <main className={`flex-grow bg-white ${!showListOnMobile ? 'block' : 'hidden md:block'}`}>
+            <main className={`flex-grow bg-white ${!showLeftPanelOnMobile ? 'block' : 'hidden md:block'}`}>
                 {renderRightPanel()}
             </main>
         </div>
