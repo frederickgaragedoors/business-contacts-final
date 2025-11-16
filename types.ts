@@ -59,4 +59,5 @@ export type ViewState =
   | { type: 'detail'; id: string }
   | { type: 'new_form' }
   | { type: 'edit_form'; id: string }
-  | { type: 'settings' };
+  | { type: 'settings' }
+  | { type: 'dashboard' };
