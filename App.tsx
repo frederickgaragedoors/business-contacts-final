@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Contact, ViewState, DefaultFieldSetting, FileAttachment, JobTicket } from './types.ts';
+import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
 import ContactDetail from './components/ContactDetail.tsx';
 import ContactForm from './components/ContactForm.tsx';
@@ -264,32 +265,42 @@ const App: React.FC = () => {
         return null;
     }, [viewState]);
 
-    const renderRightPanel = () => {
+    const renderMainContent = () => {
+        // Main content view is determined by what's NOT the contact list panel on mobile.
+        // On desktop, it's determined by the viewState type.
         switch (viewState.type) {
             case 'dashboard':
                  return <Dashboard 
                     contacts={appState.contacts} 
                     onSelectContact={(id) => setViewState({ type: 'detail', id })}
-                    onGoToList={() => setViewState({ type: 'list' })}
                  />;
             case 'list':
-                // On desktop, if list is shown, auto-select first contact
+                 // When the view is 'list', the main panel shows a welcome message or the first contact on desktop.
                 if (window.innerWidth >= 768 && appState.contacts.length > 0) {
                      if (!selectedContactId || !appState.contacts.some(c => c.id === selectedContactId)) {
                         setViewState({ type: 'detail', id: appState.contacts[0].id });
                      }
+                     // If a contact is selected, show it. This happens after the state update above.
+                     const contactToShow = appState.contacts.find(c => c.id === selectedContactId) || appState.contacts[0];
+                     if (contactToShow) {
+                         return (
+                            <ContactDetail
+                                contact={contactToShow}
+                                defaultFields={appState.defaultFields}
+                                onEdit={() => setViewState({ type: 'edit_form', id: contactToShow.id })}
+                                onDelete={() => deleteContact(contactToShow.id)}
+                                onClose={() => setViewState({ type: 'list' })}
+                                addFilesToContact={addFilesToContact}
+                                updateContactJobTickets={updateContactJobTickets}
+                            />
+                        );
+                     }
                 }
-                // On mobile, this will show a welcome message if no contact is selected yet after list is shown
-                if (appState.contacts.length === 0) {
-                    return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
-                }
-                // Fallback for mobile or empty desktop
                 return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
 
             case 'detail':
                 if (!selectedContact) {
-                    // Fallback if contact is deleted or ID is invalid
-                    setViewState({ type: 'list' });
+                    setViewState({ type: 'dashboard' }); // Default to dashboard if contact not found
                     return null;
                 }
                 return (
@@ -307,7 +318,7 @@ const App: React.FC = () => {
                 return (
                     <ContactForm
                         onSave={addContact}
-                        onCancel={() => setViewState({ type: 'list' })}
+                        onCancel={() => appState.contacts.length > 0 ? setViewState({ type: 'detail', id: appState.contacts[0].id }) : setViewState({type: 'list'})}
                         defaultFields={appState.defaultFields}
                     />
                 );
@@ -338,13 +349,12 @@ const App: React.FC = () => {
                 return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
         }
     };
-  
-    const showLeftPanelOnMobile = viewState.type === 'list' || (viewState.type === 'detail' && window.innerWidth < 768 && selectedContactId === null);
-    const showMainPanelOnMobile = !showLeftPanelOnMobile;
-
+    
+    // On mobile, if the view is a detail type, the list should be hidden.
+    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard'].includes(viewState.type);
 
     return (
-        <div className="h-screen w-screen flex antialiased text-slate-700 relative">
+        <div className="h-screen w-screen flex flex-col antialiased text-slate-700 relative">
             {recoveryBackup && (
                 <div className="absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg">
                     <div>
@@ -369,21 +379,27 @@ const App: React.FC = () => {
                     </div>
                 </div>
             )}
-            <div className={`w-full md:w-1/3 lg:w-1/4 flex-shrink-0 ${viewState.type === 'list' ? 'block' : 'hidden md:block'}`}>
-                <ContactList
-                    contacts={appState.contacts}
-                    selectedContactId={selectedContactId}
-                    currentView={viewState.type}
-                    onSelectContact={(id) => setViewState({ type: 'detail', id })}
-                    onNewContact={() => setViewState({ type: 'new_form' })}
-                    onGoToSettings={() => setViewState({ type: 'settings' })}
-                    onGoToDashboard={() => setViewState({ type: 'dashboard' })}
-                    onGoToList={() => setViewState({ type: 'list' })}
-                />
+
+            <Header 
+                currentView={viewState.type}
+                onNewContact={() => setViewState({ type: 'new_form' })}
+                onGoToSettings={() => setViewState({ type: 'settings' })}
+                onGoToDashboard={() => setViewState({ type: 'dashboard' })}
+                onGoToList={() => setViewState({ type: 'list' })}
+            />
+            
+            <div className="flex flex-grow h-0"> {/* h-0 is key for flex overflow */}
+                <div className={`w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'}`}>
+                    <ContactList
+                        contacts={appState.contacts}
+                        selectedContactId={selectedContactId}
+                        onSelectContact={(id) => setViewState({ type: 'detail', id })}
+                    />
+                </div>
+                <main className={`flex-grow bg-white h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'}`}>
+                    {renderMainContent()}
+                </main>
             </div>
-            <main className={`flex-grow bg-white ${viewState.type !== 'list' ? 'block' : 'hidden md:block'}`}>
-                {renderRightPanel()}
-            </main>
         </div>
     );
 };
