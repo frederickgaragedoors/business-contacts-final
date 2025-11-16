@@ -1,5 +1,3 @@
-import { FileAttachment } from './types.ts';
-
 /**
  * Generates a cryptographically secure unique ID.
  */
@@ -57,4 +55,45 @@ export const downloadJsonFile = (data: object, filename: string): void => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+/**
+ * Saves a JSON file, allowing the user to choose the location if the browser supports it.
+ * Falls back to a direct download otherwise.
+ * @param data The object to serialize into JSON.
+ * @param filename The desired filename for the download.
+ */
+export const saveJsonFile = async (data: object, filename: string): Promise<void> => {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+
+    // Use the File System Access API if available
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle = await (window as any).showSaveFilePicker({
+                suggestedName: filename,
+                types: [
+                    {
+                        description: 'JSON Files',
+                        accept: { 'application/json': ['.json'] },
+                    },
+                ],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return; // Success
+        } catch (err) {
+            // AbortError is thrown when the user cancels the save dialog.
+            if (err instanceof DOMException && err.name === 'AbortError') {
+                console.log('User cancelled save dialog.');
+                return;
+            }
+            console.error('Error using showSaveFilePicker, falling back:', err);
+        }
+    }
+
+    // Fallback for browsers that don't support the API
+    console.log('File System Access API not supported, falling back to direct download.');
+    downloadJsonFile(data, filename);
 };
