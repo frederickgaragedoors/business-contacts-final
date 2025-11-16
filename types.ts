@@ -17,10 +17,29 @@ export interface DefaultFieldSetting {
   label: string;
 }
 
-export interface WorkLogEntry {
+export type JobStatus = 'Scheduled' | 'In Progress' | 'Awaiting Parts' | 'Completed' | 'Invoiced';
+
+export const jobStatusColors: Record<JobStatus, { base: string, text: string }> = {
+  Scheduled: { base: 'bg-sky-100', text: 'text-sky-800' },
+  'In Progress': { base: 'bg-yellow-100', text: 'text-yellow-800' },
+  'Awaiting Parts': { base: 'bg-purple-100', text: 'text-purple-800' },
+  Completed: { base: 'bg-green-100', text: 'text-green-800' },
+  Invoiced: { base: 'bg-slate-200', text: 'text-slate-700' },
+};
+
+export interface Part {
+  id: string;
+  name: string;
+  cost: number;
+}
+
+export interface JobTicket {
   id: string;
   date: string; // ISO string format e.g., "2023-10-27"
-  description: string;
+  status: JobStatus;
+  notes: string;
+  parts: Part[];
+  laborCost: number;
 }
 
 export interface Contact {
@@ -32,7 +51,7 @@ export interface Contact {
   photoUrl: string; // Can be a URL or a Base64 data URL
   files: FileAttachment[];
   customFields: CustomField[];
-  workLogs: WorkLogEntry[];
+  jobTickets: JobTicket[];
 }
 
 export type ViewState = 
