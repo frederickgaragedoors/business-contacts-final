@@ -1,4 +1,4 @@
-const CACHE_NAME = 'business-contacts-v8-js';
+const CACHE_NAME = 'business-contacts-v9-js'; // Incremented version
 const urlsToCache = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const urlsToCache = [
   './icons/icon.svg',
   './utils.js',
   './App.js',
+  './components/Header.js', // Added Header
   './components/Dashboard.js',
   './components/ContactList.js',
   './components/ContactListItem.js',
