@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon } from './icons.js';
-import { saveJsonFile } from '../utils.js';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon } from './icons.js';
+import { saveJsonFile, fileToDataUrl } from '../utils.js';
 
 const Settings = ({
     defaultFields,
@@ -11,9 +11,12 @@ const Settings = ({
     autoBackupEnabled,
     onToggleAutoBackup,
     lastAutoBackup,
-    onRestoreBackup
+    onRestoreBackup,
+    businessInfo,
+    onUpdateBusinessInfo
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
+    const [currentBusinessInfo, setCurrentBusinessInfo] = useState(businessInfo);
 
     const handleDefaultFieldSubmit = (e) => {
         e.preventDefault();
@@ -21,6 +24,22 @@ const Settings = ({
             onAddDefaultField(newFieldLabel.trim());
             setNewFieldLabel('');
         }
+    };
+
+    const handleBusinessInfoChange = (field, value) => {
+        setCurrentBusinessInfo(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleLogoUpload = async (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const dataUrl = await fileToDataUrl(e.target.files[0]);
+            handleBusinessInfoChange('logoUrl', dataUrl);
+        }
+    };
+    
+    const handleBusinessInfoSubmit = (e) => {
+        e.preventDefault();
+        onUpdateBusinessInfo(currentBusinessInfo);
     };
     
     const handleManualBackup = async () => {
@@ -58,10 +77,46 @@ const Settings = ({
                 React.createElement("h2", { className: "ml-4 flex-grow font-bold text-lg text-slate-700" },
                   "Settings"
                 ),
-                React.createElement("button", { type: "button", onClick: onBack, className: "hidden md:inline px-4 py-2 rounded-md text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors" }, "Back to Contacts")
+                React.createElement("button", { type: "button", onClick: onBack, className: "hidden md:inline px-4 py-2 rounded-md text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors" }, "Back")
             ),
             React.createElement("div", { className: "p-6 flex-grow" },
-                React.createElement("div", null,
+                React.createElement("form", { onSubmit: handleBusinessInfoSubmit },
+                    React.createElement("h3", { className: "text-xl font-semibold text-slate-800" }, "Business Information"),
+                    React.createElement("p", { className: "mt-1 text-sm text-slate-500" }, "This info will appear on your quotes and invoices."),
+                    React.createElement("div", { className: "mt-6 space-y-4" },
+                        React.createElement("div", { className: "flex items-center space-x-4" },
+                            React.createElement("div", { className: "w-24 h-24 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center" },
+                                currentBusinessInfo.logoUrl ? (
+                                    React.createElement("img", { src: currentBusinessInfo.logoUrl, alt: "Business Logo", className: "w-full h-full object-contain rounded-full" })
+                                ) : (
+                                    React.createElement(UserCircleIcon, { className: "w-16 h-16 text-slate-400" })
+                                )
+                            ),
+                            React.createElement("label", { htmlFor: "logo-upload", className: "cursor-pointer text-sm font-medium text-sky-600 bg-sky-50 hover:bg-sky-100 px-3 py-2 rounded-md" },
+                                "Change Logo",
+                                React.createElement("input", { id: "logo-upload", type: "file", accept: "image/*", className: "hidden", onChange: handleLogoUpload })
+                            )
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("label", { htmlFor: "business-name", className: "block text-sm font-medium text-slate-600" }, "Company Name"),
+                            React.createElement("input", { type: "text", id: "business-name", value: currentBusinessInfo.name, onChange: e => handleBusinessInfoChange('name', e.target.value), className: "mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm sm:text-sm" })
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("label", { htmlFor: "business-phone", className: "block text-sm font-medium text-slate-600" }, "Phone"),
+                            React.createElement("input", { type: "tel", id: "business-phone", value: currentBusinessInfo.phone, onChange: e => handleBusinessInfoChange('phone', e.target.value), className: "mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm sm:text-sm" })
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("label", { htmlFor: "business-email", className: "block text-sm font-medium text-slate-600" }, "Email"),
+                            React.createElement("input", { type: "email", id: "business-email", value: currentBusinessInfo.email, onChange: e => handleBusinessInfoChange('email', e.target.value), className: "mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm sm:text-sm" })
+                        ),
+                        React.createElement("div", null,
+                            React.createElement("label", { htmlFor: "business-address", className: "block text-sm font-medium text-slate-600" }, "Address"),
+                            React.createElement("textarea", { id: "business-address", value: currentBusinessInfo.address, onChange: e => handleBusinessInfoChange('address', e.target.value), rows: 3, className: "mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm sm:text-sm" })
+                        )
+                    ),
+                    React.createElement("button", { type: "submit", className: "mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" }, "Save Business Info")
+                ),
+                React.createElement("div", { className: "mt-8 border-t pt-6" },
                     React.createElement("h3", { className: "text-xl font-semibold text-slate-800" }, "Manage Default Fields"),
                     React.createElement("p", { className: "mt-1 text-sm text-slate-500" }, "These fields will be automatically added to any new contact you create."),
                     React.createElement("form", { onSubmit: handleDefaultFieldSubmit, className: "mt-6 flex space-x-2" },
