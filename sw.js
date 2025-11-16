@@ -13,7 +13,7 @@ const urlsToCache = [
   './components/ContactForm.js',
   './components/Settings.js',
   './components/PhotoGalleryModal.js',
-  './components/WorkLogModal.js',
+  './components/JobTicketModal.js',
   './components/icons.js',
   'https://cdn.tailwindcss.com'
 ];
