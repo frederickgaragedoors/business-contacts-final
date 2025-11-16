@@ -13,6 +13,15 @@ type JobWithContact = JobTicket & {
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
+    
+    const getLocalDateAsString = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const todayStr = getLocalDateAsString(new Date());
 
     const allJobs = useMemo<JobWithContact[]>(() => {
         return contacts.flatMap(contact => 
@@ -23,38 +32,30 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
             }))
         );
     }, [contacts]);
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     const jobsAwaitingParts = useMemo(() => {
         return allJobs
             .filter(job => job.status === 'Awaiting Parts')
-            .sort((a, b) => a.date.localeCompare(b.date)); // Use string compare for robust sorting
+            .sort((a, b) => a.date.localeCompare(b.date));
     }, [allJobs]);
     
     const todaysJobs = useMemo(() => {
-        const todayStr = today.toISOString().split('T')[0];
         return allJobs
             .filter(job => 
                 (job.status === 'Scheduled' || job.status === 'In Progress') &&
                 job.date === todayStr
             )
-            .sort((a, b) => a.date.localeCompare(b.date)); // Use string compare for robust sorting
-    }, [allJobs, today]);
+            .sort((a, b) => a.date.localeCompare(b.date));
+    }, [allJobs, todayStr]);
 
     const upcomingJobs = useMemo(() => {
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
         return allJobs
             .filter(job => 
                 job.status === 'Scheduled' &&
-                job.date >= tomorrowStr // Use string comparison to avoid timezone issues
+                job.date > todayStr
             )
-            .sort((a, b) => a.date.localeCompare(b.date)); // Use string compare for robust sorting
-    }, [allJobs, today]);
+            .sort((a, b) => a.date.localeCompare(b.date));
+    }, [allJobs, todayStr]);
 
     const JobCard: React.FC<{ job: JobWithContact }> = ({ job }) => {
         const statusColor = jobStatusColors[job.status];
