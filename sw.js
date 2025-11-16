@@ -1,4 +1,4 @@
-const CACHE_NAME = 'business-contacts-v7-js';
+const CACHE_NAME = 'business-contacts-v8-js';
 const urlsToCache = [
   './',
   './index.html',
@@ -25,16 +25,12 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        // Use addAll with a catch to prevent a single failed asset from breaking the whole cache
-        return cache.addAll(urlsToCache).catch(error => {
-          console.error('Failed to cache initial assets:', error);
-        });
+        return cache.addAll(urlsToCache);
       })
   );
 });
 
 self.addEventListener('fetch', event => {
-  // We only want to handle GET requests
   if (event.request.method !== 'GET') {
     return;
   }
@@ -42,16 +38,15 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.open(CACHE_NAME).then(cache => {
       return cache.match(event.request).then(response => {
-        // Return the cached response if it's found
+        // Return cached response if found
         if (response) {
           return response;
         }
 
-        // If not in cache, fetch from the network
+        // Fetch from network if not in cache
         return fetch(event.request).then(networkResponse => {
-          // Check for a valid response to cache
+          // A response must be valid to be cached
           if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-             // Clone the response because it's a stream and can only be consumed once
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
@@ -74,6 +69,6 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) // Force the new service worker to take control immediately
   );
 });
