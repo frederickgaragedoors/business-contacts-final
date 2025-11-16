@@ -5,7 +5,6 @@ import { ClipboardListIcon, UsersIcon } from './icons.tsx';
 interface DashboardProps {
     contacts: Contact[];
     onSelectContact: (id: string) => void;
-    onGoToList: () => void;
 }
 
 type JobWithContact = JobTicket & {
@@ -13,7 +12,7 @@ type JobWithContact = JobTicket & {
     contactName: string;
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact, onGoToList }) => {
+const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
     
     const getLocalDateAsString = (date: Date): string => {
         const year = date.getFullYear();
@@ -96,19 +95,8 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact, onGoTo
 
     return (
         <div className="h-full flex flex-col bg-slate-100 overflow-y-auto">
-            <div className="p-4 flex items-center justify-between md:hidden border-b border-slate-200 bg-white">
-                <h1 className="font-bold text-lg text-slate-700">Dashboard</h1>
-                <button
-                    onClick={onGoToList}
-                    className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    aria-label="View Contacts"
-                >
-                    <UsersIcon className="w-5 h-5" />
-                    <span>Contacts</span>
-                </button>
-            </div>
-             <div className="p-6 border-b border-slate-200 bg-white hidden md:block">
-                <h1 className="text-3xl font-bold text-slate-800">Jobs Dashboard</h1>
+             <div className="p-6 border-b border-slate-200 bg-white">
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Jobs Dashboard</h1>
                 <p className="mt-1 text-slate-500">A summary of your active jobs.</p>
             </div>
             <div className="p-6 flex-grow space-y-8">
