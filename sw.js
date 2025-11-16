@@ -1,4 +1,4 @@
-const CACHE_NAME = 'business-contacts-v6-js';
+const CACHE_NAME = 'business-contacts-v7-js';
 const urlsToCache = [
   './',
   './index.html',
