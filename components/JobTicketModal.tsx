@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { JobTicket, JobStatus, Part } from '../types.ts';
+import { JobTicket, JobStatus, Part, JobTemplate } from '../types.ts';
 import { XIcon, PlusIcon, TrashIcon } from './icons.tsx';
 import { generateId, calculateJobTicketTotal } from '../utils.ts';
 
@@ -7,11 +7,12 @@ interface JobTicketModalProps {
   entry?: JobTicket | null;
   onSave: (entry: Omit<JobTicket, 'id'> & { id?: string }) => void;
   onClose: () => void;
+  jobTemplates?: JobTemplate[];
 }
 
 const jobStatuses: JobStatus[] = ['Estimate Scheduled', 'Quote Sent', 'Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Paid', 'Declined'];
 
-const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose }) => {
+const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates }) => {
   const [date, setDate] = useState('');
   const [status, setStatus] = useState<JobStatus>('Estimate Scheduled');
   const [notes, setNotes] = useState('');
@@ -55,6 +56,18 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
   const handleRemovePart = (id: string) => {
     setParts(parts.filter(p => p.id !== id));
   };
+  
+  const handleTemplateSelect = (templateId: string) => {
+    if (!templateId) return;
+    const selectedTemplate = jobTemplates?.find(t => t.id === templateId);
+    if (selectedTemplate) {
+        setNotes(selectedTemplate.notes);
+        setParts(selectedTemplate.parts.map(p => ({...p, id: generateId()})));
+        setLaborCost(selectedTemplate.laborCost);
+        setSalesTaxRate(selectedTemplate.salesTaxRate || 0);
+        setProcessingFeeRate(selectedTemplate.processingFeeRate || 0);
+    }
+  };
 
   const currentTicketState = useMemo((): JobTicket => ({
       id: entry?.id || '',
@@ -71,8 +84,10 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (notes.trim() && date) {
+    if (notes.trim() || parts.length > 0) { // Allow saving if there are parts or notes
       onSave(currentTicketState);
+    } else {
+      alert("Please add some notes or parts to the job ticket before saving.");
     }
   };
 
@@ -93,6 +108,20 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
           </div>
 
           <div className="p-6 space-y-4 overflow-y-auto flex-grow min-h-0">
+            {jobTemplates && jobTemplates.length > 0 && !entry && (
+                <div>
+                    <label htmlFor="job-template" className={labelStyles}>Apply Template</label>
+                    <select
+                        id="job-template"
+                        onChange={e => handleTemplateSelect(e.target.value)}
+                        className={`mt-1 ${inputStyles}`}
+                        defaultValue=""
+                    >
+                        <option value="" disabled>Select a template...</option>
+                        {jobTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="job-date" className={labelStyles}>Date</label>
@@ -124,7 +153,6 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
                 id="job-notes"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                required
                 rows={4}
                 className={`mt-1 ${inputStyles}`}
                 placeholder="Describe the job details..."
