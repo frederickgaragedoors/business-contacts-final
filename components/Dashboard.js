@@ -1,13 +1,17 @@
 import React, { useMemo } from 'react';
 import { jobStatusColors } from '../types.js';
 import EmptyState from './EmptyState.js';
-import { ClipboardListIcon, UsersIcon, BriefcaseIcon } from './icons.js';
+import { ClipboardListIcon, UsersIcon, BriefcaseIcon, BellIcon } from './icons.js';
 
 
 const Dashboard = ({ contacts, onSelectContact }) => {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(today.getDate() - 3);
+    threeDaysAgo.setHours(0, 0, 0, 0);
 
     const allJobs = useMemo(() => {
         return contacts.flatMap(contact => 
@@ -30,18 +34,32 @@ const Dashboard = ({ contacts, onSelectContact }) => {
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs]);
     
-    const todaysJobs = useMemo(() => {
-        return allJobs
-            .filter(job => {
-                if (!job.date) return false;
-                const jobDate = parseDateAsLocal(job.date);
-                return (job.status === 'Scheduled' || job.status === 'In Progress') &&
-                       jobDate.getTime() === today.getTime();
-            })
-            .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
+    const todaysAppointments = useMemo(() => {
+        return allJobs.filter(job => {
+            if (!job.date) return false;
+            const jobDate = parseDateAsLocal(job.date);
+            return job.status === 'Estimate Scheduled' && jobDate.getTime() === today.getTime();
+        });
     }, [allJobs, today]);
 
-    const upcomingJobs = useMemo(() => {
+    const todaysWork = useMemo(() => {
+        return allJobs.filter(job => {
+            if (!job.date) return false;
+            const jobDate = parseDateAsLocal(job.date);
+            return (job.status === 'Scheduled' || job.status === 'In Progress') &&
+                   jobDate.getTime() === today.getTime();
+        });
+    }, [allJobs, today]);
+
+    const quotesToFollowUp = useMemo(() => {
+        return allJobs.filter(job => {
+            if (!job.date) return false;
+            const jobDate = parseDateAsLocal(job.date);
+            return job.status === 'Quote Sent' && jobDate.getTime() <= threeDaysAgo.getTime();
+        }).sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
+    }, [allJobs, threeDaysAgo]);
+
+    const upcomingWork = useMemo(() => {
         return allJobs
             .filter(job => {
                  if (!job.date) return false;
@@ -102,31 +120,42 @@ const Dashboard = ({ contacts, onSelectContact }) => {
                 React.createElement("p", { className: "mt-1 text-slate-500 dark:text-slate-400" }, "Here's a summary of your business activity.")
             ),
             React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow space-y-8" },
-                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" },
+                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" },
                     React.createElement(StatCard, { Icon: UsersIcon, title: "Total Contacts", value: contacts.length, color: "bg-gradient-to-br from-sky-500 to-sky-600" }),
-                    React.createElement(StatCard, { Icon: ClipboardListIcon, title: "Jobs Today", value: todaysJobs.length, color: "bg-gradient-to-br from-green-500 to-green-600" }),
+                    React.createElement(StatCard, { Icon: ClipboardListIcon, title: "Jobs Today", value: todaysAppointments.length + todaysWork.length, color: "bg-gradient-to-br from-green-500 to-green-600" }),
+                    React.createElement(StatCard, { Icon: BellIcon, title: "Follow Ups", value: quotesToFollowUp.length, color: "bg-gradient-to-br from-orange-500 to-orange-600" }),
                     React.createElement(StatCard, { Icon: BriefcaseIcon, title: "Awaiting Parts", value: jobsAwaitingParts.length, color: "bg-gradient-to-br from-purple-500 to-purple-600" })
                 ),
                 
                 allJobs.length > 0 ? (
                     React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-8" },
+                        React.createElement("div", { className: "lg:col-span-2 space-y-8" },
+                            React.createElement(Section, { 
+                                title: "Today's Appointments", 
+                                jobs: todaysAppointments, 
+                                emptyMessage: "No estimates scheduled for today." 
+                            }),
+                            React.createElement(Section, { 
+                                title: "Today's Work", 
+                                jobs: todaysWork, 
+                                emptyMessage: "No work scheduled for today." 
+                            }),
+                            React.createElement(Section, { 
+                                title: "Upcoming Work", 
+                                jobs: upcomingWork, 
+                                emptyMessage: "No upcoming jobs scheduled." 
+                            })
+                        ),
                         React.createElement("div", { className: "lg:col-span-1 space-y-8" },
+                            React.createElement(Section, {
+                                title: "Follow-Ups Required",
+                                jobs: quotesToFollowUp,
+                                emptyMessage: "No quotes need follow-up."
+                            }),
                             React.createElement(Section, {
                                 title: "Awaiting Parts",
                                 jobs: jobsAwaitingParts,
                                 emptyMessage: "No jobs are awaiting parts."
-                            })
-                        ),
-                        React.createElement("div", { className: "lg:col-span-2 space-y-8" },
-                            React.createElement(Section, {
-                                title: "Today's Jobs",
-                                jobs: todaysJobs,
-                                emptyMessage: "You're all clear for today!"
-                            }),
-                            React.createElement(Section, {
-                                title: "Upcoming",
-                                jobs: upcomingJobs,
-                                emptyMessage: "No upcoming jobs scheduled."
                             })
                         )
                     )
