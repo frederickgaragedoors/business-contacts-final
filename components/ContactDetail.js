@@ -16,7 +16,7 @@ import {
   CameraIcon,
   BriefcaseIcon,
 } from './icons.js';
-import { fileToDataUrl, formatFileSize, getInitials, generateId } from '../utils.js';
+import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal } from '../utils.js';
 import { getFiles } from '../db.js';
 
 const VIEWABLE_MIME_TYPES = [
@@ -269,11 +269,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     sortedJobTickets.length > 0 ? (
                         React.createElement("ul", { className: "space-y-4" },
                             sortedJobTickets.map(ticket => {
-                                const subtotal = ticket.laborCost + ticket.parts.reduce((sum, part) => sum + part.cost, 0);
-                                const taxAmount = subtotal * ((ticket.salesTaxRate || 0) / 100);
-                                const totalAfterTaxes = subtotal + taxAmount;
-                                const feeAmount = totalAfterTaxes * ((ticket.processingFeeRate || 0) / 100);
-                                const totalCost = totalAfterTaxes + feeAmount;
+                                const { totalCost } = calculateJobTicketTotal(ticket);
                                 const statusColor = jobStatusColors[ticket.status];
                                 return React.createElement("li", { key: ticket.id, className: "p-4 bg-slate-50 rounded-lg" },
                                     React.createElement("div", { className: "flex justify-between items-start" },
