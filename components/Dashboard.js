@@ -9,7 +9,7 @@ const Dashboard = ({ contacts, onSelectContact }) => {
 
     const allJobs = useMemo(() => {
         return contacts.flatMap(contact => 
-            contact.jobTickets.map(ticket => ({
+            (contact.jobTickets || []).map(ticket => ({
                 ...ticket,
                 contactId: contact.id,
                 contactName: contact.name
@@ -26,13 +26,14 @@ const Dashboard = ({ contacts, onSelectContact }) => {
 
     const jobsAwaitingParts = useMemo(() => {
         return allJobs
-            .filter(job => job.status === 'Awaiting Parts')
+            .filter(job => job.status === 'Awaiting Parts' && job.date)
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs]);
     
     const todaysJobs = useMemo(() => {
         return allJobs
             .filter(job => {
+                if (!job.date) return false;
                 const jobDate = parseDateAsLocal(job.date);
                 return (job.status === 'Scheduled' || job.status === 'In Progress') &&
                        jobDate.getTime() === today.getTime();
@@ -43,6 +44,7 @@ const Dashboard = ({ contacts, onSelectContact }) => {
     const upcomingJobs = useMemo(() => {
         return allJobs
             .filter(job => {
+                 if (!job.date) return false;
                  const jobDate = parseDateAsLocal(job.date);
                  return job.status === 'Scheduled' && jobDate > today;
             })
