@@ -101,18 +101,31 @@ const App: React.FC = () => {
     });
     
     const [appState, setAppState] = useState<AppState>(() => {
-        const savedData = localStorage.getItem(APP_STORAGE_KEY);
-        if (savedData) {
-            const parsed = JSON.parse(savedData);
-            // Ensure backward compatibility and provide defaults for new properties
-            return {
-                contacts: parsed.contacts || initialContacts,
-                defaultFields: parsed.defaultFields || initialDefaultFields,
-                businessInfo: parsed.businessInfo || initialBusinessInfo,
-                autoBackupEnabled: parsed.autoBackupEnabled || false,
-                lastAutoBackup: parsed.lastAutoBackup || null,
-                theme: parsed.theme || 'system',
-            };
+        try {
+            const savedData = localStorage.getItem(APP_STORAGE_KEY);
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                
+                // Sanitize loaded contacts to ensure data integrity with new versions
+                const sanitizedContacts = (parsed.contacts || initialContacts).map((c: any) => ({
+                    ...initialContacts[0], // provides a base structure
+                    ...c,
+                    files: c.files || [],
+                    customFields: c.customFields || [],
+                    jobTickets: c.jobTickets || [],
+                }));
+
+                return {
+                    contacts: sanitizedContacts,
+                    defaultFields: parsed.defaultFields || initialDefaultFields,
+                    businessInfo: parsed.businessInfo || initialBusinessInfo,
+                    autoBackupEnabled: parsed.autoBackupEnabled || false,
+                    lastAutoBackup: parsed.lastAutoBackup || null,
+                    theme: parsed.theme || 'system',
+                };
+            }
+        } catch (error) {
+            console.error("Failed to load or parse state from localStorage", error);
         }
         return {
             contacts: initialContacts,
@@ -169,7 +182,7 @@ const App: React.FC = () => {
                     ...appState,
                     contacts: appState.contacts.map(contact => ({
                         ...contact,
-                        files: contact.files.map(({ dataUrl, ...fileMetadata }) => fileMetadata),
+                        files: (contact.files || []).map(({ dataUrl, ...fileMetadata }) => fileMetadata),
                     })),
                 };
 
@@ -271,7 +284,7 @@ const App: React.FC = () => {
             await addFiles(newFiles);
         }
 
-        const originalFileIds = new Set(originalContact.files.map((f: FileAttachment) => f.id));
+        const originalFileIds = new Set((originalContact.files || []).map((f: FileAttachment) => f.id));
         const updatedFileIds = new Set(contactData.files.map((f: FileAttachment) => f.id));
         const deletedFileIds = [...originalFileIds].filter(fileId => !updatedFileIds.has(fileId));
 
@@ -301,7 +314,7 @@ const App: React.FC = () => {
         setAppState(current => ({
             ...current,
             contacts: current.contacts.map(c => 
-                c.id === contactId ? { ...c, files: [...c.files, ...filesMetadata] } : c
+                c.id === contactId ? { ...c, files: [...(c.files || []), ...filesMetadata] } : c
             )
         }));
     };
@@ -318,7 +331,7 @@ const App: React.FC = () => {
     const deleteContact = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this contact?')) {
             const contactToDelete = appState.contacts.find(c => c.id === id);
-            if (contactToDelete && contactToDelete.files.length > 0) {
+            if (contactToDelete && contactToDelete.files && contactToDelete.files.length > 0) {
                 await deleteFiles(contactToDelete.files.map((f: FileAttachment) => f.id));
             }
 
