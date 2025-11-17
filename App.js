@@ -176,6 +176,28 @@ const App = () => {
         }
     }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled]);
 
+    // Effect to handle view transitions and data consistency checks
+    useEffect(() => {
+        // Auto-select first contact on desktop if in list view and no contact is selected
+        if (viewState.type === 'list' && window.innerWidth >= 768 && appState.contacts.length > 0) {
+            setViewState({ type: 'detail', id: appState.contacts[0].id });
+        }
+
+        // Redirect if the selected contact for detail/edit view is deleted
+        if ((viewState.type === 'detail' || viewState.type === 'edit_form') && !appState.contacts.some(c => c.id === viewState.id)) {
+            setViewState({ type: 'dashboard' });
+        }
+
+        // Redirect from invoice if contact/ticket is deleted
+        if (viewState.type === 'invoice') {
+            const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
+            const ticketForInvoice = contactForInvoice?.jobTickets.find(t => t.id === viewState.ticketId);
+            if (!contactForInvoice || !ticketForInvoice) {
+                setViewState({ type: 'dashboard' });
+            }
+        }
+    }, [viewState, appState.contacts]);
+
     const updateBusinessInfo = (info) => {
         setAppState(current => ({ ...current, businessInfo: info }));
         alert('Business information saved!');
@@ -266,7 +288,7 @@ const App = () => {
             setAppState(current => ({ ...current, contacts: remainingContacts }));
             
             if ((viewState.type === 'detail' || viewState.type === 'edit_form') && viewState.id === id) {
-                 setViewState({ type: 'list' });
+                 setViewState({ type: 'dashboard' });
             }
         }
     };
@@ -365,30 +387,9 @@ const App = () => {
                     onSelectContact: (id) => setViewState({ type: 'detail', id }),
                 });
             case 'list':
-                if (window.innerWidth >= 768 && appState.contacts.length > 0) {
-                     const listSelectedId = viewState.type === 'detail' ? viewState.id : selectedContactId;
-                     if (!listSelectedId || !appState.contacts.some(c => c.id === listSelectedId)) {
-                        setViewState({ type: 'detail', id: appState.contacts[0].id });
-                        return null;
-                     }
-                     const contactToShow = appState.contacts.find(c => c.id === listSelectedId) || appState.contacts[0];
-                     return React.createElement(ContactDetail, {
-                        contact: contactToShow,
-                        defaultFields: appState.defaultFields,
-                        onEdit: () => setViewState({ type: 'edit_form', id: contactToShow.id }),
-                        onDelete: () => deleteContact(contactToShow.id),
-                        onClose: () => setViewState({ type: 'list' }),
-                        addFilesToContact: addFilesToContact,
-                        updateContactJobTickets: updateContactJobTickets,
-                        onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }),
-                    });
-                }
                 return React.createElement(WelcomeMessage, { onNewContact: () => setViewState({ type: 'new_form' }) });
             case 'detail':
-                if (!selectedContact) {
-                    setViewState({ type: 'dashboard' });
-                    return null;
-                }
+                if (!selectedContact) return null; // Handled by useEffect
                 return React.createElement(ContactDetail, {
                     contact: selectedContact,
                     defaultFields: appState.defaultFields,
@@ -402,11 +403,11 @@ const App = () => {
             case 'new_form':
                 return React.createElement(ContactForm, {
                     onSave: addContact,
-                    onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'list'}),
+                    onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}),
                     defaultFields: appState.defaultFields,
                 });
             case 'edit_form':
-                if (!selectedContact) return React.createElement(WelcomeMessage, { onNewContact: () => setViewState({ type: 'new_form' }) });
+                if (!selectedContact) return null; // Handled by useEffect
                 return React.createElement(ContactForm, {
                     initialContact: selectedContact,
                     onSave: (data) => updateContact(selectedContact.id, data),
@@ -429,14 +430,12 @@ const App = () => {
                     onUpdateTheme: updateTheme,
                 });
             case 'invoice':
-                const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
-                const ticketForInvoice = contactForInvoice?.jobTickets.find(t => t.id === viewState.ticketId);
-                if (!contactForInvoice || !ticketForInvoice) {
-                    setViewState({ type: 'dashboard' });
-                    return null;
-                }
+                if (!selectedContact) return null; // Handled by useEffect
+                const ticketForInvoice = selectedContact.jobTickets.find(t => t.id === (viewState.type === 'invoice' && viewState.ticketId));
+                if (!ticketForInvoice) return null; // Handled by useEffect
+
                 return React.createElement(InvoiceView, {
-                    contact: contactForInvoice,
+                    contact: selectedContact,
                     ticket: ticketForInvoice,
                     businessInfo: appState.businessInfo,
                     onClose: () => setViewState({ type: 'detail', id: viewState.contactId }),
