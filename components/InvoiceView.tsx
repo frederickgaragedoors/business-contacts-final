@@ -170,16 +170,16 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             <div className="p-4 md:p-8 flex-grow print:p-0">
                 <div ref={invoiceContentRef} className="max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper">
                     <header className="flex justify-between items-baseline pb-6 border-b border-slate-200 text-slate-800">
-                        <div>
+                        <div className="min-w-0">
                             {businessInfo.logoUrl && (
                                 <img src={businessInfo.logoUrl} alt="Business Logo" className="h-16 w-auto mb-4" />
                             )}
-                            <h1 className="text-2xl font-bold">{businessInfo.name || 'Your Company'}</h1>
-                            <p className="text-sm text-slate-500 whitespace-pre-line">{businessInfo.address}</p>
-                            <p className="text-sm text-slate-500">{businessInfo.phone}</p>
-                            <p className="text-sm text-slate-500">{businessInfo.email}</p>
+                            <h1 className="text-2xl font-bold break-words">{businessInfo.name || 'Your Company'}</h1>
+                            <p className="text-sm text-slate-500 whitespace-pre-line break-words">{businessInfo.address}</p>
+                            <p className="text-sm text-slate-500 break-words">{businessInfo.phone}</p>
+                            <p className="text-sm text-slate-500 break-words">{businessInfo.email}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex-shrink-0 ml-4">
                             <h2 className="text-4xl uppercase font-bold text-slate-700">{docType}</h2>
                             <p className="text-sm text-slate-500 mt-2">
                                 <span className="font-semibold text-slate-600">Job ID:</span> {ticket.id}
@@ -192,28 +192,28 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
 
                     <section className="mt-6">
                         <h3 className="text-sm font-semibold uppercase text-slate-500">Bill To</h3>
-                        <div className="mt-2 text-slate-700">
-                            <p className="font-bold">{contact.name}</p>
-                            <p className="text-sm whitespace-pre-line">{contact.address}</p>
-                            <p className="text-sm">{contact.phone}</p>
-                            <p className="text-sm">{contact.email}</p>
+                        <div className="mt-2 text-slate-700 min-w-0">
+                            <p className="font-bold break-words">{contact.name}</p>
+                            <p className="text-sm whitespace-pre-line break-words">{contact.address}</p>
+                            <p className="text-sm break-words">{contact.phone}</p>
+                            <p className="text-sm break-words">{contact.email}</p>
                         </div>
                     </section>
 
                     <section className="mt-6">
-                        <table className="w-full text-left">
+                        <table className="w-full text-left table-fixed">
                             <thead>
                                 <tr>
-                                    <th className="p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Description</th>
-                                    <th className="p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Qty</th>
-                                    <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Unit Price</th>
-                                    <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Amount</th>
+                                    <th className="p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-1/2">Description</th>
+                                    <th className="p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[15%]">Qty</th>
+                                    <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[20%]">Unit Price</th>
+                                    <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[20%]">Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {ticket.parts.map(part => (
                                     <tr key={part.id} className="border-b border-slate-100">
-                                        <td className="p-3 text-sm text-slate-700">{part.name}</td>
+                                        <td className="p-3 text-sm text-slate-700 break-words">{part.name}</td>
                                         <td className="p-3 text-center text-sm text-slate-700">{part.quantity}</td>
                                         <td className="p-3 text-right text-sm text-slate-700">${part.cost.toFixed(2)}</td>
                                         <td className="p-3 text-right text-sm text-slate-700">${(part.cost * part.quantity).toFixed(2)}</td>
