@@ -212,19 +212,26 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             <style>
             {`
                 @media print {
+                    body {
+                        background-color: #fff;
+                    }
+                    /* Hide everything on the page */
                     body * {
                         visibility: hidden;
                     }
+                    /* Then, make the invoice paper and everything inside it visible */
                     .invoice-paper, .invoice-paper * {
                         visibility: visible;
                     }
+                    /* Position the invoice paper on the page for printing */
                     .invoice-paper {
                         position: absolute;
                         left: 0;
                         top: 0;
+                        right: 0;
                         width: 100%;
                         margin: 0;
-                        padding: 1rem;
+                        padding: 0;
                         box-shadow: none;
                     }
                 }
