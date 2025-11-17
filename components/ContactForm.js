@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { UserCircleIcon, XIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
 import { fileToDataUrl, formatFileSize, generateId } from '../utils.js';
@@ -182,7 +183,7 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
                 files.map(file => (
                   React.createElement("li", { key: file.id, className: "flex items-center p-2 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm" },
                     React.createElement(FileIcon, { className: "w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" }),
-                    React.createElement("div", { className: "ml-3 flex-grow truncate" },
+                    React.createElement("div", { className: "ml-3 flex-grow min-w-0" },
                         React.createElement("p", { className: "text-sm font-medium text-slate-800 dark:text-slate-200 truncate" }, file.name),
                         React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, formatFileSize(file.size))
                     ),
@@ -202,7 +203,7 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
                 stagedFiles.map(file => (
                   React.createElement("li", { key: file.id, className: "flex items-center p-2 bg-white dark:bg-slate-700 rounded-md shadow-sm" },
                     React.createElement(FileIcon, { className: "w-5 h-5 text-sky-500 flex-shrink-0" }),
-                    React.createElement("div", { className: "ml-3 flex-grow truncate" },
+                    React.createElement("div", { className: "ml-3 flex-grow min-w-0" },
                         React.createElement("p", { className: "text-sm font-medium text-slate-800 dark:text-slate-200 truncate" }, file.name),
                         React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, formatFileSize(file.size))
                     ),
