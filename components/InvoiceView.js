@@ -1,16 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { ArrowLeftIcon } from './icons.js';
+import { generateId, fileToDataUrl } from '../utils.js';
 
-const InvoiceView = ({ contact, ticket, businessInfo, onClose }) => {
+const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact }) => {
     const [docType, setDocType] = useState('invoice');
+    const [isSaving, setIsSaving] = useState(false);
+    const invoiceContentRef = useRef(null);
 
     useEffect(() => {
         document.body.classList.add('invoice-view-active');
-        // Cleanup function to remove the class when the component unmounts
         return () => {
             document.body.classList.remove('invoice-view-active');
         };
-    }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
+    }, []);
+
+    const handleSaveAndAttach = async () => {
+        if (!invoiceContentRef.current || isSaving) return;
+        
+        setIsSaving(true);
+        
+        try {
+            const canvas = await html2canvas(invoiceContentRef.current, {
+                scale: 2,
+                useCORS: true,
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'pt',
+                format: 'letter'
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            const ratio = canvasWidth / canvasHeight;
+            const width = pdfWidth;
+            const height = width / ratio;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+            
+            const docTypeName = docType.charAt(0).toUpperCase() + docType.slice(1);
+            const fileName = `${contact.name} - ${docTypeName} ${ticket.id}.pdf`;
+            
+            pdf.save(fileName);
+
+            const pdfBlob = pdf.output('blob');
+            const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+            const dataUrl = await fileToDataUrl(pdfFile);
+
+            const newFileAttachment = {
+                id: generateId(),
+                name: pdfFile.name,
+                type: pdfFile.type,
+                size: pdfFile.size,
+                dataUrl: dataUrl
+            };
+            
+            addFilesToContact(contact.id, [newFileAttachment]);
+
+        } catch (error) {
+            console.error("Failed to generate or save PDF", error);
+            alert("Sorry, there was an error creating the PDF.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const totalPartsCost = ticket.parts.reduce((sum, part) => sum + part.cost, 0);
     const totalCost = totalPartsCost + ticket.laborCost;
@@ -35,14 +93,19 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose }) => {
                     ),
                     React.createElement("button", { 
                         onClick: () => window.print(),
-                        className: "px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600"
-                    }, "Print")
+                        className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    }, "Print"),
+                    React.createElement("button", { 
+                        onClick: handleSaveAndAttach,
+                        disabled: isSaving,
+                        className: "px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait"
+                    }, isSaving ? 'Saving...' : 'Save & Attach PDF')
                 )
             ),
 
             // Invoice Paper
             React.createElement("div", { className: "p-4 md:p-8 flex-grow invoice-container" },
-                React.createElement("div", { className: "max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper" },
+                React.createElement("div", { ref: invoiceContentRef, className: "max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper" },
                     React.createElement("header", { className: "flex justify-between items-start pb-8 border-b" },
                         React.createElement("div", null,
                             businessInfo.logoUrl && (
@@ -56,7 +119,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose }) => {
                         React.createElement("div", { className: "text-right" },
                             React.createElement("h2", { className: "text-3xl uppercase font-bold text-slate-600" }, docType),
                             React.createElement("p", { className: "text-sm text-slate-500 mt-2" },
-                                React.createElement("span", { className: "font-semibold" }, "Job ID: "), ticket.id.slice(0, 8)
+                                React.createElement("span", { className: "font-semibold" }, "Job ID: "), ticket.id
                             ),
                             React.createElement("p", { className: "text-sm text-slate-500" },
                                 React.createElement("span", { className: "font-semibold" }, "Date: "), new Date(ticket.date).toLocaleDateString(undefined, { timeZone: 'UTC'})
@@ -117,19 +180,14 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose }) => {
             ),
             React.createElement("style", null, `
                 @media print {
-                    /* When invoice view is active, hide the main header and sidebar */
                     body.invoice-view-active > #root > div > header,
                     body.invoice-view-active > #root > div > div > div:first-child {
                         display: none;
                     }
-                    
-                    /* Expand the main content to fill the page */
                     body.invoice-view-active > #root > div > div > main {
                         width: 100%;
-                        display: block !important; /* Override Tailwind responsive classes */
+                        display: block !important;
                     }
-                    
-                    /* Reset container styles for a clean print */
                     body.invoice-view-active,
                     body.invoice-view-active > #root,
                     body.invoice-view-active > #root > div,
@@ -140,25 +198,14 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose }) => {
                         padding: 0;
                         margin: 0;
                     }
-                    
-                    /* Prepare the invoice component's layout for printing */
                     .invoice-container {
                         padding: 0 !important;
                     }
-                    
                     .invoice-paper {
                         box-shadow: none !important;
                         margin: 0 !important;
                         max-width: 100% !important;
                         border-radius: 0;
-                    }
-
-                    /* Util classes from the original file */
-                    .print\\:hidden {
-                        display: none;
-                    }
-                    .print\\:shadow-none {
-                        box-shadow: none;
                     }
                 }
             `)
