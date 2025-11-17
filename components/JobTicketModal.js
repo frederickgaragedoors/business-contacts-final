@@ -82,7 +82,7 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
 
   return (
     React.createElement("div", { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4", role: "dialog", "aria-modal": "true" },
-      React.createElement("div", { className: "bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col" },
+      React.createElement("div", { className: "bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" },
         React.createElement("form", { onSubmit: handleSubmit, className: "flex flex-col h-full" },
           React.createElement("div", { className: "p-6 border-b" },
             React.createElement("div", { className: "flex justify-between items-center" },
