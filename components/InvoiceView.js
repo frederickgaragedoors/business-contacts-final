@@ -10,21 +10,25 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
     const invoiceContentRef = useRef(null);
 
     const generatePdf = async () => {
-        const element = invoiceContentRef.current;
-        if (!element) return null;
+        const sourceElement = invoiceContentRef.current;
+        if (!sourceElement) return null;
 
-        // Store original styles
-        const originalFontSize = element.style.fontSize;
-        const originalWebkitTextSizeAdjust = element.style.webkitTextSizeAdjust;
-        const originalTextSizeAdjust = element.style.textSizeAdjust;
+        // Create an off-screen container for rendering
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '8.5in'; // Simulate paper width for consistent rendering
+        container.style.backgroundColor = 'white';
 
-        // Apply styles to prevent font boosting
-        element.style.fontSize = '12px';
-        element.style.webkitTextSizeAdjust = 'none'; // For Chrome/Safari
-        element.style.textSizeAdjust = 'none'; // Standard property
-        
+        // Clone the source element to render it in our controlled container
+        const clone = sourceElement.cloneNode(true);
+        container.appendChild(clone);
+        document.body.appendChild(container);
+
         try {
-            const canvas = await html2canvas(element, {
+            // Render the cloned element, which is in a fixed-width, off-screen environment
+            const canvas = await html2canvas(clone, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: '#ffffff'
@@ -57,17 +61,13 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
             const fileName = `${contact.name} - ${docTypeName} ${ticket.id}.pdf`;
 
             return { pdf, fileName };
-        } catch (error) {
+        } catch (error) {35=`9-8 91z3`
             console.error("Failed to generate or save PDF", error);
             alert("Sorry, there was an error creating the PDF.");
             return null;
         } finally {
-            // Restore original styles to avoid affecting the on-screen display
-            if (element) {
-                element.style.fontSize = originalFontSize;
-                element.style.webkitTextSizeAdjust = originalWebkitTextSizeAdjust;
-                element.style.textSizeAdjust = originalTextSizeAdjust;
-            }
+            // Clean up by removing the off-screen container
+            document.body.removeChild(container);
         }
     };
 
