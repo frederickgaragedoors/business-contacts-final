@@ -268,8 +268,9 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                     React.createElement("div", { className: "flex items-center justify-evenly mb-3" },
                                         React.createElement("button", {
                                             onClick: () => onViewInvoice(contact.id, ticket.id),
-                                            className: "px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 rounded-md"
-                                        }, "View/Print"),
+                                            className: "p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md",
+                                            "aria-label": "View/Print invoice"
+                                        }, React.createElement(EyeIcon, { className: "w-4 h-4" })),
                                         React.createElement("button", {
                                             onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
                                             className: "p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md",
