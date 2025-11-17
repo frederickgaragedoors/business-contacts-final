@@ -15,7 +15,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
 
         // Temporarily set a base font size to prevent mobile font boosting issues.
         const originalFontSize = element.style.fontSize;
-        element.style.fontSize = '16px';
+        element.style.fontSize = '12px';
         
         try {
             const canvas = await html2canvas(element, {
