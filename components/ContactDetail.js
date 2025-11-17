@@ -272,33 +272,39 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                 const { totalCost } = calculateJobTicketTotal(ticket);
                                 const statusColor = jobStatusColors[ticket.status];
                                 return React.createElement("li", { key: ticket.id, className: "p-4 bg-slate-50 rounded-lg" },
-                                    React.createElement("div", { className: "flex justify-between items-start" },
-                                        React.createElement("div", null,
-                                            React.createElement("div", { className: "flex items-center gap-x-3" },
-                                                React.createElement("p", { className: "font-semibold text-slate-700" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })),
-                                                React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` }, ticket.status)
-                                            ),
-                                            React.createElement("p", { className: "mt-2 text-sm text-slate-600 whitespace-pre-wrap" }, ticket.notes)
-                                        ),
-                                        React.createElement("div", { className: "text-right flex-shrink-0 ml-4" },
-                                            React.createElement("p", { className: "font-bold text-lg text-slate-800" }, `$${totalCost.toFixed(2)}`),
-                                            React.createElement("div", { className: "mt-2 flex items-center justify-end space-x-1" },
-                                                React.createElement("button", { 
-                                                    onClick: () => onViewInvoice(contact.id, ticket.id),
-                                                    className: "px-3 py-1 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 rounded-md"
-                                                }, "View/Print"),
-                                                React.createElement("button", { 
-                                                    onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
-                                                    className: "p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full",
-                                                    "aria-label": "Edit job ticket"
-                                                }, React.createElement(EditIcon, { className: "w-4 h-4" })),
-                                                React.createElement("button", {
-                                                    onClick: () => handleDeleteJobTicket(ticket.id),
-                                                    className: "p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full",
-                                                    "aria-label": "Delete job ticket"
-                                                }, React.createElement(TrashIcon, { className: "w-4 h-4" }))
-                                            )
+                                    React.createElement("div", { className: "flex justify-start items-center mb-2" },
+                                        React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
+                                            ticket.status
                                         )
+                                    ),
+                                    React.createElement("div", { className: "flex justify-between items-baseline mb-3" },
+                                        React.createElement("p", { className: "font-semibold text-slate-700" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })),
+                                        React.createElement("p", { className: "font-bold text-lg text-slate-800" }, `$${totalCost.toFixed(2)}`)
+                                    ),
+                                    React.createElement("div", { className: "flex items-center justify-end space-x-1 mb-3" },
+                                        React.createElement("button", {
+                                            onClick: () => onViewInvoice(contact.id, ticket.id),
+                                            className: "px-3 py-1 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 rounded-md"
+                                        },
+                                           "View/Print"
+                                        ),
+                                        React.createElement("button", { 
+                                            onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
+                                            className: "p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full",
+                                            "aria-label": "Edit job ticket"
+                                        },
+                                            React.createElement(EditIcon, { className: "w-4 h-4" })
+                                        ),
+                                        React.createElement("button", {
+                                            onClick: () => handleDeleteJobTicket(ticket.id),
+                                            className: "p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full",
+                                            "aria-label": "Delete job ticket"
+                                        },
+                                            React.createElement(TrashIcon, { className: "w-4 h-4" })
+                                        )
+                                    ),
+                                    ticket.notes && (
+                                        React.createElement("p", { className: "text-sm text-slate-600 whitespace-pre-wrap border-t border-slate-200 pt-3" }, ticket.notes)
                                     )
                                 );
                             })
