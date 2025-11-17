@@ -93,7 +93,7 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
             )
           ),
 
-          React.createElement("div", { className: "p-6 space-y-4 overflow-y-auto flex-grow" },
+          React.createElement("div", { className: "p-6 space-y-4 overflow-y-auto flex-grow min-h-0" },
             React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
                 React.createElement("div", null,
                     React.createElement("label", { htmlFor: "job-date", className: "block text-sm font-medium text-slate-600" }, "Date"),
