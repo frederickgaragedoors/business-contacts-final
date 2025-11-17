@@ -1,8 +1,10 @@
 /**
- * Generates a cryptographically secure unique ID.
+ * Generates a 7-character uppercase alphanumeric ID.
  */
 export const generateId = () => {
-  return crypto.randomUUID();
+  // This provides a simple, short, and reasonably unique ID for this application's scale.
+  // It's not cryptographically secure, but it's sufficient for non-sensitive, client-side identifiers.
+  return Math.random().toString(36).substring(2, 9).toUpperCase();
 };
 
 /**
