@@ -82,7 +82,7 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
         )
       ),
       
-      React.createElement("div", { className: "p-6 flex-grow" },
+      React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow" },
         React.createElement("div", { className: "flex flex-col items-center mb-6" },
             React.createElement("div", { className: "relative w-24 h-24" },
                 photoUrl ? (
