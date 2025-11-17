@@ -40,6 +40,8 @@ export interface JobTicket {
   notes: string;
   parts: Part[];
   laborCost: number;
+  salesTaxRate?: number;
+  processingFeeRate?: number;
 }
 
 export interface Contact {
