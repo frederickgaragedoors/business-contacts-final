@@ -92,6 +92,7 @@ const App = () => {
                 businessInfo: parsed.businessInfo || initialBusinessInfo,
                 autoBackupEnabled: parsed.autoBackupEnabled || false,
                 lastAutoBackup: parsed.lastAutoBackup || null,
+                theme: parsed.theme || 'system',
             };
         }
         return {
@@ -100,6 +101,7 @@ const App = () => {
             businessInfo: initialBusinessInfo,
             autoBackupEnabled: false,
             lastAutoBackup: null,
+            theme: 'system',
         };
     });
 
@@ -108,6 +110,26 @@ const App = () => {
     useEffect(() => {
         initDB().catch(err => console.error("Failed to initialize DB", err));
     }, []);
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        const isDark =
+          appState.theme === 'dark' ||
+          (appState.theme === 'system' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        
+        root.classList.toggle('dark', isDark);
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = () => {
+             const isDark =
+                appState.theme === 'dark' ||
+                (appState.theme === 'system' && mediaQuery.matches);
+             root.classList.toggle('dark', isDark);
+        }
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, [appState.theme]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -159,6 +181,10 @@ const App = () => {
         alert('Business information saved!');
     };
     
+    const updateTheme = (theme) => {
+        setAppState(current => ({ ...current, theme }));
+    };
+
     const addContact = async (contactData) => {
         const filesWithData = contactData.files.filter(f => f.dataUrl);
         if (filesWithData.length > 0) {
@@ -399,6 +425,8 @@ const App = () => {
                     onRestoreBackup: (content) => restoreData(content, false),
                     businessInfo: appState.businessInfo,
                     onUpdateBusinessInfo: updateBusinessInfo,
+                    currentTheme: appState.theme,
+                    onUpdateTheme: updateTheme,
                 });
             case 'invoice':
                 const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
@@ -421,7 +449,7 @@ const App = () => {
   
     const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice'].includes(viewState.type);
 
-    return React.createElement("div", { className: "h-screen w-screen flex flex-col antialiased text-slate-700 relative" },
+    return React.createElement("div", { className: "h-screen w-screen flex flex-col antialiased text-slate-700 dark:text-slate-300 relative" },
         recoveryBackup && (
             React.createElement("div", { className: "absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg" },
                 React.createElement("div", null,
@@ -461,7 +489,7 @@ const App = () => {
                     onSelectContact: (id) => setViewState({ type: 'detail', id }),
                 })
             ),
-            React.createElement("main", { className: `flex-grow bg-white h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}` },
+            React.createElement("main", { className: `flex-grow bg-white dark:bg-slate-800 h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}` },
                 renderMainContent()
             )
         )
@@ -469,10 +497,10 @@ const App = () => {
 };
 
 const WelcomeMessage = ({ onNewContact }) => (
-  React.createElement("div", { className: "h-full flex flex-col justify-center items-center text-center p-8 bg-slate-50" },
-    React.createElement(UserCircleIcon, { className: "w-24 h-24 text-slate-300" }),
-    React.createElement("h2", { className: "mt-4 text-2xl font-bold text-slate-600" }, "Welcome to your Contacts"),
-    React.createElement("p", { className: "mt-2 text-slate-500" }, "Select a contact to view their details or add a new one."),
+  React.createElement("div", { className: "h-full flex flex-col justify-center items-center text-center p-8 bg-slate-50 dark:bg-slate-800" },
+    React.createElement(UserCircleIcon, { className: "w-24 h-24 text-slate-300 dark:text-slate-600" }),
+    React.createElement("h2", { className: "mt-4 text-2xl font-bold text-slate-600 dark:text-slate-300" }, "Welcome to your Contacts"),
+    React.createElement("p", { className: "mt-2 text-slate-500 dark:text-slate-400" }, "Select a contact to view their details or add a new one."),
     onNewContact && (
         React.createElement("button", { 
             onClick: onNewContact, 
