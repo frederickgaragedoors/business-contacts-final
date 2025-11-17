@@ -95,12 +95,12 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
                 onClick={() => onSelectContact(job.contactId)}
                 className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer card-hover"
             >
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="font-semibold text-slate-800 dark:text-slate-100">{job.contactName}</p>
+                <div className="flex justify-between items-start space-x-2">
+                    <div className="min-w-0">
+                        <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">{job.contactName}</p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">{new Date(job.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
                     </div>
-                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                     <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
                         {job.status}
                     </span>
                 </div>
