@@ -7,6 +7,7 @@ import ContactForm from './components/ContactForm.tsx';
 import Settings from './components/Settings.tsx';
 import Dashboard from './components/Dashboard.tsx';
 import InvoiceView from './components/InvoiceView.tsx';
+import EmptyState from './components/EmptyState.tsx';
 import { UserCircleIcon } from './components/icons.tsx';
 import { generateId } from './utils.ts';
 import { initDB, addFiles, deleteFiles, getAllFiles, clearAndAddFiles } from './db.ts';
@@ -453,7 +454,15 @@ const App: React.FC = () => {
                     onSelectContact={(id) => setViewState({ type: 'detail', id })}
                  />;
             case 'list':
-                 return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
+                 return (
+                    <EmptyState 
+                        Icon={UserCircleIcon}
+                        title="Welcome to your Contacts"
+                        message="Select a contact to view their details or add a new one."
+                        actionText={appState.contacts.length === 0 ? "Add First Contact" : undefined}
+                        onAction={appState.contacts.length === 0 ? () => setViewState({ type: 'new_form' }) : undefined}
+                    />
+                 );
 
             case 'detail':
                 if (!selectedContact) return null; // Handled by useEffect
@@ -519,7 +528,13 @@ const App: React.FC = () => {
                     />
                 );
             default:
-                return <WelcomeMessage onNewContact={() => setViewState({ type: 'new_form' })} />;
+                return (
+                     <EmptyState 
+                        Icon={UserCircleIcon}
+                        title="Welcome to your Contacts"
+                        message="Select a contact to view their details or add a new one."
+                     />
+                );
         }
     };
     
@@ -577,21 +592,5 @@ const App: React.FC = () => {
         </div>
     );
 };
-
-const WelcomeMessage: React.FC<{onNewContact?: () => void}> = ({ onNewContact }) => (
-  <div className="h-full flex flex-col justify-center items-center text-center p-8 bg-slate-50 dark:bg-slate-800">
-    <UserCircleIcon className="w-24 h-24 text-slate-300 dark:text-slate-600" />
-    <h2 className="mt-4 text-2xl font-bold text-slate-600 dark:text-slate-300">Welcome to your Contacts</h2>
-    <p className="mt-2 text-slate-500 dark:text-slate-400">Select a contact to view their details or add a new one.</p>
-    {onNewContact && (
-        <button 
-            onClick={onNewContact} 
-            className="mt-6 px-4 py-2 bg-sky-500 text-white font-medium rounded-md hover:bg-sky-600 transition-colors"
-        >
-            Add First Contact
-        </button>
-    )}
-  </div>
-);
 
 export default App;
