@@ -51,18 +51,23 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     };
     
     useEffect(() => {
-        const handleAfterPrint = () => {
-            const style = document.getElementById(printStyleId);
-            if (style) {
-                style.remove();
+        const mediaQueryList = window.matchMedia('print');
+
+        const handlePrintChange = (mql: MediaQueryListEvent) => {
+            // This event fires when the print dialog is closed (either by printing or canceling)
+            if (!mql.matches) {
+                const style = document.getElementById(printStyleId);
+                if (style) {
+                    style.remove();
+                }
             }
         };
 
-        window.addEventListener('afterprint', handleAfterPrint);
+        mediaQueryList.addEventListener('change', handlePrintChange);
 
         return () => {
-            window.removeEventListener('afterprint', handleAfterPrint);
-            // Eager cleanup if component unmounts
+            mediaQueryList.removeEventListener('change', handlePrintChange);
+            // Eager cleanup if component unmounts while print dialog is open
             const style = document.getElementById(printStyleId);
             if (style) {
                 style.remove();
