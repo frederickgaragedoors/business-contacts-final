@@ -38,7 +38,7 @@ const PhotoGalleryModal = ({ images, startIndex, onClose }) => {
       React.createElement("div", { className: "relative w-full h-full flex flex-col items-center justify-center p-4" },
         React.createElement("button", {
           onClick: onClose,
-          className: "absolute top-4 right-4 text-white hover:text-slate-300 z-50 p-2 bg-black bg-opacity-50 rounded-full",
+          className: "absolute top-4 right-4 text-white hover:text-slate-300 z-50 p-2 bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full",
           "aria-label": "Close gallery"
         },
           React.createElement(XIcon, { className: "w-6 h-6" })
@@ -54,7 +54,7 @@ const PhotoGalleryModal = ({ images, startIndex, onClose }) => {
             images.length > 1 && (
                 React.createElement("button", {
                     onClick: goToPrevious,
-                    className: "absolute left-0 sm:left-4 top-1/2 -translate-y-1/2 text-white hover:text-slate-300 p-2 bg-black bg-opacity-50 rounded-full",
+                    className: "absolute left-0 sm:left-4 top-1/2 -translate-y-1/2 text-white hover:text-slate-300 p-2 bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full",
                     "aria-label": "Previous image"
                 },
                     React.createElement(ChevronLeftIcon, { className: "w-8 h-8" })
@@ -63,7 +63,7 @@ const PhotoGalleryModal = ({ images, startIndex, onClose }) => {
             images.length > 1 && (
                 React.createElement("button", {
                     onClick: goToNext,
-                    className: "absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 text-white hover:text-slate-300 p-2 bg-black bg-opacity-50 rounded-full",
+                    className: "absolute right-0 sm:right-4 top-1/2 -translate-y-1/2 text-white hover:text-slate-300 p-2 bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full",
                     "aria-label": "Next image"
                 },
                     React.createElement(ChevronRightIcon, { className: "w-8 h-8" })
