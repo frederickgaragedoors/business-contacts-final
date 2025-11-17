@@ -4,7 +4,7 @@ import { generateId, calculateJobTicketTotal } from '../utils.js';
 
 const jobStatuses = ['Estimate Scheduled', 'Quote Sent', 'Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Paid', 'Declined'];
 
-const JobTicketModal = ({ entry, onSave, onClose }) => {
+const JobTicketModal = ({ entry, onSave, onClose, jobTemplates }) => {
   const [date, setDate] = useState('');
   const [status, setStatus] = useState('Estimate Scheduled');
   const [notes, setNotes] = useState('');
@@ -50,6 +50,18 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
     setParts(parts.filter(p => p.id !== id));
   };
   
+  const handleTemplateSelect = (templateId) => {
+    if (!templateId) return;
+    const selectedTemplate = jobTemplates?.find(t => t.id === templateId);
+    if (selectedTemplate) {
+        setNotes(selectedTemplate.notes);
+        setParts(selectedTemplate.parts.map(p => ({...p, id: generateId()})));
+        setLaborCost(selectedTemplate.laborCost);
+        setSalesTaxRate(selectedTemplate.salesTaxRate || 0);
+        setProcessingFeeRate(selectedTemplate.processingFeeRate || 0);
+    }
+  };
+  
   const currentTicketState = useMemo(() => ({
       id: entry?.id || '',
       date,
@@ -66,8 +78,10 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (notes.trim() && date) {
-      onSave(currentTicketState);
+    if (notes.trim() || parts.length > 0) {
+        onSave(currentTicketState);
+    } else {
+        alert("Please add some notes or parts to the job ticket before saving.");
     }
   };
   
@@ -89,6 +103,20 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
           ),
 
           React.createElement("div", { className: "p-6 space-y-4 overflow-y-auto flex-grow min-h-0" },
+            jobTemplates && jobTemplates.length > 0 && !entry && (
+                React.createElement("div", null,
+                    React.createElement("label", { htmlFor: "job-template", className: labelStyles }, "Apply Template"),
+                    React.createElement("select", {
+                        id: "job-template",
+                        onChange: e => handleTemplateSelect(e.target.value),
+                        className: `mt-1 ${inputStyles}`,
+                        defaultValue: ""
+                    },
+                        React.createElement("option", { value: "", disabled: true }, "Select a template..."),
+                        jobTemplates.map(t => React.createElement("option", { key: t.id, value: t.id }, t.name))
+                    )
+                )
+            ),
             React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
                 React.createElement("div", null,
                     React.createElement("label", { htmlFor: "job-date", className: labelStyles }, "Date"),
@@ -120,7 +148,6 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
                 id: "job-notes",
                 value: notes,
                 onChange: e => setNotes(e.target.value),
-                required: true,
                 rows: 4,
                 className: `mt-1 ${inputStyles}`,
                 placeholder: "Describe the job details..."
