@@ -134,22 +134,39 @@ const App: React.FC = () => {
     // Effect to manage the theme
     useEffect(() => {
         const root = window.document.documentElement;
-        const isDark =
-          appState.theme === 'dark' ||
-          (appState.theme === 'system' &&
-            window.matchMedia('(prefers-color-scheme: dark)').matches);
-        
-        root.classList.toggle('dark', isDark);
-
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleChange = () => {
-             const isDark =
-                appState.theme === 'dark' ||
-                (appState.theme === 'system' && mediaQuery.matches);
-             root.classList.toggle('dark', isDark);
+
+        // Apply theme based on the current setting
+        if (appState.theme === 'dark') {
+            root.classList.add('dark');
+        } else if (appState.theme === 'light') {
+            root.classList.remove('dark');
+        } else { // 'system'
+            if (mediaQuery.matches) {
+                root.classList.add('dark');
+            } else {
+                root.classList.remove('dark');
+            }
         }
+
+        // Create a listener for system theme changes
+        const handleChange = (e: MediaQueryListEvent) => {
+            // Only apply changes if the theme is set to 'system'
+            if (appState.theme === 'system') {
+                if (e.matches) {
+                    root.classList.add('dark');
+                } else {
+                    root.classList.remove('dark');
+                }
+            }
+        };
+
         mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
+
+        // Cleanup listener on component unmount or when appState.theme changes
+        return () => {
+            mediaQuery.removeEventListener('change', handleChange);
+        };
     }, [appState.theme]);
 
     // Debounced effect to persist the entire app state to localStorage
@@ -311,7 +328,8 @@ const App: React.FC = () => {
         if (window.confirm('Are you sure you want to delete this contact?')) {
             const contactToDelete = appState.contacts.find(c => c.id === id);
             if (contactToDelete && contactToDelete.files.length > 0) {
-                await deleteFiles(contactToDelete.files.map(f => f.id));
+                // FIX: Explicitly type 'f' as 'FileAttachment' to ensure `f.id` is a string and the mapped array is `string[]`.
+                await deleteFiles(contactToDelete.files.map((f: FileAttachment) => f.id));
             }
 
             const remainingContacts = appState.contacts.filter(c => c.id !== id);
