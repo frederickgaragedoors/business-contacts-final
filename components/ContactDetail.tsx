@@ -308,7 +308,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                         <p className="font-semibold text-slate-700">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
                                         <p className="font-bold text-lg text-slate-800">${totalCost.toFixed(2)}</p>
                                     </div>
-                                    <div className="flex items-center justify-end space-x-1 mb-3">
+                                    <div className="flex items-center justify-end space-x-3 mb-3">
                                         <button 
                                             onClick={() => onViewInvoice(contact.id, ticket.id)}
                                             className="px-3 py-1 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 rounded-md"
@@ -317,14 +317,14 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                         </button>
                                         <button 
                                             onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
-                                            className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full"
+                                            className="p-2 bg-sky-500 text-white hover:bg-sky-600 rounded-md"
                                             aria-label="Edit job ticket"
                                         >
                                             <EditIcon className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteJobTicket(ticket.id)}
-                                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full"
+                                            className="p-2 bg-red-500 text-white hover:bg-red-600 rounded-md"
                                             aria-label="Delete job ticket"
                                         >
                                             <TrashIcon className="w-4 h-4" />
