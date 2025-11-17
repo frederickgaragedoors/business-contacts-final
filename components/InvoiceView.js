@@ -180,7 +180,17 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                     React.createElement("section", { className: "mt-8 flex justify-end" },
                         docType === 'estimate' && (ticket.processingFeeRate || 0) > 0 ? (
                             React.createElement("div", { className: "w-full max-w-sm space-y-3 text-slate-700 p-4 bg-slate-50 rounded-lg border" },
-                                React.createElement("h4", { className: "font-bold text-lg text-slate-800 text-center" }, "Payment Options"),
+                                React.createElement("div", { className: "flex justify-between pb-2 border-b" },
+                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, "Subtotal"),
+                                    React.createElement("span", { className: "text-sm font-medium" }, `$${subtotal.toFixed(2)}`)
+                                ),
+                                (ticket.salesTaxRate || 0) > 0 && (
+                                    React.createElement("div", { className: "flex justify-between pb-2 border-b" },
+                                        React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Sales Tax (${ticket.salesTaxRate}%)`),
+                                        React.createElement("span", { className: "text-sm font-medium" }, `$${taxAmount.toFixed(2)}`)
+                                    )
+                                ),
+                                React.createElement("h4", { className: "font-bold text-lg text-slate-800 text-center pt-2" }, "Payment Options"),
                                 React.createElement("div", { className: "flex justify-between py-2 border-t" },
                                     React.createElement("span", { className: "text-base font-semibold" }, "Pay by Check/Cash"),
                                     React.createElement("span", { className: "text-base font-semibold" }, `$${(subtotal + taxAmount).toFixed(2)}`)
