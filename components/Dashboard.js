@@ -91,11 +91,11 @@ const Dashboard = ({ contacts, onSelectContact }) => {
 
     return (
         React.createElement("div", { className: "h-full flex flex-col bg-slate-100 overflow-y-auto" },
-            React.createElement("div", { className: "p-6 border-b border-slate-200 bg-white" },
+            React.createElement("div", { className: "px-4 sm:px-6 py-6 border-b border-slate-200 bg-white" },
                 React.createElement("h1", { className: "text-2xl md:text-3xl font-bold text-slate-800" }, "Jobs Dashboard"),
                 React.createElement("p", { className: "mt-1 text-slate-500" }, "A summary of your active jobs.")
             ),
-            React.createElement("div", { className: "p-6 flex-grow space-y-8" },
+            React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow space-y-8" },
                 React.createElement(Section, { 
                     title: "Awaiting Parts", 
                     jobs: jobsAwaitingParts, 
