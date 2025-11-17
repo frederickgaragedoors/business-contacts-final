@@ -90,7 +90,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                     <TrashIcon className="w-4 h-4" /><span>Delete</span>
                 </button>
                  <button onClick={onViewInvoice} className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600">
-                    <ClipboardListIcon className="w-4 h-4" /><span>Estimate/Receipt</span>
+                    <ClipboardListIcon className="w-4 h-4" /><span>PDF</span>
                 </button>
             </div>
           </div>
