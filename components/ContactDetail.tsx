@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Contact, FileAttachment, DefaultFieldSetting, JobTicket, jobStatusColors } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
 import JobTicketModal from './JobTicketModal.tsx';
@@ -18,6 +18,7 @@ import {
   BriefcaseIcon,
 } from './icons.tsx';
 import { fileToDataUrl, formatFileSize, getInitials, generateId } from '../utils.ts';
+import { getFiles } from '../db.ts';
 
 interface ContactDetailProps {
   contact: Contact;
@@ -45,28 +46,56 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
     const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
     const [editingJobTicket, setEditingJobTicket] = useState<JobTicket | null>(null);
+    const [hydratedFiles, setHydratedFiles] = useState<FileAttachment[]>([]);
+    const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
     const imageUploadRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const fileUploadRef = useRef<HTMLInputElement>(null);
 
-    const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            // FIX: Explicitly type the 'file' parameter as 'File' to resolve type inference issues.
-            const newFilesPromises = Array.from(e.target.files).map(async (file: File) => {
-                const dataUrl = await fileToDataUrl(file);
-                return {
-                    id: generateId(),
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    dataUrl: dataUrl,
-                };
-            });
-            const newFiles = await Promise.all(newFilesPromises);
-            addFilesToContact(contact.id, newFiles);
-            if(e.target) e.target.value = ''; // Reset input
+    useEffect(() => {
+        if (contact.files.length > 0) {
+            setIsLoadingFiles(true);
+            getFiles(contact.files.map(f => f.id))
+                .then(filesFromDb => {
+                    setHydratedFiles(filesFromDb);
+                })
+                .catch(err => {
+                    console.error("Failed to load files from DB", err);
+                    alert("Could not load some attachments for this contact.");
+                })
+                .finally(() => {
+                    setIsLoadingFiles(false);
+                });
+        } else {
+            setHydratedFiles([]);
+            setIsLoadingFiles(false);
         }
+    }, [contact.files]);
+
+    const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const input = e.target;
+        if (input.files && input.files.length > 0) {
+            try {
+                const newFilesPromises = Array.from(input.files).map(async (file: File) => {
+                    const dataUrl = await fileToDataUrl(file);
+                    return {
+                        id: generateId(),
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        dataUrl: dataUrl,
+                    };
+                });
+                const newFiles = await Promise.all(newFilesPromises);
+                await addFilesToContact(contact.id, newFiles);
+            } catch (error) {
+                console.error("Error reading files:", error);
+                alert("There was an error processing your files. They might be too large or corrupted.");
+            }
+        }
+        // Always reset input to allow re-selecting the same file, and hide options
+        input.value = '';
         setShowPhotoOptions(false);
     };
 
@@ -91,16 +120,16 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
         if (contact.photoUrl) {
             images.push({ url: contact.photoUrl, name: `${contact.name} (Profile)` });
         }
-        contact.files.forEach(file => {
-            if (file.type.startsWith('image/')) {
+        hydratedFiles.forEach(file => {
+            if (file.type.startsWith('image/') && file.dataUrl) {
                 images.push({ url: file.dataUrl, name: file.name });
             }
         });
         return images;
-    }, [contact]);
+    }, [contact.photoUrl, contact.name, hydratedFiles]);
     
-    const imageFiles = useMemo(() => contact.files.filter(file => file.type.startsWith('image/')), [contact.files]);
-    const otherFiles = useMemo(() => contact.files.filter(file => !file.type.startsWith('image/')), [contact.files]);
+    const imageFiles = useMemo(() => hydratedFiles.filter(file => file.type.startsWith('image/')), [hydratedFiles]);
+    const otherFiles = useMemo(() => hydratedFiles.filter(file => !file.type.startsWith('image/')), [hydratedFiles]);
 
     const openGallery = (index: number) => {
         setGalleryCurrentIndex(index);
@@ -346,7 +375,9 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                         )}
                     </div>
                 </div>
-                {imageFiles.length > 0 ? (
+                {isLoadingFiles ? (
+                     <div className="text-center text-slate-500 py-4">Loading photos...</div>
+                ) : imageFiles.length > 0 ? (
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {imageFiles.map(file => {
                             const imageIndexInGallery = galleryImages.findIndex(img => img.url === file.dataUrl);
@@ -380,7 +411,9 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                         <PlusIcon className="w-5 h-5" />
                     </button>
                 </div>
-                 {otherFiles.length > 0 ? (
+                 {isLoadingFiles ? (
+                     <div className="text-center text-slate-500 py-4">Loading files...</div>
+                 ) : otherFiles.length > 0 ? (
                     <ul className="space-y-3">
                         {otherFiles.map(file => (
                             <li key={file.id} className="flex items-center p-3 bg-slate-50 rounded-lg">
