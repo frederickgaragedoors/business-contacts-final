@@ -380,7 +380,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                     {otherFiles.map(file => (
                                         <li key={file.id} className="flex items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                                             <FileIcon className="w-6 h-6 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                                            <div className="ml-3 flex-grow truncate">
+                                            <div className="ml-3 flex-grow min-w-0">
                                                 <p className="font-medium text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
                                                 <p className="text-sm text-slate-500 dark:text-slate-400">{formatFileSize(file.size)}</p>
                                             </div>
