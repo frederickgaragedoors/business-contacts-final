@@ -13,9 +13,15 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
         const element = invoiceContentRef.current;
         if (!element) return null;
 
-        // Temporarily set a base font size to prevent mobile font boosting issues.
+        // Store original styles
         const originalFontSize = element.style.fontSize;
+        const originalWebkitTextSizeAdjust = element.style.webkitTextSizeAdjust;
+        const originalTextSizeAdjust = element.style.textSizeAdjust;
+
+        // Apply styles to prevent font boosting
         element.style.fontSize = '12px';
+        element.style.webkitTextSizeAdjust = 'none'; // For Chrome/Safari
+        element.style.textSizeAdjust = 'none'; // Standard property
         
         try {
             const canvas = await html2canvas(element, {
@@ -56,9 +62,11 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
             alert("Sorry, there was an error creating the PDF.");
             return null;
         } finally {
-            // Restore original style to avoid affecting the on-screen display
+            // Restore original styles to avoid affecting the on-screen display
             if (element) {
                 element.style.fontSize = originalFontSize;
+                element.style.webkitTextSizeAdjust = originalWebkitTextSizeAdjust;
+                element.style.textSizeAdjust = originalTextSizeAdjust;
             }
         }
     };
