@@ -84,8 +84,12 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
         }
     };
 
-    const totalPartsCost = ticket.parts.reduce((sum, part) => sum + part.cost, 0);
-    const totalCost = totalPartsCost + ticket.laborCost;
+    const subtotal = ticket.parts.reduce((sum, part) => sum + part.cost, 0) + ticket.laborCost;
+    const taxAmount = subtotal * ((ticket.salesTaxRate || 0) / 100);
+    const totalAfterTaxes = subtotal + taxAmount;
+    const feeAmount = totalAfterTaxes * ((ticket.processingFeeRate || 0) / 100);
+    const totalCost = totalAfterTaxes + feeAmount;
+
 
     return (
         <div className="h-full flex flex-col bg-slate-200 overflow-y-auto">
@@ -183,11 +187,23 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                     </section>
 
                     <section className="mt-8 flex justify-end">
-                        <div className="w-full max-w-xs">
+                        <div className="w-full max-w-xs space-y-2">
                             <div className="flex justify-between py-2 border-b">
                                 <span className="text-sm font-medium text-slate-600">Subtotal</span>
-                                <span className="text-sm font-medium text-slate-700">${totalCost.toFixed(2)}</span>
+                                <span className="text-sm font-medium text-slate-700">${subtotal.toFixed(2)}</span>
                             </div>
+                            {(ticket.salesTaxRate || 0) > 0 && (
+                                <div className="flex justify-between py-2 border-b">
+                                    <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
+                                    <span className="text-sm font-medium text-slate-700">${taxAmount.toFixed(2)}</span>
+                                </div>
+                            )}
+                            {(ticket.processingFeeRate || 0) > 0 && (
+                                <div className="flex justify-between py-2 border-b">
+                                    <span className="text-sm font-medium text-slate-600">Processing Fee ({ticket.processingFeeRate}%)</span>
+                                    <span className="text-sm font-medium text-slate-700">${feeAmount.toFixed(2)}</span>
+                                </div>
+                            )}
                              <div className="flex justify-between py-2 bg-slate-100 px-3 mt-2 rounded-md">
                                 <span className="text-lg font-bold text-slate-800">Total</span>
                                 <span className="text-lg font-bold text-slate-800">${totalCost.toFixed(2)}</span>
