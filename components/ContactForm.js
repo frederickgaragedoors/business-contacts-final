@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback } from 'react';
 import { UserCircleIcon, XIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
 import { fileToDataUrl, formatFileSize, generateId } from '../utils.js';
@@ -181,13 +179,13 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
              React.createElement("h4", { className: "text-sm font-medium text-slate-600 dark:text-slate-300" }, "Current Attachments"),
              React.createElement("ul", { className: "mt-2 space-y-2" },
                 files.map(file => (
-                  React.createElement("li", { key: file.id, className: "flex items-center p-2 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm" },
-                    React.createElement(FileIcon, { className: "w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" }),
-                    React.createElement("div", { className: "ml-3 flex-grow min-w-0" },
+                  React.createElement("li", { key: file.id, className: "grid grid-cols-[auto_1fr_auto] items-center gap-x-3 p-2 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm" },
+                    React.createElement(FileIcon, { className: "w-5 h-5 text-slate-500 dark:text-slate-400" }),
+                    React.createElement("div", { className: "min-w-0" },
                         React.createElement("p", { className: "text-sm font-medium text-slate-800 dark:text-slate-200 truncate" }, file.name),
                         React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, formatFileSize(file.size))
                     ),
-                    React.createElement("button", { type: "button", onClick: () => removeFile(file.id, false), className: "ml-2 p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50" },
+                    React.createElement("button", { type: "button", onClick: () => removeFile(file.id, false), className: "p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50" },
                         React.createElement(TrashIcon, { className: "w-4 h-4" })
                     )
                   )
@@ -201,13 +199,13 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
              React.createElement("h4", { className: "text-sm font-medium text-slate-600 dark:text-slate-300" }, "Staged Files for Upload"),
              React.createElement("ul", { className: "mt-2 space-y-2 p-3 bg-sky-50 dark:bg-sky-900/50 rounded-md" },
                 stagedFiles.map(file => (
-                  React.createElement("li", { key: file.id, className: "flex items-center p-2 bg-white dark:bg-slate-700 rounded-md shadow-sm" },
-                    React.createElement(FileIcon, { className: "w-5 h-5 text-sky-500 flex-shrink-0" }),
-                    React.createElement("div", { className: "ml-3 flex-grow min-w-0" },
+                  React.createElement("li", { key: file.id, className: "grid grid-cols-[auto_1fr_auto] items-center gap-x-3 p-2 bg-white dark:bg-slate-700 rounded-md shadow-sm" },
+                    React.createElement(FileIcon, { className: "w-5 h-5 text-sky-500" }),
+                    React.createElement("div", { className: "min-w-0" },
                         React.createElement("p", { className: "text-sm font-medium text-slate-800 dark:text-slate-200 truncate" }, file.name),
                         React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, formatFileSize(file.size))
                     ),
-                    React.createElement("button", { type: "button", onClick: () => removeFile(file.id, true), className: "ml-2 p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50" },
+                    React.createElement("button", { type: "button", onClick: () => removeFile(file.id, true), className: "p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50" },
                         React.createElement(TrashIcon, { className: "w-4 h-4" })
                     )
                   )
