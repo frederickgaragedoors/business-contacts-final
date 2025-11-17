@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { UserCircleIcon, XIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
 import { fileToDataUrl, formatFileSize, generateId } from '../utils.js';
@@ -16,28 +17,41 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
   const [stagedFiles, setStagedFiles] = useState([]);
 
   const handlePhotoChange = useCallback(async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const dataUrl = await fileToDataUrl(file);
-      setPhotoUrl(dataUrl);
+    const input = e.target;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      try {
+        const dataUrl = await fileToDataUrl(file);
+        setPhotoUrl(dataUrl);
+      } catch (error) {
+        console.error("Error reading photo:", error);
+        alert("There was an error processing the photo. It might be too large or corrupted.");
+      }
     }
+    if (input) input.value = '';
   }, []);
 
   const handleFilesChange = useCallback(async (e) => {
-    if (e.target.files) {
-      const newFilesPromises = Array.from(e.target.files).map(async (file) => {
-        const dataUrl = await fileToDataUrl(file);
-        return {
-          id: generateId(),
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          dataUrl: dataUrl,
-        };
-      });
-      const newFiles = await Promise.all(newFilesPromises);
-      setStagedFiles(prevFiles => [...prevFiles, ...newFiles]);
-      if(e.target) e.target.value = '';
+    const input = e.target;
+    if (input.files) {
+      try {
+        const newFilesPromises = Array.from(input.files).map(async (file) => {
+          const dataUrl = await fileToDataUrl(file);
+          return {
+            id: generateId(),
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            dataUrl: dataUrl,
+          };
+        });
+        const newFiles = await Promise.all(newFilesPromises);
+        setStagedFiles(prevFiles => [...prevFiles, ...newFiles]);
+      } catch (error) {
+        console.error("Error reading files:", error);
+        alert("There was an error processing your files. They might be too large or corrupted.");
+      }
+      if (input) input.value = '';
     }
   }, []);
 
