@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors } from '../types.ts';
+import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
 import JobTicketModal from './JobTicketModal.tsx';
 import EmptyState from './EmptyState.tsx';
@@ -30,6 +30,8 @@ interface ContactDetailProps {
     addFilesToContact: (contactId: string, files: FileAttachment[]) => Promise<void>;
     updateContactJobTickets: (contactId: string, jobTickets: JobTicket[]) => void;
     onViewInvoice: (contactId: string, ticketId: string) => void;
+    // FIX: Added jobTemplates to props to resolve type error from App.tsx.
+    jobTemplates: JobTemplate[];
 }
 
 const VIEWABLE_MIME_TYPES = [
@@ -43,7 +45,7 @@ const VIEWABLE_MIME_TYPES = [
 
 type ActiveTab = 'details' | 'jobs' | 'files';
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, jobTemplates }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -478,6 +480,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     entry={editingJobTicket}
                     onSave={handleSaveJobTicket}
                     onClose={() => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); }}
+                    jobTemplates={jobTemplates}
                 />
             )}
         </>
