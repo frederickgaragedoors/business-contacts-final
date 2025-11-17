@@ -136,36 +136,36 @@ const App: React.FC = () => {
         const root = window.document.documentElement;
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-        // Apply theme based on the current setting
-        if (appState.theme === 'dark') {
-            root.classList.add('dark');
-        } else if (appState.theme === 'light') {
+        // This function will be the event listener.
+        const systemThemeListener = (e: MediaQueryListEvent) => {
+            if (e.matches) {
+                root.classList.add('dark');
+            } else {
+                root.classList.remove('dark');
+            }
+        };
+
+        // Remove any existing listener first.
+        mediaQuery.removeEventListener('change', systemThemeListener);
+
+        // Apply the theme based on the current setting.
+        if (appState.theme === 'light') {
             root.classList.remove('dark');
+        } else if (appState.theme === 'dark') {
+            root.classList.add('dark');
         } else { // 'system'
+            // For system, apply the current state and then listen for changes.
             if (mediaQuery.matches) {
                 root.classList.add('dark');
             } else {
                 root.classList.remove('dark');
             }
+            mediaQuery.addEventListener('change', systemThemeListener);
         }
 
-        // Create a listener for system theme changes
-        const handleChange = (e: MediaQueryListEvent) => {
-            // Only apply changes if the theme is set to 'system'
-            if (appState.theme === 'system') {
-                if (e.matches) {
-                    root.classList.add('dark');
-                } else {
-                    root.classList.remove('dark');
-                }
-            }
-        };
-
-        mediaQuery.addEventListener('change', handleChange);
-
-        // Cleanup listener on component unmount or when appState.theme changes
+        // The cleanup function will remove the listener if it was added.
         return () => {
-            mediaQuery.removeEventListener('change', handleChange);
+            mediaQuery.removeEventListener('change', systemThemeListener);
         };
     }, [appState.theme]);
 
