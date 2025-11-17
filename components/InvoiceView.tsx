@@ -19,6 +19,35 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef<HTMLDivElement>(null);
 
+    const handlePrint = () => {
+        const printStyles = `
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+                .invoice-paper, .invoice-paper * {
+                    visibility: visible;
+                }
+                .invoice-paper {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    right: 0;
+                    width: 100%;
+                    margin: 0;
+                    padding: 0;
+                    box-shadow: none;
+                }
+            }
+        `;
+        const styleSheet = document.createElement("style");
+        styleSheet.type = "text/css";
+        styleSheet.innerText = printStyles;
+        document.head.appendChild(styleSheet);
+        window.print();
+        document.head.removeChild(styleSheet);
+    };
+
     const handleSaveAndAttach = async () => {
         if (!invoiceContentRef.current || isSaving) return;
         
@@ -107,7 +136,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         </button>
                     </div>
                     <button 
-                        onClick={() => window.print()}
+                        onClick={handlePrint}
                         className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200"
                     >
                         Print
@@ -209,34 +238,6 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                     </footer>
                 </div>
             </div>
-            <style>
-            {`
-                @media print {
-                    body {
-                        background-color: #fff;
-                    }
-                    /* Hide everything on the page */
-                    body * {
-                        visibility: hidden;
-                    }
-                    /* Then, make the invoice paper and everything inside it visible */
-                    .invoice-paper, .invoice-paper * {
-                        visibility: visible;
-                    }
-                    /* Position the invoice paper on the page for printing */
-                    .invoice-paper {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        right: 0;
-                        width: 100%;
-                        margin: 0;
-                        padding: 0;
-                        box-shadow: none;
-                    }
-                }
-            `}
-            </style>
         </div>
     );
 };
