@@ -92,7 +92,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
 
 
     return (
-        <div className="h-full flex flex-col bg-slate-200 overflow-y-auto">
+        <div className="h-full flex flex-col bg-slate-200 overflow-y-auto print:overflow-visible">
             {/* Toolbar */}
             <div className="p-4 flex items-center justify-between border-b border-slate-300 bg-white print:hidden">
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
