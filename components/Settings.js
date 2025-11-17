@@ -87,7 +87,7 @@ const Settings = ({
                 ),
                 React.createElement("button", { type: "button", onClick: onBack, className: "hidden md:inline px-4 py-2 rounded-md text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors" }, "Back")
             ),
-            React.createElement("div", { className: "p-6 flex-grow" },
+            React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow" },
                 React.createElement("form", { onSubmit: handleBusinessInfoSubmit },
                     React.createElement("h3", { className: "text-xl font-semibold text-slate-800" }, "Business Information"),
                     React.createElement("p", { className: "mt-1 text-sm text-slate-500" }, "This info will appear on your quotes and invoices."),
