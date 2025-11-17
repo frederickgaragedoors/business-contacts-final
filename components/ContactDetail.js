@@ -137,6 +137,8 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 status: entry.status,
                 parts: entry.parts,
                 laborCost: entry.laborCost,
+                salesTaxRate: entry.salesTaxRate,
+                processingFeeRate: entry.processingFeeRate,
             };
             updatedTickets = [newTicket, ...contact.jobTickets];
         }
@@ -267,7 +269,11 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     sortedJobTickets.length > 0 ? (
                         React.createElement("ul", { className: "space-y-4" },
                             sortedJobTickets.map(ticket => {
-                                const totalCost = ticket.laborCost + ticket.parts.reduce((sum, part) => sum + part.cost, 0);
+                                const subtotal = ticket.laborCost + ticket.parts.reduce((sum, part) => sum + part.cost, 0);
+                                const taxAmount = subtotal * ((ticket.salesTaxRate || 0) / 100);
+                                const totalAfterTaxes = subtotal + taxAmount;
+                                const feeAmount = totalAfterTaxes * ((ticket.processingFeeRate || 0) / 100);
+                                const totalCost = totalAfterTaxes + feeAmount;
                                 const statusColor = jobStatusColors[ticket.status];
                                 return React.createElement("li", { key: ticket.id, className: "p-4 bg-slate-50 rounded-lg" },
                                     React.createElement("div", { className: "flex justify-between items-start" },
