@@ -184,6 +184,8 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                             React.createElement("thead", null,
                                 React.createElement("tr", null,
                                     React.createElement("th", { className: "p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200" }, "Description"),
+                                    React.createElement("th", { className: "p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200" }, "Qty"),
+                                    React.createElement("th", { className: "p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200" }, "Unit Price"),
                                     React.createElement("th", { className: "p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200" }, "Amount")
                                 )
                             ),
@@ -191,11 +193,13 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                                 ticket.parts.map(part => (
                                     React.createElement("tr", { key: part.id, className: "border-b border-slate-100" },
                                         React.createElement("td", { className: "p-3 text-sm text-slate-700" }, part.name),
-                                        React.createElement("td", { className: "p-3 text-right text-sm text-slate-700" }, `$${part.cost.toFixed(2)}`)
+                                        React.createElement("td", { className: "p-3 text-center text-sm text-slate-700" }, part.quantity),
+                                        React.createElement("td", { className: "p-3 text-right text-sm text-slate-700" }, `$${part.cost.toFixed(2)}`),
+                                        React.createElement("td", { className: "p-3 text-right text-sm text-slate-700" }, `$${(part.cost * part.quantity).toFixed(2)}`)
                                     )
                                 )),
                                 React.createElement("tr", { className: "border-b border-slate-100" },
-                                    React.createElement("td", { className: "p-3 text-sm text-slate-700" }, "Labor"),
+                                    React.createElement("td", { className: "p-3 text-sm text-slate-700", colSpan: 3 }, "Labor"),
                                     React.createElement("td", { className: "p-3 text-right text-sm text-slate-700" }, `$${ticket.laborCost.toFixed(2)}`)
                                 )
                             )
