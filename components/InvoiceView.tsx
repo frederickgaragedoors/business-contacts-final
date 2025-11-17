@@ -26,12 +26,14 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
         // Store original styles
         const originalFontSize = element.style.fontSize;
         const originalWebkitTextSizeAdjust = element.style.webkitTextSizeAdjust;
-        const originalTextSizeAdjust = element.style.textSizeAdjust;
+        // FIX: Cast to 'any' to access non-standard or newer CSS properties not in default typings.
+        const originalTextSizeAdjust = (element.style as any).textSizeAdjust;
 
         // Apply styles to prevent font boosting
         element.style.fontSize = '12px';
         (element.style as any).webkitTextSizeAdjust = 'none'; // For Chrome/Safari
-        element.style.textSizeAdjust = 'none'; // Standard property
+        // FIX: Cast to 'any' to access non-standard or newer CSS properties not in default typings.
+        (element.style as any).textSizeAdjust = 'none'; // Standard property
 
         try {
             const canvas = await html2canvas(element, {
@@ -76,7 +78,8 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             if (element) {
                 element.style.fontSize = originalFontSize;
                 (element.style as any).webkitTextSizeAdjust = originalWebkitTextSizeAdjust;
-                element.style.textSizeAdjust = originalTextSizeAdjust;
+                // FIX: Cast to 'any' to access non-standard or newer CSS properties not in default typings.
+                (element.style as any).textSizeAdjust = originalTextSizeAdjust;
             }
         }
     };
