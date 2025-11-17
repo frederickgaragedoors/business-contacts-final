@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
 import JobTicketModal from './JobTicketModal.tsx';
+import EmptyState from './EmptyState.tsx';
 import {
   PhoneIcon,
   MailIcon,
@@ -40,6 +41,8 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
+type ActiveTab = 'details' | 'jobs' | 'files';
+
 const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
@@ -48,6 +51,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     const [editingJobTicket, setEditingJobTicket] = useState<JobTicket | null>(null);
     const [hydratedFiles, setHydratedFiles] = useState<FileAttachment[]>([]);
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+    const [activeTab, setActiveTab] = useState<ActiveTab>('details');
 
     const imageUploadRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -182,6 +186,225 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
         return [...(contact.jobTickets || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [contact.jobTickets]);
 
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'details':
+                return (
+                    <>
+                        <div className="space-y-4">
+                            <div className="flex items-start">
+                                <MailIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
+                                <div className="ml-4">
+                                    <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.email}</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start">
+                                <PhoneIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
+                                <div className="ml-4">
+                                    <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.phone}</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Mobile</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start">
+                                <MapPinIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
+                                <div className="ml-4">
+                                {contact.address ? (
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors"
+                                    >{contact.address}</a>
+                                ) : (
+                                    <p className="font-semibold text-slate-700 dark:text-slate-200 italic text-slate-400">Not set</p>
+                                )}
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Address</p>
+                                </div>
+                            </div>
+                        </div>
+                        {allCustomFields.length > 0 && (
+                            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+                                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Additional Information</h2>
+                                <div className="space-y-4">
+                                    {allCustomFields.map(field => (
+                                        <div key={field.id} className="flex items-start">
+                                            <TagIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
+                                            <div className="ml-4">
+                                                <p className={`font-semibold ${field.value ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 italic'}`}>
+                                                    {field.value || 'Not set'}
+                                                </p>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">{field.label}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
+                );
+            case 'jobs':
+                return (
+                     <div>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Job History</h2>
+                            <button 
+                                onClick={() => { setEditingJobTicket(null); setIsJobTicketModalOpen(true); }}
+                                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                aria-label="Add Job Ticket"
+                            ><PlusIcon className="w-5 h-5" /></button>
+                        </div>
+                        {sortedJobTickets.length > 0 ? (
+                            <ul className="space-y-4">
+                                {sortedJobTickets.map(ticket => {
+                                    const { totalCost } = calculateJobTicketTotal(ticket);
+                                    const statusColor = jobStatusColors[ticket.status];
+                                    return <li key={ticket.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover">
+                                        <div className="flex justify-start items-center mb-2">
+                                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                                                {ticket.status}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline mb-3">
+                                            <p className="font-semibold text-slate-700 dark:text-slate-200">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                                            <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{`$${totalCost.toFixed(2)}`}</p>
+                                        </div>
+                                        <div className="flex items-center justify-evenly mb-3">
+                                            <button
+                                                onClick={() => onViewInvoice(contact.id, ticket.id)}
+                                                className="px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 rounded-md"
+                                            >
+                                            View/Print
+                                            </button>
+                                            <button 
+                                                onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
+                                                className="p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md"
+                                                aria-label="Edit job ticket"
+                                            >
+                                                <EditIcon className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteJobTicket(ticket.id)}
+                                                className="p-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 text-white rounded-md"
+                                                aria-label="Delete job ticket"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        {ticket.notes && (
+                                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap border-t border-slate-200 dark:border-slate-600 pt-3">{ticket.notes}</p>
+                                        )}
+                                    </li>
+                                })}
+                            </ul>
+                        ) : (
+                            <EmptyState 
+                                Icon={BriefcaseIcon}
+                                title="No Jobs Yet"
+                                message="No jobs have been logged for this contact."
+                                actionText="Add First Job"
+                                onAction={() => { setEditingJobTicket(null); setIsJobTicketModalOpen(true); }}
+                            />
+                        )}
+                    </div>
+                );
+            case 'files':
+                return (
+                    <div>
+                        <div className="mb-8">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Photos</h2>
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setShowPhotoOptions(!showPhotoOptions)} 
+                                        className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                        aria-label="Add photo"
+                                    ><PlusIcon className="w-5 h-5" /></button>
+                                    {showPhotoOptions && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-700 rounded-md shadow-lg z-10 ring-1 ring-black ring-opacity-5">
+                                            <button onClick={() => cameraInputRef.current?.click()} className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600">
+                                                <CameraIcon className="w-5 h-5 mr-3" />Take Photo
+                                            </button>
+                                            <button onClick={() => imageUploadRef.current?.click()} className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600">
+                                                <FileIcon className="w-5 h-5 mr-3" />Upload Image
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {isLoadingFiles ? (
+                                <div className="text-center text-slate-500 dark:text-slate-400 py-4">Loading photos...</div>
+                            ) : imageFiles.length > 0 ? (
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {imageFiles.map(file => {
+                                        const imageIndexInGallery = galleryImages.findIndex(img => img.url === file.dataUrl);
+                                        return (
+                                            <button
+                                                key={file.id}
+                                                onClick={() => openGallery(imageIndexInGallery)}
+                                                className="aspect-square rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 card-hover"
+                                            >
+                                                <img src={file.dataUrl} alt={file.name} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-center text-slate-500 dark:text-slate-400 py-4">No photos attached.</p>
+                            )}
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Files</h2>
+                                <button 
+                                    onClick={() => fileUploadRef.current?.click()}
+                                    className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                    aria-label="Add file"
+                                ><PlusIcon className="w-5 h-5" /></button>
+                            </div>
+                            {isLoadingFiles ? (
+                                <div className="text-center text-slate-500 dark:text-slate-400 py-4">Loading files...</div>
+                            ) : otherFiles.length > 0 ? (
+                                <ul className="space-y-3">
+                                    {otherFiles.map(file => (
+                                        <li key={file.id} className="flex items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                            <FileIcon className="w-6 h-6 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                                            <div className="ml-3 flex-grow truncate">
+                                                <p className="font-medium text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">{formatFileSize(file.size)}</p>
+                                            </div>
+                                            <div className="ml-4 flex-shrink-0 flex items-center space-x-4">
+                                                {VIEWABLE_MIME_TYPES.includes(file.type) && file.dataUrl && (
+                                                    <button onClick={() => handleViewFile(file)} className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">View</button>
+                                                )}
+                                                {file.dataUrl && <a href={file.dataUrl} download={file.name} className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">Download</a>}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                               <p className="text-center text-slate-500 dark:text-slate-400 py-4">No files attached.</p>
+                            )}
+                        </div>
+                    </div>
+                );
+        }
+    }
+
+
+    const TabButton: React.FC<{ tab: ActiveTab; label: string; }> = ({ tab, label }) => (
+        <button
+            onClick={() => setActiveTab(tab)}
+            className={`tab-button px-4 py-2 text-sm font-medium rounded-md ${
+                activeTab === tab 
+                ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300' 
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+        >
+            {label}
+        </button>
+    );
+
     return (
         <>
             <div className="h-full flex flex-col bg-white dark:bg-slate-800 overflow-y-auto">
@@ -206,6 +429,12 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     </div>
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{contact.name}</h1>
                     <div className="flex space-x-3 mt-4">
+                        <a href={`tel:${contact.phone}`} className="px-4 py-2 flex items-center space-x-2 text-sm font-medium rounded-full text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                            <PhoneIcon className="w-4 h-4" /> <span>Call</span>
+                        </a>
+                         <a href={`mailto:${contact.email}`} className="px-4 py-2 flex items-center space-x-2 text-sm font-medium rounded-full text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                            <MailIcon className="w-4 h-4" /> <span>Email</span>
+                        </a>
                         <button onClick={onEdit} className="p-2 rounded-full text-slate-600 bg-slate-200 dark:bg-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
                             <EditIcon className="w-5 h-5" />
                         </button>
@@ -214,213 +443,23 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                         </button>
                     </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4 p-4 border-b border-slate-200 dark:border-slate-700">
-                    <a href={`tel:${contact.phone}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors text-sky-600 dark:text-sky-400">
-                        <PhoneIcon className="w-6 h-6 mb-1" />
-                        <span className="text-sm font-medium">Call</span>
-                    </a>
-                    <a href={`sms:${contact.phone}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors text-sky-600 dark:text-sky-400">
-                        <MessageIcon className="w-6 h-6 mb-1" />
-                        <span className="text-sm font-medium">Text</span>
-                    </a>
-                    <a href={`mailto:${contact.email}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors text-sky-600 dark:text-sky-400">
-                        <MailIcon className="w-6 h-6 mb-1" />
-                        <span className="text-sm font-medium">Email</span>
-                    </a>
+                
+                <div className="border-b border-slate-200 dark:border-slate-700">
+                    <nav className="flex justify-center space-x-2 p-2" aria-label="Tabs">
+                        <TabButton tab="details" label="Details" />
+                        <TabButton tab="jobs" label="Jobs" />
+                        <TabButton tab="files" label="Files & Photos" />
+                    </nav>
                 </div>
-                <div className="px-4 sm:px-6 py-6 space-y-4">
-                    <div className="flex items-start">
-                        <MailIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                        <div className="ml-4">
-                            <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.email}</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start">
-                        <PhoneIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                        <div className="ml-4">
-                            <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.phone}</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Mobile</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start">
-                        <MapPinIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                        <div className="ml-4">
-                           {contact.address ? (
-                             <a
-                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors"
-                             >{contact.address}</a>
-                           ) : (
-                             <p className="font-semibold text-slate-700 dark:text-slate-200 italic text-slate-400">Not set</p>
-                           )}
-                           <p className="text-sm text-slate-500 dark:text-slate-400">Address</p>
-                        </div>
-                    </div>
+
+                <div className="px-4 sm:px-6 py-6">
+                    {renderTabContent()}
                 </div>
-                {allCustomFields.length > 0 && (
-                    <div className="px-4 sm:px-6 py-6 border-t border-slate-200 dark:border-slate-700">
-                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Additional Information</h2>
-                        <div className="space-y-4">
-                            {allCustomFields.map(field => (
-                                <div key={field.id} className="flex items-start">
-                                    <TagIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                                    <div className="ml-4">
-                                        <p className={`font-semibold ${field.value ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 italic'}`}>
-                                            {field.value || 'Not set'}
-                                        </p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{field.label}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                <div className="px-4 sm:px-6 py-6 border-t border-slate-200 dark:border-slate-700">
-                    <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center">
-                            <BriefcaseIcon className="w-5 h-5 text-slate-400" />
-                            <h2 className="ml-3 text-lg font-semibold text-slate-800 dark:text-slate-100">Jobs</h2>
-                        </div>
-                        <button 
-                            onClick={() => { setEditingJobTicket(null); setIsJobTicketModalOpen(true); }}
-                            className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                            aria-label="Add Job Ticket"
-                        ><PlusIcon className="w-5 h-5" /></button>
-                    </div>
-                    {sortedJobTickets.length > 0 ? (
-                        <ul className="space-y-4">
-                            {sortedJobTickets.map(ticket => {
-                                const { totalCost } = calculateJobTicketTotal(ticket);
-                                const statusColor = jobStatusColors[ticket.status];
-                                return <li key={ticket.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                                    <div className="flex justify-start items-center mb-2">
-                                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
-                                            {ticket.status}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-baseline mb-3">
-                                        <p className="font-semibold text-slate-700 dark:text-slate-200">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
-                                        <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{`$${totalCost.toFixed(2)}`}</p>
-                                    </div>
-                                    <div className="flex items-center justify-evenly mb-3">
-                                        <button
-                                            onClick={() => onViewInvoice(contact.id, ticket.id)}
-                                            className="px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 rounded-md"
-                                        >
-                                           View/Print
-                                        </button>
-                                        <button 
-                                            onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
-                                            className="p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md"
-                                            aria-label="Edit job ticket"
-                                        >
-                                            <EditIcon className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteJobTicket(ticket.id)}
-                                            className="p-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 text-white rounded-md"
-                                            aria-label="Delete job ticket"
-                                        >
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    {ticket.notes && (
-                                        <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap border-t border-slate-200 dark:border-slate-600 pt-3">{ticket.notes}</p>
-                                    )}
-                                </li>
-                            })}
-                        </ul>
-                    ) : (
-                        <div className="text-center text-slate-500 dark:text-slate-400 py-4">
-                            <p>No jobs have been logged for this contact.</p>
-                        </div>
-                    )}
-                </div>
+
                 <input type="file" accept="image/*" multiple ref={imageUploadRef} onChange={handleFilesSelected} className="hidden" />
                 <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleFilesSelected} className="hidden" />
                 <input type="file" multiple ref={fileUploadRef} onChange={handleFilesSelected} className="hidden" />
-                <div className="px-4 sm:px-6 py-6 border-t border-slate-200 dark:border-slate-700">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Photos</h2>
-                        <div className="relative">
-                            <button 
-                                onClick={() => setShowPhotoOptions(!showPhotoOptions)} 
-                                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                                aria-label="Add photo"
-                            ><PlusIcon className="w-5 h-5" /></button>
-                            {showPhotoOptions && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-700 rounded-md shadow-lg z-10 ring-1 ring-black ring-opacity-5">
-                                    <button onClick={() => cameraInputRef.current?.click()} className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600">
-                                        <CameraIcon className="w-5 h-5 mr-3" />Take Photo
-                                    </button>
-                                    <button onClick={() => imageUploadRef.current?.click()} className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600">
-                                        <FileIcon className="w-5 h-5 mr-3" />Upload Image
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    {isLoadingFiles ? (
-                         <div className="text-center text-slate-500 dark:text-slate-400 py-4">Loading photos...</div>
-                    ) : imageFiles.length > 0 ? (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {imageFiles.map(file => {
-                                const imageIndexInGallery = galleryImages.findIndex(img => img.url === file.dataUrl);
-                                return (
-                                    <button
-                                        key={file.id}
-                                        onClick={() => openGallery(imageIndexInGallery)}
-                                        className="aspect-square rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
-                                    >
-                                        <img src={file.dataUrl} alt={file.name} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="text-center text-slate-500 dark:text-slate-400 py-4">
-                            <p>No photos attached.</p>
-                        </div>
-                    )}
-                </div>
-                <div className="px-4 sm:px-6 py-6 border-t border-slate-200 dark:border-slate-700">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Files</h2>
-                        <button 
-                            onClick={() => fileUploadRef.current?.click()}
-                            className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                            aria-label="Add file"
-                        ><PlusIcon className="w-5 h-5" /></button>
-                    </div>
-                     {isLoadingFiles ? (
-                        <div className="text-center text-slate-500 dark:text-slate-400 py-4">Loading files...</div>
-                     ) : otherFiles.length > 0 ? (
-                        <ul className="space-y-3">
-                            {otherFiles.map(file => (
-                                <li key={file.id} className="flex items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                                    <FileIcon className="w-6 h-6 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                                    <div className="ml-3 flex-grow truncate">
-                                        <p className="font-medium text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{formatFileSize(file.size)}</p>
-                                    </div>
-                                    <div className="ml-4 flex-shrink-0 flex items-center space-x-4">
-                                        {VIEWABLE_MIME_TYPES.includes(file.type) && file.dataUrl && (
-                                            <button onClick={() => handleViewFile(file)} className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">View</button>
-                                        )}
-                                        {file.dataUrl && <a href={file.dataUrl} download={file.name} className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">Download</a>}
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <div className="text-center text-slate-500 dark:text-slate-400 py-4">
-                            <p>No files attached.</p>
-                        </div>
-                    )}
-                </div>
+
             </div>
             {isGalleryOpen && (
                 <PhotoGalleryModal
