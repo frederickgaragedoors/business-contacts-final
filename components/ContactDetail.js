@@ -281,7 +281,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                         React.createElement("p", { className: "font-semibold text-slate-700" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })),
                                         React.createElement("p", { className: "font-bold text-lg text-slate-800" }, `$${totalCost.toFixed(2)}`)
                                     ),
-                                    React.createElement("div", { className: "flex items-center justify-end space-x-3 mb-3" },
+                                    React.createElement("div", { className: "flex items-center justify-evenly mb-3" },
                                         React.createElement("button", {
                                             onClick: () => onViewInvoice(contact.id, ticket.id),
                                             className: "px-3 py-1 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 rounded-md"
