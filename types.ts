@@ -41,7 +41,8 @@ export interface JobTicket {
   date: string; // ISO string format e.g., "2023-10-27"
   status: JobStatus;
   notes: string;
-  parts: Part[];6
+  // FIX: Removed stray '6' that was causing a syntax error in the interface definition.
+  parts: Part[];
   laborCost: number;
   salesTaxRate?: number;
   processingFeeRate?: number;
