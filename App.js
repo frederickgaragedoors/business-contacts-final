@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard.js';
 import InvoiceView from './components/InvoiceView.js';
 import { UserCircleIcon } from './components/icons.js';
 import { generateId } from './utils.js';
+import { initDB, addFiles, deleteFiles, getAllFiles, clearAndAddFiles } from './db.js';
 
 const initialContacts = [
   {
@@ -105,7 +106,27 @@ const App = () => {
     const [viewState, setViewState] = useState({ type: 'dashboard' });
 
     useEffect(() => {
-        localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
+        initDB().catch(err => console.error("Failed to initialize DB", err));
+    }, []);
+
+    useEffect(() => {
+        try {
+             const stateToSave = {
+                ...appState,
+                contacts: appState.contacts.map(contact => ({
+                    ...contact,
+                    files: contact.files.map(({ dataUrl, ...fileMetadata }) => fileMetadata),
+                })),
+            };
+            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(stateToSave));
+        } catch (error) {
+            console.error('Failed to save state to localStorage:', error);
+            if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
+                 alert('Could not save changes. The application storage is full. Please remove some large attachments from contacts to free up space.');
+            } else {
+                 alert('An unexpected error occurred while saving data.');
+            }
+        }
     }, [appState]);
 
     useEffect(() => {
@@ -132,12 +153,19 @@ const App = () => {
         alert('Business information saved!');
     };
     
-    const addContact = (contactData) => {
+    const addContact = async (contactData) => {
+        const filesWithData = contactData.files.filter(f => f.dataUrl);
+        if (filesWithData.length > 0) {
+            await addFiles(filesWithData);
+        }
+
         const newContact = {
             ...contactData,
             id: generateId(),
             jobTickets: [],
+            files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
         };
+
         setAppState(current => {
             const newContacts = [newContact, ...current.contacts];
             return { ...current, contacts: newContacts };
@@ -145,21 +173,44 @@ const App = () => {
         setViewState({ type: 'detail', id: newContact.id });
     };
 
-    const updateContact = (id, contactData) => {
+    const updateContact = async (id, contactData) => {
+        const originalContact = appState.contacts.find(c => c.id === id);
+        if (!originalContact) return;
+
+        const newFiles = contactData.files.filter(f => f.dataUrl);
+        if (newFiles.length > 0) {
+            await addFiles(newFiles);
+        }
+
+        const originalFileIds = new Set(originalContact.files.map(f => f.id));
+        const updatedFileIds = new Set(contactData.files.map(f => f.id));
+        const deletedFileIds = [...originalFileIds].filter(fileId => !updatedFileIds.has(fileId));
+
+        if (deletedFileIds.length > 0) {
+            await deleteFiles(deletedFileIds);
+        }
+
+        const finalContactData = {
+            ...contactData,
+            files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
+        };
+
         setAppState(current => ({
             ...current,
             contacts: current.contacts.map(c => 
-                c.id === id ? { ...c, ...contactData, id } : c
+                c.id === id ? { ...c, ...finalContactData, id } : c
             )
         }));
         setViewState({ type: 'detail', id });
     };
   
-    const addFilesToContact = (contactId, newFiles) => {
+    const addFilesToContact = async (contactId, newFiles) => {
+        await addFiles(newFiles.filter(f => f.dataUrl));
+        const filesMetadata = newFiles.map(({ dataUrl, ...metadata }) => metadata);
         setAppState(current => ({
             ...current,
             contacts: current.contacts.map(c => 
-                c.id === contactId ? { ...c, files: [...c.files, ...newFiles] } : c
+                c.id === contactId ? { ...c, files: [...c.files, ...filesMetadata] } : c
             )
         }));
     };
@@ -173,8 +224,12 @@ const App = () => {
         }));
     };
 
-    const deleteContact = (id) => {
+    const deleteContact = async (id) => {
         if (window.confirm('Are you sure you want to delete this contact?')) {
+            const contactToDelete = appState.contacts.find(c => c.id === id);
+            if (contactToDelete && contactToDelete.files.length > 0) {
+                await deleteFiles(contactToDelete.files.map(f => f.id));
+            }
             const remainingContacts = appState.contacts.filter(c => c.id !== id);
             setAppState(current => ({ ...current, contacts: remainingContacts }));
             
@@ -205,23 +260,27 @@ const App = () => {
         setAppState(current => ({ ...current, autoBackupEnabled: enabled }));
     };
 
-    const restoreData = (fileContent, silent = false) => {
+    const restoreData = async (fileContent, silent = false) => {
         try {
             const backupData = JSON.parse(fileContent);
-            if (backupData.contacts && Array.isArray(backupData.contacts) && backupData.defaultFields && Array.isArray(backupData.defaultFields)) {
-                 const performRestore = () => {
+            if (backupData.contacts && Array.isArray(backupData.contacts)) {
+                 const performRestore = async () => {
+                    const { files, ...stateToRestore } = backupData;
+                    if (files && Array.isArray(files)) {
+                        await clearAndAddFiles(files);
+                    }
                     setAppState(current => ({
                         ...current,
-                        contacts: backupData.contacts,
-                        defaultFields: backupData.defaultFields,
-                        businessInfo: backupData.businessInfo || initialBusinessInfo,
+                        contacts: stateToRestore.contacts,
+                        defaultFields: stateToRestore.defaultFields || initialDefaultFields,
+                        businessInfo: stateToRestore.businessInfo || initialBusinessInfo,
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
                 };
 
                 if (silent || window.confirm('Are you sure you want to restore this backup? This will overwrite all current data.')) {
-                    performRestore();
+                    await performRestore();
                     return true;
                 }
             } else {
@@ -234,9 +293,9 @@ const App = () => {
         return false;
     };
     
-    const handleAcceptRecovery = () => {
+    const handleAcceptRecovery = async () => {
         if (recoveryBackup) {
-            if (restoreData(recoveryBackup.data, true)) { // Silent restore
+            if (await restoreData(recoveryBackup.data, true)) { // Silent restore
                 setRecoveryBackup(null);
                 sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
             } else {
