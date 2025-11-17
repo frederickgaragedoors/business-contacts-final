@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Contact, JobTicket, BusinessInfo, FileAttachment } from '../types.ts';
 import { ArrowLeftIcon } from './icons.tsx';
-import { generateId, fileToDataUrl } from '../utils.ts';
+import { generateId, fileToDataUrl, calculateJobTicketTotal } from '../utils.ts';
 
 
 interface InvoiceViewProps {
@@ -106,12 +106,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
         }
     };
 
-    const subtotal = ticket.parts.reduce((sum, part) => sum + part.cost, 0) + ticket.laborCost;
-    const taxAmount = subtotal * ((ticket.salesTaxRate || 0) / 100);
-    const totalAfterTaxes = subtotal + taxAmount;
-    const feeAmount = totalAfterTaxes * ((ticket.processingFeeRate || 0) / 100);
-    const totalCost = totalAfterTaxes + feeAmount;
-
+    const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
 
     return (
         <div className="h-full flex flex-col bg-slate-200 overflow-y-auto">
