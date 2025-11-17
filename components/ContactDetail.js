@@ -182,17 +182,17 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     React.createElement("div", { className: "space-y-4" },
                         React.createElement("div", { className: "flex items-start" },
                             React.createElement(MailIcon, { className: "w-5 h-5 text-slate-400 mt-1 flex-shrink-0" }),
-                            React.createElement("div", { className: "ml-4" },
-                                React.createElement("a", { href: `mailto:${contact.email}`, className: "font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors" }, contact.email),
+                            React.createElement("div", { className: "ml-4 min-w-0" },
+                                React.createElement("a", { href: `mailto:${contact.email}`, className: "font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors break-words" }, contact.email),
                                 React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400" }, "Email")
                             )
                         ),
                         React.createElement("div", { className: "flex items-start" },
                             React.createElement(PhoneIcon, { className: "w-5 h-5 text-slate-400 mt-1 flex-shrink-0" }),
-                            React.createElement("div", { className: "ml-4 flex-grow" },
+                            React.createElement("div", { className: "ml-4 flex-grow min-w-0" },
                                 React.createElement("div", { className: "flex justify-between items-center" },
-                                    React.createElement("p", { className: "font-semibold text-slate-700 dark:text-slate-200" }, contact.phone),
-                                    React.createElement("div", { className: "flex space-x-2" },
+                                    React.createElement("p", { className: "font-semibold text-slate-700 dark:text-slate-200 break-words" }, contact.phone),
+                                    React.createElement("div", { className: "flex space-x-2 flex-shrink-0 ml-2" },
                                         React.createElement("a", { href: `tel:${contact.phone}`, className: "px-3 py-1 flex items-center space-x-1.5 text-xs font-medium rounded-full text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors" },
                                             React.createElement(PhoneIcon, { className: "w-3 h-3" }), React.createElement("span", null, "Call")
                                         ),
@@ -206,13 +206,13 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                         ),
                         React.createElement("div", { className: "flex items-start" },
                             React.createElement(MapPinIcon, { className: "w-5 h-5 text-slate-400 mt-1 flex-shrink-0" }),
-                            React.createElement("div", { className: "ml-4" },
+                            React.createElement("div", { className: "ml-4 min-w-0" },
                             contact.address ? (
                                 React.createElement("a", {
                                     href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`,
                                     target: "_blank",
                                     rel: "noopener noreferrer",
-                                    className: "font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors"
+                                    className: "font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors break-words"
                                 }, contact.address)
                             ) : (
                                 React.createElement("p", { className: "font-semibold text-slate-700 dark:text-slate-200 italic text-slate-400" }, "Not set")
@@ -228,8 +228,8 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                 allCustomFields.map(field => (
                                     React.createElement("div", { key: field.id, className: "flex items-start" },
                                         React.createElement(TagIcon, { className: "w-5 h-5 text-slate-400 mt-1 flex-shrink-0" }),
-                                        React.createElement("div", { className: "ml-4" },
-                                            React.createElement("p", { className: `font-semibold ${field.value ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 italic'}` },
+                                        React.createElement("div", { className: "ml-4 min-w-0" },
+                                            React.createElement("p", { className: `font-semibold break-words ${field.value ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 italic'}` },
                                                 field.value || 'Not set'
                                             ),
                                             React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400" }, field.label)
@@ -283,7 +283,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                         }, React.createElement(TrashIcon, { className: "w-4 h-4" }))
                                     ),
                                     ticket.notes && (
-                                        React.createElement("p", { className: "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap border-t border-slate-200 dark:border-slate-600 pt-3" }, ticket.notes)
+                                        React.createElement("p", { className: "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words border-t border-slate-200 dark:border-slate-600 pt-3" }, ticket.notes)
                                     )
                                 );
                             })
@@ -413,7 +413,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                             )
                         )
                     ),
-                    React.createElement("h1", { className: "text-3xl font-bold text-slate-800 dark:text-slate-100" }, contact.name),
+                    React.createElement("h1", { className: "text-3xl font-bold text-slate-800 dark:text-slate-100 text-center break-words" }, contact.name),
                     React.createElement("div", { className: "flex space-x-3 mt-4" },
                         React.createElement("button", { onClick: onEdit, className: "p-2 rounded-full text-slate-600 bg-slate-200 dark:bg-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" },
                             React.createElement(EditIcon, { className: "w-5 h-5" })
