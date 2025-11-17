@@ -17,6 +17,7 @@ import {
   PlusIcon,
   CameraIcon,
   BriefcaseIcon,
+  ClipboardListIcon,
 } from './icons.tsx';
 import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal } from '../utils.ts';
 import { getFiles } from '../db.ts';
@@ -30,7 +31,7 @@ interface ContactDetailProps {
     addFilesToContact: (contactId: string, files: FileAttachment[]) => Promise<void>;
     updateContactJobTickets: (contactId: string, jobTickets: JobTicket[]) => void;
     onViewInvoice: (contactId: string, ticketId: string) => void;
-    // FIX: Added jobTemplates to props to resolve type error from App.tsx.
+    onViewJobDetail: (contactId: string, ticketId: string) => void;
     jobTemplates: JobTemplate[];
 }
 
@@ -45,7 +46,7 @@ const VIEWABLE_MIME_TYPES = [
 
 type ActiveTab = 'details' | 'jobs' | 'files';
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, jobTemplates }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -272,41 +273,48 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                     const { totalCost } = calculateJobTicketTotal(ticket);
                                     const statusColor = jobStatusColors[ticket.status];
                                     return <li key={ticket.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover">
-                                        <div className="flex justify-start items-center mb-2">
+                                        <div className="flex justify-between items-start mb-2">
                                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
                                                 {ticket.status}
                                             </span>
-                                        </div>
-                                        <div className="flex justify-between items-baseline mb-3">
-                                            <p className="font-semibold text-slate-700 dark:text-slate-200">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
                                             <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{`$${totalCost.toFixed(2)}`}</p>
                                         </div>
-                                        <div className="flex items-center justify-evenly mb-3">
+                                        <p className="font-semibold text-slate-700 dark:text-slate-200">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                                        
+                                        {ticket.notes && (
+                                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-3">{ticket.notes}</p>
+                                        )}
+                                        <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
                                             <button
                                                 onClick={() => onViewInvoice(contact.id, ticket.id)}
-                                                className="p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md"
-                                                aria-label="View/Print invoice"
+                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500"
+                                                aria-label="View Estimate/Receipt"
                                             >
-                                                <EyeIcon className="w-4 h-4" />
+                                                <ClipboardListIcon className="w-4 h-4" />
+                                                <span>Estimate/Receipt</span>
                                             </button>
                                             <button 
                                                 onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
-                                                className="p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md"
+                                                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                                                 aria-label="Edit job ticket"
                                             >
-                                                <EditIcon className="w-4 h-4" />
+                                                <EditIcon className="w-5 h-5" />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteJobTicket(ticket.id)}
-                                                className="p-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 text-white rounded-md"
+                                                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                                                 aria-label="Delete job ticket"
                                             >
-                                                <TrashIcon className="w-4 h-4" />
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={() => onViewJobDetail(contact.id, ticket.id)}
+                                                className="p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-full"
+                                                aria-label="View job details"
+                                            >
+                                                <EyeIcon className="w-5 h-5" />
                                             </button>
                                         </div>
-                                        {ticket.notes && (
-                                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words border-t border-slate-200 dark:border-slate-600 pt-3">{ticket.notes}</p>
-                                        )}
                                     </li>
                                 })}
                             </ul>
