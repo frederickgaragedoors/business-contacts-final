@@ -133,45 +133,65 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
                     React.createElement("div", null,
                         React.createElement("h4", { className: "text-sm font-medium text-slate-600 dark:text-slate-300 mb-2" }, "Parts Used"),
                         parts.length > 0 && (
-                            React.createElement("div", { className: "space-y-2" },
-                                parts.map((part, index) => (
-                                    React.createElement("div", { key: part.id, className: "grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] sm:gap-2 items-center" },
+                            React.createElement("div", { className: "hidden sm:grid sm:grid-cols-[1fr_80px_120px_40px] sm:gap-x-2 mb-1" },
+                                React.createElement("label", { className: "text-xs font-medium text-slate-500 dark:text-slate-400" }, "Part or Service"),
+                                React.createElement("label", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 text-center" }, "Qty"),
+                                React.createElement("label", { className: "text-xs font-medium text-slate-500 dark:text-slate-400" }, "Price"),
+                                React.createElement("span", null)
+                            )
+                        ),
+                        React.createElement("div", { className: "space-y-4 sm:space-y-2" },
+                            parts.map((part) => (
+                                React.createElement("div", { key: part.id, className: "grid grid-cols-1 sm:grid-cols-[1fr_80px_120px_40px] sm:gap-x-2 sm:items-center" },
+                                    React.createElement("div", null,
+                                        React.createElement("label", { htmlFor: `part-name-${part.id}`, className: `${labelStyles} sm:hidden` }, "Part or Service"),
                                         React.createElement("input", {
+                                            id: `part-name-${part.id}`,
                                             type: "text",
-                                            placeholder: `Part ${index + 1} Name`,
+                                            placeholder: "e.g. Inspection Fee",
                                             value: part.name,
                                             onChange: (e) => handlePartChange(part.id, 'name', e.target.value),
-                                            className: `${inputStyles} sm:mb-0 mb-2`,
-                                            "aria-label": "Part name"
-                                        }),
+                                            className: `mt-1 sm:mt-0 ${inputStyles}`,
+                                            "aria-label": "Part or Service"
+                                        })
+                                    ),
+                                    React.createElement("div", null,
+                                        React.createElement("label", { htmlFor: `part-qty-${part.id}`, className: `${labelStyles} sm:hidden` }, "Qty"),
                                         React.createElement("input", {
+                                            id: `part-qty-${part.id}`,
                                             type: "number",
-                                            placeholder: "Qty",
+                                            placeholder: "1",
                                             value: part.quantity,
                                             onChange: (e) => handlePartChange(part.id, 'quantity', e.target.value),
-                                            className: `${inputStyles} w-20 text-center sm:mb-0 mb-2`,
+                                            className: `mt-1 sm:mt-0 ${inputStyles} text-center`,
                                             min: "1",
-                                            "aria-label": "Quantity"
-                                        }),
-                                        React.createElement("div", { className: "relative sm:mb-0 mb-2" },
+                                            "aria-label": "Qty"
+                                        })
+                                    ),
+                                    React.createElement("div", null,
+                                        React.createElement("label", { htmlFor: `part-price-${part.id}`, className: `${labelStyles} sm:hidden` }, "Price"),
+                                        React.createElement("div", { className: "relative mt-1 sm:mt-0" },
                                             React.createElement("div", { className: "pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3" },
                                                 React.createElement("span", { className: "text-slate-500 sm:text-sm" }, "$")
                                             ),
                                             React.createElement("input", {
+                                                id: `part-price-${part.id}`,
                                                 type: "number",
-                                                placeholder: "Unit Cost",
+                                                placeholder: "0.00",
                                                 value: part.cost,
                                                 onChange: (e) => handlePartChange(part.id, 'cost', e.target.value),
-                                                className: `${inputStyles} pl-7 pr-2 w-full sm:w-32`,
-                                                "aria-label": "Unit cost"
+                                                className: `${inputStyles} pl-7 pr-2`,
+                                                "aria-label": "Price"
                                             })
-                                        ),
-                                        React.createElement("button", { type: "button", onClick: () => handleRemovePart(part.id), className: "p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full sm:justify-self-center" },
+                                        )
+                                    ),
+                                    React.createElement("div", { className: "flex justify-end sm:justify-center" },
+                                        React.createElement("button", { type: "button", onClick: () => handleRemovePart(part.id), className: "p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full" },
                                             React.createElement(TrashIcon, { className: "w-4 h-4" })
                                         )
                                     )
-                                ))
-                            )
+                                )
+                            ))
                         ),
                          React.createElement("button", { type: "button", onClick: handleAddPart, className: "mt-2 flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/50 hover:bg-sky-100 dark:hover:bg-sky-900 transition-colors" },
                             React.createElement(PlusIcon, { className: "w-4 h-4 mr-2" }), " Add Part"
