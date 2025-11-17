@@ -20,23 +20,25 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     const invoiceContentRef = useRef<HTMLDivElement>(null);
 
     const generatePdf = async () => {
-        const element = invoiceContentRef.current;
-        if (!element) return null;
-        
-        // Store original styles
-        const originalFontSize = element.style.fontSize;
-        const originalWebkitTextSizeAdjust = element.style.webkitTextSizeAdjust;
-        // FIX: Cast to 'any' to access non-standard or newer CSS properties not in default typings.
-        const originalTextSizeAdjust = (element.style as any).textSizeAdjust;
+        const sourceElement = invoiceContentRef.current;
+        if (!sourceElement) return null;
 
-        // Apply styles to prevent font boosting
-        element.style.fontSize = '12px';
-        (element.style as any).webkitTextSizeAdjust = 'none'; // For Chrome/Safari
-        // FIX: Cast to 'any' to access non-standard or newer CSS properties not in default typings.
-        (element.style as any).textSizeAdjust = 'none'; // Standard property
+        // Create an off-screen container for rendering
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '8.5in'; // Simulate paper width for consistent rendering
+        container.style.backgroundColor = 'white';
+
+        // Clone the source element to render it in our controlled container
+        const clone = sourceElement.cloneNode(true) as HTMLElement;
+        container.appendChild(clone);
+        document.body.appendChild(container);
 
         try {
-            const canvas = await html2canvas(element, {
+            // Render the cloned element, which is in a fixed-width, off-screen environment
+            const canvas = await html2canvas(clone, {
                 scale: 2, // Higher scale for better quality
                 useCORS: true,
                 backgroundColor: '#ffffff',
@@ -74,13 +76,8 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             alert("Sorry, there was an error creating the PDF.");
             return null;
         } finally {
-            // Restore original styles to avoid affecting the on-screen display
-            if (element) {
-                element.style.fontSize = originalFontSize;
-                (element.style as any).webkitTextSizeAdjust = originalWebkitTextSizeAdjust;
-                // FIX: Cast to 'any' to access non-standard or newer CSS properties not in default typings.
-                (element.style as any).textSizeAdjust = originalTextSizeAdjust;
-            }
+            // Clean up by removing the off-screen container
+            document.body.removeChild(container);
         }
     };
 
