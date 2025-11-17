@@ -82,9 +82,9 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
 
   return (
     React.createElement("div", { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4", role: "dialog", "aria-modal": "true" },
-      React.createElement("div", { className: "bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden" },
-        React.createElement("form", { onSubmit: handleSubmit, className: "flex flex-col h-full" },
-          React.createElement("div", { className: "p-6 border-b" },
+      React.createElement("div", { className: "bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col" },
+        React.createElement("form", { onSubmit: handleSubmit, className: "flex flex-col flex-grow min-h-0" },
+          React.createElement("div", { className: "p-6 border-b flex-shrink-0" },
             React.createElement("div", { className: "flex justify-between items-center" },
               React.createElement("h2", { className: "text-xl font-bold text-slate-800" }, entry ? 'Edit Job Ticket' : 'Add Job Ticket'),
               React.createElement("button", { type: "button", onClick: onClose, className: "p-1 rounded-full text-slate-500 hover:bg-slate-200" },
@@ -222,7 +222,7 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
             )
           ),
           
-          React.createElement("div", { className: "bg-slate-50 px-6 py-4 flex justify-between items-center rounded-b-lg border-t" },
+          React.createElement("div", { className: "bg-slate-50 px-6 py-4 flex justify-between items-center rounded-b-lg border-t flex-shrink-0" },
              React.createElement("div", { className: "text-sm" },
                 React.createElement("p", null, "Subtotal: ", React.createElement("span", { className: "font-medium" }, `$${subtotal.toFixed(2)}`)),
                 React.createElement("p", null, `Tax (${Number(salesTaxRate || 0)}%): `, React.createElement("span", { className: "font-medium" }, `$${taxAmount.toFixed(2)}`)),
