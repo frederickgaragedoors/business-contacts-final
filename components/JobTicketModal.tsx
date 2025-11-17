@@ -41,12 +41,14 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
   }, [entry]);
 
   const handleAddPart = () => {
-    setParts([...parts, { id: generateId(), name: '', cost: 0 }]);
+    setParts([...parts, { id: generateId(), name: '', cost: 0, quantity: 1 }]);
   };
 
-  const handlePartChange = (id: string, field: 'name' | 'cost', value: string | number) => {
-    const isCost = field === 'cost';
-    const parsedValue = isCost ? parseFloat(value as string) || 0 : value;
+  const handlePartChange = (id: string, field: 'name' | 'cost' | 'quantity', value: string | number) => {
+    const isNumeric = field === 'cost' || field === 'quantity';
+    const parsedValue = isNumeric
+        ? (field === 'quantity' ? Math.max(1, parseInt(value as string, 10) || 1) : parseFloat(value as string) || 0)
+        : value;
     setParts(parts.map(p => p.id === id ? { ...p, [field]: parsedValue } : p));
   };
 
@@ -138,30 +140,41 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
                           {parts.length > 0 && (
                               <div className="space-y-2">
                                   {parts.map((part, index) => (
-                                      <div key={part.id} className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
-                                          <input
-                                              type="text"
-                                              placeholder={`Part ${index + 1} Name`}
-                                              value={part.name}
-                                              onChange={(e) => handlePartChange(part.id, 'name', e.target.value)}
-                                              className={`${inputStyles} sm:flex-grow`}
-                                          />
-                                          <div className="relative">
-                                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                                  <span className="text-slate-500 sm:text-sm">$</span>
-                                              </div>
-                                              <input
-                                                  type="number"
-                                                  placeholder="Cost"
-                                                  value={part.cost}
-                                                  onChange={(e) => handlePartChange(part.id, 'cost', e.target.value)}
-                                                  className={`${inputStyles} pl-7 pr-2 w-full sm:w-40`}
-                                              />
-                                          </div>
-                                          <button type="button" onClick={() => handleRemovePart(part.id)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full self-end sm:self-center">
-                                              <TrashIcon className="w-4 h-4" />
-                                          </button>
-                                      </div>
+                                     <div key={part.id} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] sm:gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            placeholder={`Part ${index + 1} Name`}
+                                            value={part.name}
+                                            onChange={(e) => handlePartChange(part.id, 'name', e.target.value)}
+                                            className={`${inputStyles} sm:mb-0 mb-2`}
+                                            aria-label="Part name"
+                                        />
+                                        <input
+                                            type="number"
+                                            placeholder="Qty"
+                                            value={part.quantity}
+                                            onChange={(e) => handlePartChange(part.id, 'quantity', e.target.value)}
+                                            className={`${inputStyles} w-20 text-center sm:mb-0 mb-2`}
+                                            min="1"
+                                            aria-label="Quantity"
+                                        />
+                                        <div className="relative sm:mb-0 mb-2">
+                                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                <span className="text-slate-500 sm:text-sm">$</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                placeholder="Unit Cost"
+                                                value={part.cost}
+                                                onChange={(e) => handlePartChange(part.id, 'cost', e.target.value)}
+                                                className={`${inputStyles} pl-7 pr-2 w-full sm:w-32`}
+                                                aria-label="Unit cost"
+                                            />
+                                        </div>
+                                        <button type="button" onClick={() => handleRemovePart(part.id)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full sm:justify-self-center">
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                   ))}
                               </div>
                           )}
