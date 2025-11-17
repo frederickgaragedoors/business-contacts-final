@@ -284,14 +284,14 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                         ),
                                         React.createElement("button", { 
                                             onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
-                                            className: "p-2 bg-sky-500 text-white hover:bg-sky-600 rounded-md",
+                                            className: "p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md",
                                             "aria-label": "Edit job ticket"
                                         },
                                             React.createElement(EditIcon, { className: "w-4 h-4" })
                                         ),
                                         React.createElement("button", {
                                             onClick: () => handleDeleteJobTicket(ticket.id),
-                                            className: "p-2 bg-red-500 text-white hover:bg-red-600 rounded-md",
+                                            className: "p-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 text-white rounded-md",
                                             "aria-label": "Delete job ticket"
                                         },
                                             React.createElement(TrashIcon, { className: "w-4 h-4" })
