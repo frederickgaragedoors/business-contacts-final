@@ -86,4 +86,5 @@ export type ViewState =
   | { type: 'edit_form'; id: string }
   | { type: 'settings' }
   | { type: 'dashboard' }
-  | { type: 'invoice'; contactId: string; ticketId: string };
+  | { type: 'invoice'; contactId: string; ticketId: string }
+  | { type: 'job_detail'; contactId: string; ticketId: string };
