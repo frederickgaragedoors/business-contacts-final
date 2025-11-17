@@ -184,13 +184,13 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
              <h4 className="text-sm font-medium text-slate-600 dark:text-slate-300">Current Attachments</h4>
              <ul className="mt-2 space-y-2">
                 {files.map(file => (
-                  <li key={file.id} className="flex items-center p-2 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm">
-                    <FileIcon className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                    <div className="ml-3 flex-grow min-w-0">
+                  <li key={file.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 p-2 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm">
+                    <FileIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                    <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{file.name}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(file.size)}</p>
                     </div>
-                    <button type="button" onClick={() => removeFile(file.id, false)} className="ml-2 p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50">
+                    <button type="button" onClick={() => removeFile(file.id, false)} className="p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50">
                         <TrashIcon className="w-4 h-4" />
                     </button>
                   </li>
@@ -204,13 +204,13 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
              <h4 className="text-sm font-medium text-slate-600 dark:text-slate-300">Staged Files for Upload</h4>
              <ul className="mt-2 space-y-2 p-3 bg-sky-50 dark:bg-sky-900/50 rounded-md">
                 {stagedFiles.map(file => (
-                  <li key={file.id} className="flex items-center p-2 bg-white dark:bg-slate-700 rounded-md shadow-sm">
-                    <FileIcon className="w-5 h-5 text-sky-500 flex-shrink-0" />
-                    <div className="ml-3 flex-grow min-w-0">
+                  <li key={file.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 p-2 bg-white dark:bg-slate-700 rounded-md shadow-sm">
+                    <FileIcon className="w-5 h-5 text-sky-500" />
+                    <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{file.name}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(file.size)}</p>
                     </div>
-                    <button type="button" onClick={() => removeFile(file.id, true)} className="ml-2 p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50">
+                    <button type="button" onClick={() => removeFile(file.id, true)} className="p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50">
                         <TrashIcon className="w-4 h-4" />
                     </button>
                   </li>
