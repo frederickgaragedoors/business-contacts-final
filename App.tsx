@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Contact, ViewState, DefaultFieldSetting, FileAttachment, JobTicket, BusinessInfo, Part } from './types.ts';
+import { Contact, ViewState, DefaultFieldSetting, FileAttachment, JobTicket, BusinessInfo, Part, JobTemplate } from './types.ts';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
 import ContactDetail from './components/ContactDetail.tsx';
@@ -82,6 +82,7 @@ interface AppState {
         data: string;      // JSON string of all app state
     } | null;
     theme: Theme;
+    jobTemplates: JobTemplate[];
 }
 
 const APP_STORAGE_KEY = 'businessContactsApp';
@@ -135,6 +136,21 @@ const App: React.FC = () => {
                         jobTickets: jobTickets,
                     };
                 });
+                
+                const sanitizedTemplates = (parsed.jobTemplates || []).map((template: any): JobTemplate => ({
+                    id: template.id || generateId(),
+                    name: template.name || 'Untitled Template',
+                    notes: template.notes || '',
+                    parts: Array.isArray(template.parts) ? template.parts.map((p: any): Part => ({
+                        id: p.id || generateId(),
+                        name: p.name || '',
+                        cost: p.cost || 0,
+                        quantity: typeof p.quantity === 'number' ? p.quantity : 1
+                    })) : [],
+                    laborCost: typeof template.laborCost === 'number' ? template.laborCost : 0,
+                    salesTaxRate: template.salesTaxRate,
+                    processingFeeRate: template.processingFeeRate,
+                }));
 
                 return {
                     contacts: sanitizedContacts,
@@ -143,6 +159,7 @@ const App: React.FC = () => {
                     autoBackupEnabled: parsed.autoBackupEnabled || false,
                     lastAutoBackup: parsed.lastAutoBackup || null,
                     theme: parsed.theme || 'system',
+                    jobTemplates: sanitizedTemplates,
                 };
             }
         } catch (error) {
@@ -155,6 +172,7 @@ const App: React.FC = () => {
             autoBackupEnabled: false,
             lastAutoBackup: null,
             theme: 'system',
+            jobTemplates: [],
         };
     });
 
@@ -230,6 +248,7 @@ const App: React.FC = () => {
                 contacts: appState.contacts,
                 defaultFields: appState.defaultFields,
                 businessInfo: appState.businessInfo,
+                jobTemplates: appState.jobTemplates,
             };
             const newBackup = {
                 timestamp: new Date().toISOString(),
@@ -242,7 +261,7 @@ const App: React.FC = () => {
              // Also save to sessionStorage for recovery
             sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
-    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled]);
+    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates]);
 
     // Effect to handle view transitions and data consistency checks
     useEffect(() => {
@@ -381,6 +400,30 @@ const App: React.FC = () => {
             defaultFields: current.defaultFields.filter(f => f.id !== id)
         }));
     };
+    
+    const addJobTemplate = (templateData: Omit<JobTemplate, 'id'>) => {
+        const newTemplate: JobTemplate = { ...templateData, id: generateId() };
+        setAppState(current => ({
+            ...current,
+            jobTemplates: [...current.jobTemplates, newTemplate]
+        }));
+    };
+    
+    const updateJobTemplate = (id: string, templateData: Omit<JobTemplate, 'id'>) => {
+        setAppState(current => ({
+            ...current,
+            jobTemplates: current.jobTemplates.map(t => t.id === id ? { ...t, ...templateData, id } : t)
+        }));
+    };
+    
+    const deleteJobTemplate = (id: string) => {
+        if (window.confirm('Are you sure you want to delete this job template?')) {
+            setAppState(current => ({
+                ...current,
+                jobTemplates: current.jobTemplates.filter(t => t.id !== id)
+            }));
+        }
+    };
 
     const handleToggleAutoBackup = (enabled: boolean) => {
         setAppState(current => ({ ...current, autoBackupEnabled: enabled }));
@@ -400,6 +443,7 @@ const App: React.FC = () => {
                         contacts: stateToRestore.contacts,
                         defaultFields: stateToRestore.defaultFields || initialDefaultFields,
                         businessInfo: stateToRestore.businessInfo || initialBusinessInfo,
+                        jobTemplates: stateToRestore.jobTemplates || [],
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
@@ -481,6 +525,7 @@ const App: React.FC = () => {
                         addFilesToContact={addFilesToContact}
                         updateContactJobTickets={updateContactJobTickets}
                         onViewInvoice={(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId })}
+                        jobTemplates={appState.jobTemplates}
                     />
                 );
             case 'new_form':
@@ -516,6 +561,10 @@ const App: React.FC = () => {
                         onUpdateBusinessInfo={updateBusinessInfo}
                         currentTheme={appState.theme}
                         onUpdateTheme={updateTheme}
+                        jobTemplates={appState.jobTemplates}
+                        onAddJobTemplate={addJobTemplate}
+                        onUpdateJobTemplate={updateJobTemplate}
+                        onDeleteJobTemplate={deleteJobTemplate}
                     />
                 );
             case 'invoice':
