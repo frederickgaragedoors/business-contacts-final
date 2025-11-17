@@ -16,6 +16,7 @@ import {
   PlusIcon,
   CameraIcon,
   BriefcaseIcon,
+  ClipboardListIcon,
 } from './icons.js';
 import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal } from '../utils.js';
 import { getFiles } from '../db.js';
@@ -31,7 +32,7 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, jobTemplates }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -256,34 +257,37 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                 const { totalCost } = calculateJobTicketTotal(ticket);
                                 const statusColor = jobStatusColors[ticket.status];
                                 return React.createElement("li", { key: ticket.id, className: "p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover" },
-                                    React.createElement("div", { className: "flex justify-start items-center mb-2" },
+                                    React.createElement("div", { className: "flex justify-between items-start mb-2" },
                                         React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
                                             ticket.status
-                                        )
-                                    ),
-                                    React.createElement("div", { className: "flex justify-between items-baseline mb-3" },
-                                        React.createElement("p", { className: "font-semibold text-slate-700 dark:text-slate-200" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })),
+                                        ),
                                         React.createElement("p", { className: "font-bold text-lg text-slate-800 dark:text-slate-100" }, `$${totalCost.toFixed(2)}`)
                                     ),
-                                    React.createElement("div", { className: "flex items-center justify-evenly mb-3" },
+                                    React.createElement("p", { className: "font-semibold text-slate-700 dark:text-slate-200" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })),
+                                    ticket.notes && (
+                                        React.createElement("p", { className: "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-3" }, ticket.notes)
+                                    ),
+                                    React.createElement("div", { className: "flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600" },
                                         React.createElement("button", {
                                             onClick: () => onViewInvoice(contact.id, ticket.id),
-                                            className: "p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md",
-                                            "aria-label": "View/Print invoice"
-                                        }, React.createElement(EyeIcon, { className: "w-4 h-4" })),
+                                            className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500",
+                                            "aria-label": "View Estimate/Receipt"
+                                        }, React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Estimate/Receipt")),
                                         React.createElement("button", {
                                             onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
-                                            className: "p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md",
+                                            className: "p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
                                             "aria-label": "Edit job ticket"
-                                        }, React.createElement(EditIcon, { className: "w-4 h-4" })),
+                                        }, React.createElement(EditIcon, { className: "w-5 h-5" })),
                                         React.createElement("button", {
                                             onClick: () => handleDeleteJobTicket(ticket.id),
-                                            className: "p-2 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 text-white rounded-md",
+                                            className: "p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
                                             "aria-label": "Delete job ticket"
-                                        }, React.createElement(TrashIcon, { className: "w-4 h-4" }))
-                                    ),
-                                    ticket.notes && (
-                                        React.createElement("p", { className: "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words border-t border-slate-200 dark:border-slate-600 pt-3" }, ticket.notes)
+                                        }, React.createElement(TrashIcon, { className: "w-5 h-5" })),
+                                        React.createElement("button", {
+                                            onClick: () => onViewJobDetail(contact.id, ticket.id),
+                                            className: "p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-full",
+                                            "aria-label": "View job details"
+                                        }, React.createElement(EyeIcon, { className: "w-5 h-5" }))
                                     )
                                 );
                             })
