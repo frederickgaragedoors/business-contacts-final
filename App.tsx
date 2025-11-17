@@ -7,6 +7,7 @@ import ContactForm from './components/ContactForm.tsx';
 import Settings from './components/Settings.tsx';
 import Dashboard from './components/Dashboard.tsx';
 import InvoiceView from './components/InvoiceView.tsx';
+import JobDetailView from './components/JobDetailView.tsx';
 import EmptyState from './components/EmptyState.tsx';
 import { UserCircleIcon } from './components/icons.tsx';
 import { generateId } from './utils.ts';
@@ -275,11 +276,11 @@ const App: React.FC = () => {
             setViewState({ type: 'dashboard' });
         }
 
-        // Redirect from invoice if contact/ticket is deleted
-        if (viewState.type === 'invoice') {
-            const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
-            const ticketForInvoice = contactForInvoice?.jobTickets?.find(t => t.id === viewState.ticketId);
-            if (!contactForInvoice || !ticketForInvoice) {
+        // Redirect from invoice/job_detail if contact/ticket is deleted
+        if (viewState.type === 'invoice' || viewState.type === 'job_detail') {
+            const contactForView = appState.contacts.find(c => c.id === viewState.contactId);
+            const ticketForView = contactForView?.jobTickets?.find(t => t.id === viewState.ticketId);
+            if (!contactForView || !ticketForView) {
                 setViewState({ type: 'dashboard' });
             }
         }
@@ -480,9 +481,36 @@ const App: React.FC = () => {
         sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
     };
 
+    const handleUpdateJobTicketForDetailView = (contactId: string, ticketData: Omit<JobTicket, 'id'> & { id?: string }) => {
+        const contact = appState.contacts.find(c => c.id === contactId);
+        if (!contact) return;
+        
+        let updatedTickets;
+        const currentTickets = contact.jobTickets || [];
+        if (ticketData.id) {
+            updatedTickets = currentTickets.map(ticket => ticket.id === ticketData.id ? { ...ticket, ...ticketData } : ticket);
+        } else {
+            // This path shouldn't be hit from the detail view, but it's a safe fallback.
+            const newTicket: JobTicket = { ...(ticketData as JobTicket), id: generateId() };
+            updatedTickets = [newTicket, ...currentTickets];
+        }
+        updateContactJobTickets(contactId, updatedTickets);
+    };
+    
+    const handleDeleteJobTicketForDetailView = (contactId: string, ticketId: string) => {
+        const contact = appState.contacts.find(c => c.id === contactId);
+        if (!contact) return;
+        
+        if (window.confirm('Are you sure you want to delete this job ticket?')) {
+            const updatedTickets = (contact.jobTickets || []).filter(ticket => ticket.id !== ticketId);
+            updateContactJobTickets(contactId, updatedTickets);
+            setViewState({ type: 'detail', id: contactId }); // Go back to contact detail after delete
+        }
+    };
+
     const selectedContact = useMemo(() => {
-        if (viewState.type === 'detail' || viewState.type === 'edit_form' || viewState.type === 'invoice') {
-            const id = viewState.type === 'invoice' ? viewState.contactId : viewState.id;
+        if (viewState.type === 'detail' || viewState.type === 'edit_form' || viewState.type === 'invoice' || viewState.type === 'job_detail') {
+            const id = viewState.type === 'invoice' || viewState.type === 'job_detail' ? viewState.contactId : viewState.id;
             return appState.contacts.find(c => c.id === id);
         }
         return undefined;
@@ -500,7 +528,7 @@ const App: React.FC = () => {
             case 'dashboard':
                  return <Dashboard 
                     contacts={appState.contacts} 
-                    onSelectContact={(id) => setViewState({ type: 'detail', id })}
+                    onViewJobDetail={(contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId })}
                  />;
             case 'list':
                  return (
@@ -525,6 +553,7 @@ const App: React.FC = () => {
                         addFilesToContact={addFilesToContact}
                         updateContactJobTickets={updateContactJobTickets}
                         onViewInvoice={(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId })}
+                        onViewJobDetail={(contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId })}
                         jobTemplates={appState.jobTemplates}
                     />
                 );
@@ -577,10 +606,26 @@ const App: React.FC = () => {
                         contact={selectedContact}
                         ticket={ticketForInvoice}
                         businessInfo={appState.businessInfo}
-                        onClose={() => setViewState({ type: 'detail', id: viewState.contactId })}
+                        onClose={() => setViewState({ type: 'job_detail', contactId: viewState.contactId, ticketId: viewState.ticketId })}
                         addFilesToContact={addFilesToContact}
                     />
                 );
+            case 'job_detail':
+                const contactForJob = appState.contacts.find(c => c.id === viewState.contactId);
+                if (!contactForJob) return null;
+                const ticketForJob = contactForJob.jobTickets.find(t => t.id === viewState.ticketId);
+                if (!ticketForJob) return null;
+
+                return <JobDetailView 
+                    contact={contactForJob}
+                    ticket={ticketForJob}
+                    businessInfo={appState.businessInfo}
+                    jobTemplates={appState.jobTemplates}
+                    onBack={() => setViewState({ type: 'detail', id: viewState.contactId })}
+                    onEditTicket={(ticketData) => handleUpdateJobTicketForDetailView(viewState.contactId, ticketData)}
+                    onDeleteTicket={() => handleDeleteJobTicketForDetailView(viewState.contactId, viewState.ticketId)}
+                    onViewInvoice={() => setViewState({ type: 'invoice', contactId: viewState.contactId, ticketId: viewState.ticketId })}
+                />;
             default:
                 return (
                      <EmptyState 
@@ -592,7 +637,7 @@ const App: React.FC = () => {
         }
     };
     
-    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice'].includes(viewState.type);
+    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice', 'job_detail'].includes(viewState.type);
 
     return (
         <div className="h-screen w-screen flex flex-col antialiased text-slate-700 dark:text-slate-300 relative">
@@ -639,7 +684,7 @@ const App: React.FC = () => {
                         onSelectContact={(id) => setViewState({ type: 'detail', id })}
                     />
                 </div>
-                <main className={`flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}`}>
+                <main className={`flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' || viewState.type === 'job_detail' ? 'w-full' : ''}`}>
                     {renderMainContent()}
                 </main>
             </div>
