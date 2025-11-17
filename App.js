@@ -89,7 +89,6 @@ const App = () => {
             if (savedData) {
                 const parsed = JSON.parse(savedData);
 
-                // Deep sanitize loaded contacts to ensure data integrity with new/old versions
                 const sanitizedContacts = (parsed.contacts || initialContacts).map((contact) => {
                     const jobTickets = (Array.isArray(contact.jobTickets) ? contact.jobTickets : [])
                         .filter(ticket => ticket && typeof ticket === 'object')
@@ -117,6 +116,21 @@ const App = () => {
                         jobTickets: jobTickets,
                     };
                 });
+                
+                const sanitizedTemplates = (parsed.jobTemplates || []).map((template) => ({
+                    id: template.id || generateId(),
+                    name: template.name || 'Untitled Template',
+                    notes: template.notes || '',
+                    parts: Array.isArray(template.parts) ? template.parts.map((p) => ({
+                        id: p.id || generateId(),
+                        name: p.name || '',
+                        cost: p.cost || 0,
+                        quantity: typeof p.quantity === 'number' ? p.quantity : 1
+                    })) : [],
+                    laborCost: typeof template.laborCost === 'number' ? template.laborCost : 0,
+                    salesTaxRate: template.salesTaxRate,
+                    processingFeeRate: template.processingFeeRate,
+                }));
 
                 return {
                     contacts: sanitizedContacts,
@@ -125,6 +139,7 @@ const App = () => {
                     autoBackupEnabled: parsed.autoBackupEnabled || false,
                     lastAutoBackup: parsed.lastAutoBackup || null,
                     theme: parsed.theme || 'system',
+                    jobTemplates: sanitizedTemplates,
                 };
             }
         } catch (error) {
@@ -137,6 +152,7 @@ const App = () => {
             autoBackupEnabled: false,
             lastAutoBackup: null,
             theme: 'system',
+            jobTemplates: [],
         };
     });
 
@@ -149,29 +165,13 @@ const App = () => {
     useEffect(() => {
         const root = window.document.documentElement;
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-        // Determine if dark mode should be enabled
-        const isDark = appState.theme === 'dark' || 
-                       (appState.theme === 'system' && mediaQuery.matches);
-        
-        // Apply or remove the 'dark' class
+        const isDark = appState.theme === 'dark' || (appState.theme === 'system' && mediaQuery.matches);
         root.classList.toggle('dark', isDark);
-
-        // Listener for system theme changes
-        const systemThemeListener = (e) => {
-            // This only needs to apply the class, toggle handles the logic
-            root.classList.toggle('dark', e.matches);
-        };
-        
-        // If theme is 'system', listen for changes.
+        const systemThemeListener = (e) => root.classList.toggle('dark', e.matches);
         if (appState.theme === 'system') {
             mediaQuery.addEventListener('change', systemThemeListener);
         }
-
-        // Cleanup listener on component unmount or when theme setting changes
-        return () => {
-            mediaQuery.removeEventListener('change', systemThemeListener);
-        };
+        return () => mediaQuery.removeEventListener('change', systemThemeListener);
     }, [appState.theme]);
 
     useEffect(() => {
@@ -193,11 +193,8 @@ const App = () => {
                     alert('An unexpected error occurred while saving data.');
                 }
             }
-        }, 500); // 500ms debounce delay
-
-        return () => {
-            clearTimeout(handler);
-        };
+        }, 500);
+        return () => clearTimeout(handler);
     }, [appState]);
 
     useEffect(() => {
@@ -206,32 +203,24 @@ const App = () => {
                 contacts: appState.contacts,
                 defaultFields: appState.defaultFields,
                 businessInfo: appState.businessInfo,
+                jobTemplates: appState.jobTemplates,
             };
             const newBackup = {
                 timestamp: new Date().toISOString(),
                 data: JSON.stringify(backupData),
             };
-            setAppState(current => ({
-                ...current,
-                lastAutoBackup: newBackup
-            }));
+            setAppState(current => ({ ...current, lastAutoBackup: newBackup }));
             sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
-    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled]);
+    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates]);
 
-    // Effect to handle view transitions and data consistency checks
     useEffect(() => {
-        // Auto-select first contact on desktop if in list view and no contact is selected
         if (viewState.type === 'list' && window.innerWidth >= 768 && appState.contacts.length > 0) {
             setViewState({ type: 'detail', id: appState.contacts[0].id });
         }
-
-        // Redirect if the selected contact for detail/edit view is deleted
         if ((viewState.type === 'detail' || viewState.type === 'edit_form') && !appState.contacts.some(c => c.id === viewState.id)) {
             setViewState({ type: 'dashboard' });
         }
-
-        // Redirect from invoice if contact/ticket is deleted
         if (viewState.type === 'invoice') {
             const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
             const ticketForInvoice = contactForInvoice?.jobTickets?.find(t => t.id === viewState.ticketId);
@@ -246,92 +235,53 @@ const App = () => {
         alert('Business information saved!');
     };
     
-    const updateTheme = (theme) => {
-        setAppState(current => ({ ...current, theme }));
-    };
+    const updateTheme = (theme) => setAppState(current => ({ ...current, theme }));
 
     const addContact = async (contactData) => {
         const filesWithData = contactData.files.filter(f => f.dataUrl);
-        if (filesWithData.length > 0) {
-            await addFiles(filesWithData);
-        }
-
+        if (filesWithData.length > 0) await addFiles(filesWithData);
         const newContact = {
             ...contactData,
             id: generateId(),
             jobTickets: [],
             files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
         };
-
-        setAppState(current => {
-            const newContacts = [newContact, ...current.contacts];
-            return { ...current, contacts: newContacts };
-        });
+        setAppState(current => ({ ...current, contacts: [newContact, ...current.contacts] }));
         setViewState({ type: 'detail', id: newContact.id });
     };
 
     const updateContact = async (id, contactData) => {
         const originalContact = appState.contacts.find(c => c.id === id);
         if (!originalContact) return;
-
         const newFiles = contactData.files.filter(f => f.dataUrl);
-        if (newFiles.length > 0) {
-            await addFiles(newFiles);
-        }
-
+        if (newFiles.length > 0) await addFiles(newFiles);
         const originalFileIds = new Set((originalContact.files || []).map(f => f.id));
         const updatedFileIds = new Set((contactData.files || []).map(f => f.id));
         const deletedFileIds = [...originalFileIds].filter(fileId => !updatedFileIds.has(fileId));
-
-
-        if (deletedFileIds.length > 0) {
-            await deleteFiles(deletedFileIds);
-        }
-
-        const finalContactData = {
-            ...contactData,
-            files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
-        };
-
-        setAppState(current => ({
-            ...current,
-            contacts: current.contacts.map(c => 
-                c.id === id ? { ...c, ...finalContactData, id } : c
-            )
-        }));
+        if (deletedFileIds.length > 0) await deleteFiles(deletedFileIds);
+        const finalContactData = { ...contactData, files: contactData.files.map(({ dataUrl, ...metadata }) => metadata) };
+        setAppState(current => ({ ...current, contacts: current.contacts.map(c => c.id === id ? { ...c, ...finalContactData, id } : c) }));
         setViewState({ type: 'detail', id });
     };
   
     const addFilesToContact = async (contactId, newFiles) => {
         await addFiles(newFiles.filter(f => f.dataUrl));
         const filesMetadata = newFiles.map(({ dataUrl, ...metadata }) => metadata);
-        setAppState(current => ({
-            ...current,
-            contacts: current.contacts.map(c => 
-                c.id === contactId ? { ...c, files: [...(c.files || []), ...filesMetadata] } : c
-            )
-        }));
+        setAppState(current => ({ ...current, contacts: current.contacts.map(c => c.id === contactId ? { ...c, files: [...(c.files || []), ...filesMetadata] } : c) }));
     };
   
     const updateContactJobTickets = (contactId, jobTickets) => {
-        setAppState(current => ({
-            ...current,
-            contacts: current.contacts.map(c =>
-                c.id === contactId ? { ...c, jobTickets } : c
-            )
-        }));
+        setAppState(current => ({ ...current, contacts: current.contacts.map(c => c.id === contactId ? { ...c, jobTickets } : c) }));
     };
 
     const deleteContact = async (id) => {
         if (window.confirm('Are you sure you want to delete this contact?')) {
             const contactToDelete = appState.contacts.find(c => c.id === id);
-            if (contactToDelete && contactToDelete.files && contactToDelete.files.length > 0) {
+            if (contactToDelete?.files?.length > 0) {
                 const fileIds = contactToDelete.files.map(f => f.id).filter(id => id != null);
                 await deleteFiles(fileIds);
             }
-            const remainingContacts = appState.contacts.filter(c => c.id !== id);
-            setAppState(current => ({ ...current, contacts: remainingContacts }));
-            
+            setAppState(current => ({ ...current, contacts: current.contacts.filter(c => c.id !== id) }));
             if ((viewState.type === 'detail' || viewState.type === 'edit_form') && viewState.id === id) {
                  setViewState({ type: 'dashboard' });
             }
@@ -340,24 +290,28 @@ const App = () => {
 
     const addDefaultField = (label) => {
         if (label && !appState.defaultFields.some(f => f.label.toLowerCase() === label.toLowerCase())) {
-            const newField = { id: generateId(), label };
-            setAppState(current => ({
-                ...current,
-                defaultFields: [...current.defaultFields, newField]
-            }));
+            setAppState(current => ({ ...current, defaultFields: [...current.defaultFields, { id: generateId(), label }] }));
         }
     };
 
-    const deleteDefaultField = (id) => {
-        setAppState(current => ({
-            ...current,
-            defaultFields: current.defaultFields.filter(f => f.id !== id)
-        }));
+    const deleteDefaultField = (id) => setAppState(current => ({ ...current, defaultFields: current.defaultFields.filter(f => f.id !== id) }));
+    
+    const addJobTemplate = (templateData) => {
+        const newTemplate = { ...templateData, id: generateId() };
+        setAppState(current => ({ ...current, jobTemplates: [...current.jobTemplates, newTemplate] }));
+    };
+    
+    const updateJobTemplate = (id, templateData) => {
+        setAppState(current => ({ ...current, jobTemplates: current.jobTemplates.map(t => t.id === id ? { ...t, ...templateData, id } : t) }));
+    };
+    
+    const deleteJobTemplate = (id) => {
+        if (window.confirm('Are you sure you want to delete this job template?')) {
+            setAppState(current => ({ ...current, jobTemplates: current.jobTemplates.filter(t => t.id !== id) }));
+        }
     };
 
-    const handleToggleAutoBackup = (enabled) => {
-        setAppState(current => ({ ...current, autoBackupEnabled: enabled }));
-    };
+    const handleToggleAutoBackup = (enabled) => setAppState(current => ({ ...current, autoBackupEnabled: enabled }));
 
     const restoreData = async (fileContent, silent = false) => {
         try {
@@ -365,26 +319,22 @@ const App = () => {
             if (backupData.contacts && Array.isArray(backupData.contacts)) {
                  const performRestore = async () => {
                     const { files, ...stateToRestore } = backupData;
-                    if (files && Array.isArray(files)) {
-                        await clearAndAddFiles(files);
-                    }
+                    if (files && Array.isArray(files)) await clearAndAddFiles(files);
                     setAppState(current => ({
                         ...current,
                         contacts: stateToRestore.contacts,
                         defaultFields: stateToRestore.defaultFields || initialDefaultFields,
                         businessInfo: stateToRestore.businessInfo || initialBusinessInfo,
+                        jobTemplates: stateToRestore.jobTemplates || [],
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
                 };
-
                 if (silent || window.confirm('Are you sure you want to restore this backup? This will overwrite all current data.')) {
                     await performRestore();
                     return true;
                 }
-            } else {
-                if (!silent) alert('Invalid backup file format.');
-            }
+            } else if (!silent) alert('Invalid backup file format.');
         } catch (error) {
             if (!silent) alert('Failed to read or parse the backup file.');
             console.error("Backup restore error:", error);
@@ -394,7 +344,7 @@ const App = () => {
     
     const handleAcceptRecovery = async () => {
         if (recoveryBackup) {
-            if (await restoreData(recoveryBackup.data, true)) { // Silent restore
+            if (await restoreData(recoveryBackup.data, true)) {
                 setRecoveryBackup(null);
                 sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
             } else {
@@ -418,134 +368,47 @@ const App = () => {
     }, [viewState, appState.contacts]);
   
     const selectedContactId = useMemo(() => {
-        if (viewState.type === 'detail' || viewState.type === 'edit_form') {
-            return viewState.id;
-        }
+        if (viewState.type === 'detail' || viewState.type === 'edit_form') return viewState.id;
         return null;
     }, [viewState]);
 
     const renderMainContent = () => {
         switch (viewState.type) {
-            case 'dashboard':
-                 return React.createElement(Dashboard, { 
-                    contacts: appState.contacts, 
-                    onSelectContact: (id) => setViewState({ type: 'detail', id }),
-                });
-            case 'list':
-                return React.createElement(EmptyState, {
-                    Icon: UserCircleIcon,
-                    title: "Welcome to your Contacts",
-                    message: "Select a contact to view their details or add a new one.",
-                    actionText: appState.contacts.length === 0 ? "Add First Contact" : undefined,
-                    onAction: appState.contacts.length === 0 ? () => setViewState({ type: 'new_form' }) : undefined,
-                });
-            case 'detail':
-                if (!selectedContact) return null; // Handled by useEffect
-                return React.createElement(ContactDetail, {
-                    contact: selectedContact,
-                    defaultFields: appState.defaultFields,
-                    onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }),
-                    onDelete: () => deleteContact(selectedContact.id),
-                    onClose: () => setViewState({ type: 'list' }),
-                    addFilesToContact: addFilesToContact,
-                    updateContactJobTickets: updateContactJobTickets,
-                    onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }),
-                });
-            case 'new_form':
-                return React.createElement(ContactForm, {
-                    onSave: addContact,
-                    onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}),
-                    defaultFields: appState.defaultFields,
-                });
-            case 'edit_form':
-                if (!selectedContact) return null; // Handled by useEffect
-                return React.createElement(ContactForm, {
-                    initialContact: selectedContact,
-                    onSave: (data) => updateContact(selectedContact.id, data),
-                    onCancel: () => setViewState({ type: 'detail', id: selectedContact.id }),
-                });
-            case 'settings':
-                return React.createElement(Settings, {
-                    defaultFields: appState.defaultFields,
-                    onAddDefaultField: addDefaultField,
-                    onDeleteDefaultField: deleteDefaultField,
-                    onBack: () => setViewState({ type: 'dashboard' }),
-                    appStateForBackup: { ...appState },
-                    autoBackupEnabled: appState.autoBackupEnabled,
-                    onToggleAutoBackup: handleToggleAutoBackup,
-                    lastAutoBackup: appState.lastAutoBackup,
-                    onRestoreBackup: (content) => restoreData(content, false),
-                    businessInfo: appState.businessInfo,
-                    onUpdateBusinessInfo: updateBusinessInfo,
-                    currentTheme: appState.theme,
-                    onUpdateTheme: updateTheme,
-                });
+            case 'dashboard': return React.createElement(Dashboard, { contacts: appState.contacts, onSelectContact: (id) => setViewState({ type: 'detail', id }) });
+            case 'list': return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one.", actionText: appState.contacts.length === 0 ? "Add First Contact" : undefined, onAction: appState.contacts.length === 0 ? () => setViewState({ type: 'new_form' }) : undefined });
+            case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), jobTemplates: appState.jobTemplates }) : null;
+            case 'new_form': return React.createElement(ContactForm, { onSave: addContact, onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}), defaultFields: appState.defaultFields });
+            case 'edit_form': return selectedContact ? React.createElement(ContactForm, { initialContact: selectedContact, onSave: (data) => updateContact(selectedContact.id, data), onCancel: () => setViewState({ type: 'detail', id: selectedContact.id }) }) : null;
+            case 'settings': return React.createElement(Settings, { defaultFields: appState.defaultFields, onAddDefaultField: addDefaultField, onDeleteDefaultField: deleteDefaultField, onBack: () => setViewState({ type: 'dashboard' }), appStateForBackup: { ...appState }, autoBackupEnabled: appState.autoBackupEnabled, onToggleAutoBackup: handleToggleAutoBackup, lastAutoBackup: appState.lastAutoBackup, onRestoreBackup: (content) => restoreData(content, false), businessInfo: appState.businessInfo, onUpdateBusinessInfo: updateBusinessInfo, currentTheme: appState.theme, onUpdateTheme: updateTheme, jobTemplates: appState.jobTemplates, onAddJobTemplate: addJobTemplate, onUpdateJobTemplate: updateJobTemplate, onDeleteJobTemplate: deleteJobTemplate });
             case 'invoice':
-                if (!selectedContact) return null; // Handled by useEffect
+                if (!selectedContact) return null;
                 const ticketForInvoice = (selectedContact.jobTickets || []).find(t => t.id === (viewState.type === 'invoice' && viewState.ticketId));
-                if (!ticketForInvoice) return null; // Handled by useEffect
-
-                return React.createElement(InvoiceView, {
-                    contact: selectedContact,
-                    ticket: ticketForInvoice,
-                    businessInfo: appState.businessInfo,
-                    onClose: () => setViewState({ type: 'detail', id: viewState.contactId }),
-                    addFilesToContact: addFilesToContact,
-                });
-            default:
-                return React.createElement(EmptyState, {
-                    Icon: UserCircleIcon,
-                    title: "Welcome to your Contacts",
-                    message: "Select a contact to view their details or add a new one.",
-                });
+                return ticketForInvoice ? React.createElement(InvoiceView, { contact: selectedContact, ticket: ticketForInvoice, businessInfo: appState.businessInfo, onClose: () => setViewState({ type: 'detail', id: viewState.contactId }), addFilesToContact: addFilesToContact }) : null;
+            default: return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one." });
         }
     };
   
     const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice'].includes(viewState.type);
 
     return React.createElement("div", { className: "h-screen w-screen flex flex-col antialiased text-slate-700 dark:text-slate-300 relative" },
-        recoveryBackup && (
-            React.createElement("div", { className: "absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg" },
-                React.createElement("div", null,
-                    React.createElement("p", { className: "font-bold text-yellow-800" }, "Data Recovery"),
-                    React.createElement("p", { className: "text-sm text-yellow-700" },
-                        `We found an automatic backup from ${new Date(recoveryBackup.timestamp).toLocaleString()}. Would you like to restore it?`
-                    )
-                ),
-                React.createElement("div", { className: "flex space-x-2 flex-shrink-0 ml-4" },
-                    React.createElement("button", {
-                        onClick: handleAcceptRecovery,
-                        className: "px-3 py-1 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
-                    }, "Restore"),
-                    React.createElement("button", {
-                        onClick: handleDismissRecovery,
-                        className: "px-3 py-1 rounded-md text-sm font-medium text-slate-700 bg-slate-200 hover:bg-slate-300 transition-colors"
-                    }, "Dismiss")
-                )
+        recoveryBackup && React.createElement("div", { className: "absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg" },
+            React.createElement("div", null,
+                React.createElement("p", { className: "font-bold text-yellow-800" }, "Data Recovery"),
+                React.createElement("p", { className: "text-sm text-yellow-700" }, `We found an automatic backup from ${new Date(recoveryBackup.timestamp).toLocaleString()}. Would you like to restore it?`)
+            ),
+            React.createElement("div", { className: "flex space-x-2 flex-shrink-0 ml-4" },
+                React.createElement("button", { onClick: handleAcceptRecovery, className: "px-3 py-1 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700" }, "Restore"),
+                React.createElement("button", { onClick: handleDismissRecovery, className: "px-3 py-1 rounded-md text-sm font-medium text-slate-700 bg-slate-200 hover:bg-slate-300" }, "Dismiss")
             )
         ),
-
         React.createElement("div", { className: viewState.type === 'invoice' ? 'print:hidden' : '' },
-            React.createElement(Header, {
-                currentView: viewState.type,
-                onNewContact: () => setViewState({ type: 'new_form' }),
-                onGoToSettings: () => setViewState({ type: 'settings' }),
-                onGoToDashboard: () => setViewState({ type: 'dashboard' }),
-                onGoToList: () => setViewState({ type: 'list' }),
-            })
+            React.createElement(Header, { currentView: viewState.type, onNewContact: () => setViewState({ type: 'new_form' }), onGoToSettings: () => setViewState({ type: 'settings' }), onGoToDashboard: () => setViewState({ type: 'dashboard' }), onGoToList: () => setViewState({ type: 'list' }) })
         ),
-
         React.createElement("div", { className: "flex flex-grow h-0" },
             React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:hidden' : ''}` },
-                React.createElement(ContactList, {
-                    contacts: appState.contacts,
-                    selectedContactId: selectedContactId,
-                    onSelectContact: (id) => setViewState({ type: 'detail', id }),
-                })
+                React.createElement(ContactList, { contacts: appState.contacts, selectedContactId: selectedContactId, onSelectContact: (id) => setViewState({ type: 'detail', id }) })
             ),
-            React.createElement("main", { className: `flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}` },
-                renderMainContent()
-            )
+            React.createElement("main", { className: `flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}` }, renderMainContent())
         )
     );
 };
