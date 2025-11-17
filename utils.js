@@ -40,6 +40,30 @@ export const getInitials = (name) => {
 };
 
 /**
+ * Calculates the subtotal, tax, fees, and final total for a job ticket.
+ * @param ticket The JobTicket object.
+ * @returns An object with the detailed cost breakdown.
+ */
+export const calculateJobTicketTotal = (ticket) => {
+    if (!ticket) {
+        return { subtotal: 0, taxAmount: 0, feeAmount: 0, totalCost: 0 };
+    }
+    const partsTotal = ticket.parts.reduce((sum, part) => sum + Number(part.cost || 0), 0);
+    const subtotal = partsTotal + Number(ticket.laborCost || 0);
+    const taxAmount = subtotal * (Number(ticket.salesTaxRate || 0) / 100);
+    const totalAfterTaxes = subtotal + taxAmount;
+    const feeAmount = totalAfterTaxes * (Number(ticket.processingFeeRate || 0) / 100);
+    const totalCost = totalAfterTaxes + feeAmount;
+    
+    return {
+        subtotal,
+        taxAmount,
+        feeAmount,
+        totalCost,
+    };
+};
+
+/**
  * Triggers a browser download for a JSON file.
  * @param data The object to serialize into JSON.
  * @param filename The desired filename for the download.
