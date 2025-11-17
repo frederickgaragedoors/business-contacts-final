@@ -201,7 +201,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="processing-fee-rate" className={labelStyles}>Processing Fee (%)</label>
+                            <label htmlFor="processing-fee-rate" className={labelStyles}>Card Processing Fee (%)</label>
                             <div className="relative mt-1">
                                 <input
                                     type="number"
@@ -223,7 +223,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
              <div className="text-sm dark:text-slate-300">
                 <p>Subtotal: <span className="font-medium">${subtotal.toFixed(2)}</span></p>
                 <p>Tax ({Number(salesTaxRate || 0)}%): <span className="font-medium">${taxAmount.toFixed(2)}</span></p>
-                <p>Fee ({Number(processingFeeRate || 0)}%): <span className="font-medium">${feeAmount.toFixed(2)}</span></p>
+                <p>Card Fee ({Number(processingFeeRate || 0)}%): <span className="font-medium">${feeAmount.toFixed(2)}</span></p>
                 <p className="font-bold text-lg text-slate-800 dark:text-slate-100 mt-1">Total: <span className="font-bold text-xl">${finalTotal.toFixed(2)}</span></p>
             </div>
             <div className="flex space-x-2">
