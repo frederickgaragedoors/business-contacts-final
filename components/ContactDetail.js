@@ -358,7 +358,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                 otherFiles.map(file => (
                                     React.createElement("li", { key: file.id, className: "flex items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg" },
                                         React.createElement(FileIcon, { className: "w-6 h-6 text-slate-500 dark:text-slate-400 flex-shrink-0" }),
-                                        React.createElement("div", { className: "ml-3 flex-grow truncate" },
+                                        React.createElement("div", { className: "ml-3 flex-grow min-w-0" },
                                             React.createElement("p", { className: "font-medium text-slate-700 dark:text-slate-200 truncate" }, file.name),
                                             React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400" }, formatFileSize(file.size))
                                         ),
