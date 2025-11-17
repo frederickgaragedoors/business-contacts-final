@@ -9,7 +9,7 @@ interface JobTicketModalProps {
   onClose: () => void;
 }
 
-const jobStatuses: JobStatus[] = ['Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Invoiced'];
+const jobStatuses: JobStatus[] = ['Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Paid'];
 
 const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose }) => {
   const [date, setDate] = useState('');
