@@ -128,7 +128,7 @@ const Settings: React.FC<SettingsProps> = ({
 
                 <form onSubmit={handleBusinessInfoSubmit} className="border-t dark:border-slate-700 pt-6">
                     <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Business Information</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">This info will appear on your quotes and invoices.</p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">This info will appear on your estimates and receipts.</p>
                     <div className="mt-6 space-y-4">
                         <div className="flex items-center space-x-4">
                             <div className="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center">
