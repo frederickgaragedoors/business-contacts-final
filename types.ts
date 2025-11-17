@@ -33,6 +33,7 @@ export const jobStatusColors: Record<JobStatus, { base: string, text: string }> 
 export interface Part {
   id: string;
   name: string;
+  quantity: number;
   cost: number;
 }
 
