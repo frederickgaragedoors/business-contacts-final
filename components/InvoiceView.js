@@ -77,7 +77,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
     const totalCost = totalAfterTaxes + feeAmount;
 
     return (
-        React.createElement("div", { className: "h-full flex flex-col bg-slate-200 overflow-y-auto print:overflow-visible" },
+        React.createElement("div", { className: "h-full flex flex-col bg-slate-200 overflow-y-auto print:block print:bg-white print:overflow-visible" },
             // Toolbar
             React.createElement("div", { className: "p-4 flex items-center justify-between border-b border-slate-300 bg-white print:hidden" },
                 React.createElement("button", { onClick: onClose, className: "p-2 rounded-full hover:bg-slate-100" },
