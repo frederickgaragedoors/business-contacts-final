@@ -21,11 +21,11 @@ const Header: React.FC<HeaderProps> = ({
     const isListActive = !isDashboardActive;
 
     return (
-        <header className="px-4 sm:px-6 py-4 border-b border-slate-200 flex justify-between items-center space-x-2 bg-slate-50 flex-shrink-0 z-20">
-            <div className="flex items-center space-x-1 p-1 bg-slate-200 rounded-lg">
+        <header className="px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center space-x-2 bg-slate-50 dark:bg-slate-800 flex-shrink-0 z-20">
+            <div className="flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-900 rounded-lg">
                 <button
                     onClick={onGoToDashboard}
-                    className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${isDashboardActive ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:bg-slate-300'}`}
+                    className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${isDashboardActive ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`}
                     aria-label="Dashboard"
                 >
                     <ClipboardListIcon className="w-5 h-5" />
@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({
                 </button>
                 <button
                     onClick={onGoToList}
-                    className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${isListActive ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:bg-slate-300'}`}
+                    className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors ${isListActive ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`}
                     aria-label="Contacts"
                 >
                     <UsersIcon className="w-5 h-5" />
@@ -43,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center space-x-2">
                 <button
                     onClick={onGoToSettings}
-                    className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors"
+                    className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors"
                     aria-label="Settings"
                 >
                     <SettingsIcon className="w-6 h-6" />
