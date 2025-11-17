@@ -535,7 +535,7 @@ const App: React.FC = () => {
                         onSelectContact={(id) => setViewState({ type: 'detail', id })}
                     />
                 </div>
-                <main className={`flex-grow bg-white dark:bg-slate-800 h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}`}>
+                <main className={`flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}`}>
                     {renderMainContent()}
                 </main>
             </div>
