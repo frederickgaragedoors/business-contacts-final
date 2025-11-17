@@ -9,6 +9,8 @@ import Dashboard from './components/Dashboard.tsx';
 import InvoiceView from './components/InvoiceView.tsx';
 import { UserCircleIcon } from './components/icons.tsx';
 import { generateId } from './utils.ts';
+import { initDB, addFiles, deleteFiles, getAllFiles, clearAndAddFiles } from './db.ts';
+
 
 const initialContacts: Contact[] = [
   {
@@ -119,9 +121,32 @@ const App: React.FC = () => {
 
     const [viewState, setViewState] = useState<ViewState>({ type: 'dashboard' });
 
-    // Effect to persist the entire app state to localStorage
+    // Effect to initialize the database
     useEffect(() => {
-        localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appState));
+        initDB().catch(err => console.error("Failed to initialize DB", err));
+    }, []);
+
+    // Effect to persist the entire app state to localStorage, without file data
+    useEffect(() => {
+        try {
+            // Create a version of the state without any file data URLs for saving
+            const stateToSave = {
+                ...appState,
+                contacts: appState.contacts.map(contact => ({
+                    ...contact,
+                    files: contact.files.map(({ dataUrl, ...fileMetadata }) => fileMetadata),
+                })),
+            };
+
+            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(stateToSave));
+        } catch (error) {
+            console.error('Failed to save state to localStorage:', error);
+            if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
+                 alert('Could not save changes. The application storage is full. Please remove some large attachments from contacts to free up space.');
+            } else {
+                 alert('An unexpected error occurred while saving data.');
+            }
+        }
     }, [appState]);
 
     // Effect for automatic backups
@@ -150,12 +175,19 @@ const App: React.FC = () => {
         alert('Business information saved!');
     };
 
-    const addContact = (contactData: Omit<Contact, 'id'>) => {
+    const addContact = async (contactData: Omit<Contact, 'id'>) => {
+        const filesWithData = contactData.files.filter(f => f.dataUrl);
+        if (filesWithData.length > 0) {
+            await addFiles(filesWithData);
+        }
+
         const newContact: Contact = {
             ...contactData,
             id: generateId(),
             jobTickets: [],
+            files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
         };
+
         setAppState(current => {
             const newContacts = [newContact, ...current.contacts];
             return { ...current, contacts: newContacts };
@@ -163,21 +195,46 @@ const App: React.FC = () => {
         setViewState({ type: 'detail', id: newContact.id });
     };
 
-    const updateContact = (id: string, contactData: Omit<Contact, 'id'>) => {
+    const updateContact = async (id: string, contactData: Omit<Contact, 'id'>) => {
+        const originalContact = appState.contacts.find(c => c.id === id);
+        if (!originalContact) return;
+
+        const newFiles = contactData.files.filter(f => f.dataUrl);
+        if (newFiles.length > 0) {
+            await addFiles(newFiles);
+        }
+
+        const originalFileIds = new Set(originalContact.files.map(f => f.id));
+        const updatedFileIds = new Set(contactData.files.map(f => f.id));
+        const deletedFileIds = [...originalFileIds].filter(fileId => !updatedFileIds.has(fileId));
+
+        if (deletedFileIds.length > 0) {
+            await deleteFiles(deletedFileIds);
+        }
+
+        const finalContactData = {
+            ...contactData,
+            files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
+        };
+
         setAppState(current => ({
             ...current,
             contacts: current.contacts.map(c => 
-                c.id === id ? { ...c, ...contactData, id } : c
+                c.id === id ? { ...c, ...finalContactData, id } : c
             )
         }));
         setViewState({ type: 'detail', id });
     };
   
-    const addFilesToContact = (contactId: string, newFiles: FileAttachment[]) => {
+    const addFilesToContact = async (contactId: string, newFiles: FileAttachment[]) => {
+        await addFiles(newFiles.filter(f => f.dataUrl));
+        
+        const filesMetadata = newFiles.map(({ dataUrl, ...metadata }) => metadata);
+        
         setAppState(current => ({
             ...current,
             contacts: current.contacts.map(c => 
-                c.id === contactId ? { ...c, files: [...c.files, ...newFiles] } : c
+                c.id === contactId ? { ...c, files: [...c.files, ...filesMetadata] } : c
             )
         }));
     };
@@ -191,8 +248,13 @@ const App: React.FC = () => {
         }));
     };
 
-    const deleteContact = (id: string) => {
+    const deleteContact = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this contact?')) {
+            const contactToDelete = appState.contacts.find(c => c.id === id);
+            if (contactToDelete && contactToDelete.files.length > 0) {
+                await deleteFiles(contactToDelete.files.map(f => f.id));
+            }
+
             const remainingContacts = appState.contacts.filter(c => c.id !== id);
             setAppState(current => ({ ...current, contacts: remainingContacts }));
             
@@ -223,23 +285,27 @@ const App: React.FC = () => {
         setAppState(current => ({ ...current, autoBackupEnabled: enabled }));
     };
 
-    const restoreData = (fileContent: string, silent = false): boolean => {
+    const restoreData = async (fileContent: string, silent = false): Promise<boolean> => {
         try {
             const backupData = JSON.parse(fileContent);
-            if (backupData.contacts && Array.isArray(backupData.contacts) && backupData.defaultFields && Array.isArray(backupData.defaultFields)) {
-                const performRestore = () => {
+            if (backupData.contacts && Array.isArray(backupData.contacts)) {
+                const performRestore = async () => {
+                    const { files, ...stateToRestore } = backupData;
+                    if (files && Array.isArray(files)) {
+                        await clearAndAddFiles(files);
+                    }
                     setAppState(current => ({
                         ...current,
-                        contacts: backupData.contacts,
-                        defaultFields: backupData.defaultFields,
-                        businessInfo: backupData.businessInfo || initialBusinessInfo, // Restore business info
+                        contacts: stateToRestore.contacts,
+                        defaultFields: stateToRestore.defaultFields || initialDefaultFields,
+                        businessInfo: stateToRestore.businessInfo || initialBusinessInfo,
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
                 };
 
                 if (silent || window.confirm('Are you sure you want to restore this backup? This will overwrite all current data.')) {
-                    performRestore();
+                    await performRestore();
                     return true;
                 }
             } else {
@@ -252,9 +318,9 @@ const App: React.FC = () => {
         return false;
     };
 
-    const handleAcceptRecovery = () => {
+    const handleAcceptRecovery = async () => {
         if (recoveryBackup) {
-            if (restoreData(recoveryBackup.data, true)) { // Silent restore
+            if (await restoreData(recoveryBackup.data, true)) { // Silent restore
                 setRecoveryBackup(null);
                 sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
             } else {
