@@ -271,8 +271,10 @@ const App: React.FC = () => {
             await addFiles(newFiles);
         }
 
-        const originalFileIds = new Set(originalContact.files.map(f => f.id));
-        const updatedFileIds = new Set(contactData.files.map(f => f.id));
+        // FIX: Explicitly type 'f' in map to ensure its type is correctly inferred as FileAttachment.
+        const originalFileIds = new Set(originalContact.files.map((f: FileAttachment) => f.id));
+        // FIX: Explicitly type 'f' in map to ensure its type is correctly inferred as FileAttachment.
+        const updatedFileIds = new Set(contactData.files.map((f: FileAttachment) => f.id));
         const deletedFileIds = [...originalFileIds].filter(fileId => !updatedFileIds.has(fileId));
 
         if (deletedFileIds.length > 0) {
