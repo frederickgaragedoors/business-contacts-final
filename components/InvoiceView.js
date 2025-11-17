@@ -151,14 +151,14 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
             React.createElement("div", { className: "p-4 md:p-8 flex-grow print:p-0" },
                 React.createElement("div", { ref: invoiceContentRef, className: "max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper" },
                     React.createElement("header", { className: "flex justify-between items-baseline pb-6 border-b border-slate-200 text-slate-800" },
-                        React.createElement("div", null,
+                        React.createElement("div", { className: "min-w-0" },
                             businessInfo.logoUrl && React.createElement("img", { src: businessInfo.logoUrl, alt: "Business Logo", className: "h-16 w-auto mb-4" }),
-                            React.createElement("h1", { className: "text-2xl font-bold" }, businessInfo.name || 'Your Company'),
-                            React.createElement("p", { className: "text-sm text-slate-500 whitespace-pre-line" }, businessInfo.address),
-                            React.createElement("p", { className: "text-sm text-slate-500" }, businessInfo.phone),
-                            React.createElement("p", { className: "text-sm text-slate-500" }, businessInfo.email)
+                            React.createElement("h1", { className: "text-2xl font-bold break-words" }, businessInfo.name || 'Your Company'),
+                            React.createElement("p", { className: "text-sm text-slate-500 whitespace-pre-line break-words" }, businessInfo.address),
+                            React.createElement("p", { className: "text-sm text-slate-500 break-words" }, businessInfo.phone),
+                            React.createElement("p", { className: "text-sm text-slate-500 break-words" }, businessInfo.email)
                         ),
-                        React.createElement("div", { className: "text-right" },
+                        React.createElement("div", { className: "text-right flex-shrink-0 ml-4" },
                             React.createElement("h2", { className: "text-4xl uppercase font-bold text-slate-700" }, docType),
                             React.createElement("p", { className: "text-sm text-slate-500 mt-2" },
                                 React.createElement("span", { className: "font-semibold text-slate-600" }, "Job ID:"), ` ${ticket.id}`
@@ -171,28 +171,28 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
 
                     React.createElement("section", { className: "mt-6" },
                         React.createElement("h3", { className: "text-sm font-semibold uppercase text-slate-500" }, "Bill To"),
-                        React.createElement("div", { className: "mt-2 text-slate-700" },
-                            React.createElement("p", { className: "font-bold" }, contact.name),
-                            React.createElement("p", { className: "text-sm whitespace-pre-line" }, contact.address),
-                            React.createElement("p", { className: "text-sm" }, contact.phone),
-                            React.createElement("p", { className: "text-sm" }, contact.email)
+                        React.createElement("div", { className: "mt-2 text-slate-700 min-w-0" },
+                            React.createElement("p", { className: "font-bold break-words" }, contact.name),
+                            React.createElement("p", { className: "text-sm whitespace-pre-line break-words" }, contact.address),
+                            React.createElement("p", { className: "text-sm break-words" }, contact.phone),
+                            React.createElement("p", { className: "text-sm break-words" }, contact.email)
                         )
                     ),
 
                     React.createElement("section", { className: "mt-6" },
-                        React.createElement("table", { className: "w-full text-left" },
+                        React.createElement("table", { className: "w-full text-left table-fixed" },
                             React.createElement("thead", null,
                                 React.createElement("tr", null,
-                                    React.createElement("th", { className: "p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200" }, "Description"),
-                                    React.createElement("th", { className: "p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200" }, "Qty"),
-                                    React.createElement("th", { className: "p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200" }, "Unit Price"),
-                                    React.createElement("th", { className: "p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200" }, "Amount")
+                                    React.createElement("th", { className: "p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-1/2" }, "Description"),
+                                    React.createElement("th", { className: "p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[15%]" }, "Qty"),
+                                    React.createElement("th", { className: "p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[20%]" }, "Unit Price"),
+                                    React.createElement("th", { className: "p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[20%]" }, "Amount")
                                 )
                             ),
                             React.createElement("tbody", null,
                                 ticket.parts.map(part => (
                                     React.createElement("tr", { key: part.id, className: "border-b border-slate-100" },
-                                        React.createElement("td", { className: "p-3 text-sm text-slate-700" }, part.name),
+                                        React.createElement("td", { className: "p-3 text-sm text-slate-700 break-words" }, part.name),
                                         React.createElement("td", { className: "p-3 text-center text-sm text-slate-700" }, part.quantity),
                                         React.createElement("td", { className: "p-3 text-right text-sm text-slate-700" }, `$${part.cost.toFixed(2)}`),
                                         React.createElement("td", { className: "p-3 text-right text-sm text-slate-700" }, `$${(part.cost * part.quantity).toFixed(2)}`)
