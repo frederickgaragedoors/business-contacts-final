@@ -31,7 +31,7 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, jobTemplates }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -452,7 +452,8 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 React.createElement(JobTicketModal, {
                     entry: editingJobTicket,
                     onSave: handleSaveJobTicket,
-                    onClose: () => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); }
+                    onClose: () => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); },
+                    jobTemplates: jobTemplates
                 })
             )
         )
