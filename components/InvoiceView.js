@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ArrowLeftIcon } from './icons.js';
-import { generateId, fileToDataUrl } from '../utils.js';
+import { generateId, fileToDataUrl, calculateJobTicketTotal } from '../utils.js';
 
 const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact }) => {
     const [docType, setDocType] = useState('invoice');
@@ -92,11 +92,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
         }
     };
 
-    const subtotal = ticket.parts.reduce((sum, part) => sum + part.cost, 0) + ticket.laborCost;
-    const taxAmount = subtotal * ((ticket.salesTaxRate || 0) / 100);
-    const totalAfterTaxes = subtotal + taxAmount;
-    const feeAmount = totalAfterTaxes * ((ticket.processingFeeRate || 0) / 100);
-    const totalCost = totalAfterTaxes + feeAmount;
+    const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
 
     return (
         React.createElement("div", { className: "h-full flex flex-col bg-slate-200 overflow-y-auto" },
