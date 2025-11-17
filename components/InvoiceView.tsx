@@ -19,13 +19,6 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        document.body.classList.add('invoice-view-active');
-        return () => {
-            document.body.classList.remove('invoice-view-active');
-        };
-    }, []);
-
     const handleSaveAndAttach = async () => {
         if (!invoiceContentRef.current || isSaving) return;
         
@@ -92,7 +85,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
 
 
     return (
-        <div className="h-full flex flex-col bg-slate-200 overflow-y-auto print:block print:bg-white print:overflow-visible">
+        <div className="h-full flex flex-col bg-slate-200 overflow-y-auto">
             {/* Toolbar */}
             <div className="p-4 flex items-center justify-between border-b border-slate-300 bg-white print:hidden">
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
@@ -130,7 +123,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             </div>
 
             {/* Invoice Paper */}
-            <div className="p-4 md:p-8 flex-grow invoice-container">
+            <div className="p-4 md:p-8 flex-grow">
                 <div ref={invoiceContentRef} className="max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper">
                     <header className="flex justify-between items-start pb-8 border-b">
                         <div>
@@ -219,36 +212,20 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             <style>
             {`
                 @media print {
-                    body.invoice-view-active > #root > div > header,
-                    body.invoice-view-active > #root > div > div > div:first-child {
-                        display: none !important;
+                    body * {
+                        visibility: hidden;
                     }
-                    body.invoice-view-active > #root > div > div > main {
-                        width: 100% !important;
-                        display: block !important;
-                        height: auto !important;
-                        overflow: visible !important;
-                        flex-grow: 0 !important;
-                    }
-                    body.invoice-view-active,
-                    body.invoice-view-active > #root,
-                    body.invoice-view-active > #root > div,
-                    body.invoice-view-active > #root > div > div {
-                        display: block !important;
-                        background-color: white !important;
-                        height: auto !important;
-                        overflow: visible !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                    }
-                    .invoice-container {
-                        padding: 0 !important;
+                    .invoice-paper, .invoice-paper * {
+                        visibility: visible;
                     }
                     .invoice-paper {
-                        box-shadow: none !important;
-                        margin: 0 !important;
-                        max-width: 100% !important;
-                        border-radius: 0 !important;
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        margin: 0;
+                        padding: 1rem;
+                        box-shadow: none;
                     }
                 }
             `}
