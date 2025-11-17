@@ -79,7 +79,7 @@ const JobDetailView = ({
                     React.createElement(TrashIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Delete")
                 ),
                  React.createElement("button", { onClick: onViewInvoice, className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600" },
-                    React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Estimate/Receipt")
+                    React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "PDF")
                 )
             )
           ),
