@@ -271,9 +271,7 @@ const App: React.FC = () => {
             await addFiles(newFiles);
         }
 
-        // FIX: Explicitly type 'f' in map to ensure its type is correctly inferred as FileAttachment.
         const originalFileIds = new Set(originalContact.files.map((f: FileAttachment) => f.id));
-        // FIX: Explicitly type 'f' in map to ensure its type is correctly inferred as FileAttachment.
         const updatedFileIds = new Set(contactData.files.map((f: FileAttachment) => f.id));
         const deletedFileIds = [...originalFileIds].filter(fileId => !updatedFileIds.has(fileId));
 
@@ -321,7 +319,6 @@ const App: React.FC = () => {
         if (window.confirm('Are you sure you want to delete this contact?')) {
             const contactToDelete = appState.contacts.find(c => c.id === id);
             if (contactToDelete && contactToDelete.files.length > 0) {
-                // FIX: Explicitly type 'f' as 'FileAttachment' to ensure `f.id` is a string and the mapped array is `string[]`.
                 await deleteFiles(contactToDelete.files.map((f: FileAttachment) => f.id));
             }
 
