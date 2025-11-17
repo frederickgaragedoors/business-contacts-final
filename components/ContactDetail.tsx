@@ -52,6 +52,19 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     const imageUploadRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const fileUploadRef = useRef<HTMLInputElement>(null);
+
+    const handleViewFile = async (file: FileAttachment) => {
+        if (!file.dataUrl) return;
+        try {
+            const response = await fetch(file.dataUrl);
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error('Error opening file:', error);
+            alert('Could not open the file.');
+        }
+    };
     
     useEffect(() => {
         if (contact.files.length > 0) {
@@ -389,7 +402,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                     </div>
                                     <div className="ml-4 flex-shrink-0 flex items-center space-x-4">
                                         {VIEWABLE_MIME_TYPES.includes(file.type) && file.dataUrl && (
-                                            <a href={file.dataUrl} target="_blank" rel="noopener noreferrer" className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">View</a>
+                                            <button onClick={() => handleViewFile(file)} className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">View</button>
                                         )}
                                         {file.dataUrl && <a href={file.dataUrl} download={file.name} className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">Download</a>}
                                     </div>
