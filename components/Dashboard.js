@@ -1,9 +1,11 @@
 import React, { useMemo } from 'react';
 import { jobStatusColors } from '../types.js';
+import EmptyState from './EmptyState.js';
+import { ClipboardListIcon, UsersIcon, BriefcaseIcon } from './icons.js';
+
 
 const Dashboard = ({ contacts, onSelectContact }) => {
 
-    // Get the start of today in the local timezone for accurate comparisons.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -17,8 +19,6 @@ const Dashboard = ({ contacts, onSelectContact }) => {
         );
     }, [contacts]);
     
-    // Helper to parse 'YYYY-MM-DD' strings into local Date objects.
-    // This avoids timezone issues where new Date('YYYY-MM-DD') is parsed as UTC midnight.
     const parseDateAsLocal = (dateString) => {
         const [year, month, day] = dateString.split('-').map(Number);
         return new Date(year, month - 1, day);
@@ -50,13 +50,23 @@ const Dashboard = ({ contacts, onSelectContact }) => {
             })
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs, today]);
+    
+    const StatCard = ({ Icon, title, value, color }) => (
+        React.createElement("div", { className: `p-5 rounded-xl shadow-sm text-white ${color} card-hover` },
+            React.createElement("div", { className: "flex justify-between items-center" },
+                React.createElement("p", { className: "text-lg font-medium opacity-90" }, title),
+                React.createElement(Icon, { className: "w-8 h-8 opacity-50" })
+            ),
+            React.createElement("p", { className: "text-4xl font-bold mt-2" }, value)
+        )
+    );
 
     const JobCard = ({ job }) => {
         const statusColor = jobStatusColors[job.status];
         return (
             React.createElement("li", { 
                 onClick: () => onSelectContact(job.contactId),
-                className: "p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer transition-all"
+                className: "p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer card-hover"
             },
                 React.createElement("div", { className: "flex justify-between items-start" },
                     React.createElement("div", null,
@@ -80,9 +90,7 @@ const Dashboard = ({ contacts, onSelectContact }) => {
                     jobs.map(job => React.createElement(JobCard, { key: job.id, job: job }))
                 )
             ) : (
-                React.createElement("div", { className: "text-center text-slate-500 dark:text-slate-400 py-6 px-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg" },
-                    React.createElement("p", null, emptyMessage)
-                )
+                React.createElement("p", { className: "text-center text-slate-500 dark:text-slate-400 py-6 px-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg" }, emptyMessage)
             )
         )
     );
@@ -90,25 +98,45 @@ const Dashboard = ({ contacts, onSelectContact }) => {
     return (
         React.createElement("div", { className: "h-full flex flex-col bg-slate-100 dark:bg-slate-900 overflow-y-auto" },
             React.createElement("div", { className: "px-4 sm:px-6 py-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" },
-                React.createElement("h1", { className: "text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100" }, "Jobs Dashboard"),
-                React.createElement("p", { className: "mt-1 text-slate-500 dark:text-slate-400" }, "A summary of your active jobs.")
+                React.createElement("h1", { className: "text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100" }, "Good Morning!"),
+                React.createElement("p", { className: "mt-1 text-slate-500 dark:text-slate-400" }, "Here's a summary of your business activity.")
             ),
             React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow space-y-8" },
-                React.createElement(Section, { 
-                    title: "Awaiting Parts", 
-                    jobs: jobsAwaitingParts, 
-                    emptyMessage: "No customers are currently waiting for parts." 
-                }),
-                React.createElement(Section, { 
-                    title: "Today's Jobs", 
-                    jobs: todaysJobs, 
-                    emptyMessage: "No jobs scheduled or in progress for today." 
-                }),
-                React.createElement(Section, { 
-                    title: "Upcoming", 
-                    jobs: upcomingJobs, 
-                    emptyMessage: "No upcoming jobs scheduled." 
-                })
+                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" },
+                    React.createElement(StatCard, { Icon: UsersIcon, title: "Total Contacts", value: contacts.length, color: "bg-gradient-to-br from-sky-500 to-sky-600" }),
+                    React.createElement(StatCard, { Icon: ClipboardListIcon, title: "Jobs Today", value: todaysJobs.length, color: "bg-gradient-to-br from-green-500 to-green-600" }),
+                    React.createElement(StatCard, { Icon: BriefcaseIcon, title: "Awaiting Parts", value: jobsAwaitingParts.length, color: "bg-gradient-to-br from-purple-500 to-purple-600" })
+                ),
+                
+                allJobs.length > 0 ? (
+                    React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-8" },
+                        React.createElement("div", { className: "lg:col-span-1 space-y-8" },
+                            React.createElement(Section, {
+                                title: "Awaiting Parts",
+                                jobs: jobsAwaitingParts,
+                                emptyMessage: "No jobs are awaiting parts."
+                            })
+                        ),
+                        React.createElement("div", { className: "lg:col-span-2 space-y-8" },
+                            React.createElement(Section, {
+                                title: "Today's Jobs",
+                                jobs: todaysJobs,
+                                emptyMessage: "You're all clear for today!"
+                            }),
+                            React.createElement(Section, {
+                                title: "Upcoming",
+                                jobs: upcomingJobs,
+                                emptyMessage: "No upcoming jobs scheduled."
+                            })
+                        )
+                    )
+                ) : (
+                    React.createElement(EmptyState, {
+                        Icon: ClipboardListIcon,
+                        title: "No Jobs Found",
+                        message: "Get started by adding a job to one of your contacts."
+                    })
+                )
             )
         )
     );
