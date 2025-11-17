@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
@@ -58,9 +59,10 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     };
 
     useEffect(() => {
-        if (contact.files.length > 0) {
+        const contactFiles = contact.files || [];
+        if (contactFiles.length > 0) {
             setIsLoadingFiles(true);
-            getFiles(contact.files.map(f => f.id))
+            getFiles(contactFiles.map(f => f.id))
                 .then(filesFromDb => {
                     setHydratedFiles(filesFromDb);
                 })
@@ -103,8 +105,8 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     };
 
     const allCustomFields = useMemo(() => {
-        const fieldsToShow = [...contact.customFields];
-        const existingLabels = new Set(contact.customFields.map(cf => cf.label.toLowerCase()));
+        const fieldsToShow = [...(contact.customFields || [])];
+        const existingLabels = new Set(fieldsToShow.map(cf => cf.label.toLowerCase()));
 
         defaultFields.forEach(df => {
             if (!existingLabels.has(df.label.toLowerCase())) {
@@ -141,8 +143,9 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
 
     const handleSaveJobTicket = (entry) => {
         let updatedTickets;
+        const currentTickets = contact.jobTickets || [];
         if (entry.id) {
-            updatedTickets = contact.jobTickets.map(ticket => ticket.id === entry.id ? { ...ticket, ...entry } : ticket);
+            updatedTickets = currentTickets.map(ticket => ticket.id === entry.id ? { ...ticket, ...entry } : ticket);
         } else {
             const newTicket = { 
                 id: generateId(), 
@@ -154,7 +157,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 salesTaxRate: entry.salesTaxRate,
                 processingFeeRate: entry.processingFeeRate,
             };
-            updatedTickets = [newTicket, ...contact.jobTickets];
+            updatedTickets = [newTicket, ...currentTickets];
         }
         updateContactJobTickets(contact.id, updatedTickets);
         setIsJobTicketModalOpen(false);
@@ -163,13 +166,13 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     
     const handleDeleteJobTicket = (id) => {
         if (window.confirm('Are you sure you want to delete this job ticket?')) {
-            const updatedTickets = contact.jobTickets.filter(ticket => ticket.id !== id);
+            const updatedTickets = (contact.jobTickets || []).filter(ticket => ticket.id !== id);
             updateContactJobTickets(contact.id, updatedTickets);
         }
     };
     
     const sortedJobTickets = useMemo(() => {
-        return [...contact.jobTickets].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return [...(contact.jobTickets || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [contact.jobTickets]);
 
     return (
