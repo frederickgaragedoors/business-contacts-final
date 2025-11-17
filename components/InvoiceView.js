@@ -5,7 +5,7 @@ import { ArrowLeftIcon } from './icons.js';
 import { generateId, fileToDataUrl, calculateJobTicketTotal } from '../utils.js';
 
 const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact }) => {
-    const [docType, setDocType] = useState('invoice');
+    const [docType, setDocType] = useState('receipt');
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef(null);
 
@@ -76,13 +76,13 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                 React.createElement("div", { className: "flex items-center space-x-2" },
                      React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg" },
                         React.createElement("button", {
-                            onClick: () => setDocType('quote'),
-                            className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'quote' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
-                        }, "Quote"),
+                            onClick: () => setDocType('estimate'),
+                            className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'estimate' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
+                        }, "Estimate"),
                         React.createElement("button", {
-                             onClick: () => setDocType('invoice'),
-                            className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'invoice' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
-                        }, "Invoice")
+                             onClick: () => setDocType('receipt'),
+                            className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'receipt' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
+                        }, "Receipt")
                     ),
                     React.createElement("button", { 
                         onClick: () => window.print(),
