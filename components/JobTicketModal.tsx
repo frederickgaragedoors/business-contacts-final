@@ -138,13 +138,13 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
                           {parts.length > 0 && (
                               <div className="space-y-2">
                                   {parts.map((part, index) => (
-                                      <div key={part.id} className="flex items-center space-x-2">
+                                      <div key={part.id} className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
                                           <input
                                               type="text"
                                               placeholder={`Part ${index + 1} Name`}
                                               value={part.name}
                                               onChange={(e) => handlePartChange(part.id, 'name', e.target.value)}
-                                              className={inputStyles}
+                                              className={`${inputStyles} sm:flex-grow`}
                                           />
                                           <div className="relative">
                                               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -155,10 +155,10 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
                                                   placeholder="Cost"
                                                   value={part.cost}
                                                   onChange={(e) => handlePartChange(part.id, 'cost', e.target.value)}
-                                                  className={`${inputStyles} pl-7 pr-2`}
+                                                  className={`${inputStyles} pl-7 pr-2 w-full sm:w-40`}
                                               />
                                           </div>
-                                          <button type="button" onClick={() => handleRemovePart(part.id)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full">
+                                          <button type="button" onClick={() => handleRemovePart(part.id)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full self-end sm:self-center">
                                               <TrashIcon className="w-4 h-4" />
                                           </button>
                                       </div>
@@ -186,7 +186,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
                           </div>
                       </div>
                       
-                      <div className="!mt-4 grid grid-cols-2 gap-4">
+                      <div className="!mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                               <label htmlFor="sales-tax-rate" className={labelStyles}>Sales Tax (%)</label>
                               <div className="relative mt-1">
