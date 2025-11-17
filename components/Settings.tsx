@@ -102,7 +102,7 @@ const Settings: React.FC<SettingsProps> = ({
                 </h2>
                 <button type="button" onClick={onBack} className="hidden md:inline px-4 py-2 rounded-md text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">Back</button>
             </div>
-            <div className="p-6 flex-grow">
+            <div className="px-4 sm:px-6 py-6 flex-grow">
                 
                 <form onSubmit={handleBusinessInfoSubmit}>
                     <h3 className="text-xl font-semibold text-slate-800">Business Information</h3>
