@@ -293,16 +293,11 @@ const App: React.FC = () => {
                  />;
             case 'list':
                 if (window.innerWidth >= 768 && appState.contacts.length > 0) {
-                     // FIX: The original check `viewState.type === 'detail'` was impossible within this
-                     // case block, causing a TypeScript error. The logic is simplified to just use
-                     // selectedContactId, which correctly reflects the intended behavior of selecting
-                     // the first contact if none is active.
-                     const listSelectedId = selectedContactId;
-                     if (!listSelectedId || !appState.contacts.some(c => c.id === listSelectedId)) {
+                     if (!selectedContactId || !appState.contacts.some(c => c.id === selectedContactId)) {
                         setViewState({ type: 'detail', id: appState.contacts[0].id });
                         return null;
                      }
-                     const contactToShow = appState.contacts.find(c => c.id === listSelectedId) || appState.contacts[0];
+                     const contactToShow = appState.contacts.find(c => c.id === selectedContactId) || appState.contacts[0];
                       return (
                         <ContactDetail
                             contact={contactToShow}
@@ -381,6 +376,7 @@ const App: React.FC = () => {
                         ticket={ticketForInvoice}
                         businessInfo={appState.businessInfo}
                         onClose={() => setViewState({ type: 'detail', id: viewState.contactId })}
+                        addFilesToContact={addFilesToContact}
                     />
                 );
             default:
