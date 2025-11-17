@@ -5,7 +5,7 @@ import { ClipboardListIcon, UsersIcon, BriefcaseIcon, BellIcon } from './icons.t
 
 interface DashboardProps {
     contacts: Contact[];
-    onSelectContact: (id: string) => void;
+    onViewJobDetail: (contactId: string, ticketId: string) => void;
 }
 
 type JobWithContact = JobTicket & {
@@ -13,7 +13,7 @@ type JobWithContact = JobTicket & {
     contactName: string;
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
+const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -92,7 +92,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
         const statusColor = jobStatusColors[job.status];
         return (
             <li 
-                onClick={() => onSelectContact(job.contactId)}
+                onClick={() => onViewJobDetail(job.contactId, job.id)}
                 className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer card-hover"
             >
                 <div className="flex justify-between items-start space-x-2">
