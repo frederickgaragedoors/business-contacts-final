@@ -347,6 +347,7 @@ const App = () => {
                     ticket: ticketForInvoice,
                     businessInfo: appState.businessInfo,
                     onClose: () => setViewState({ type: 'detail', id: viewState.contactId }),
+                    addFilesToContact: addFilesToContact,
                 });
             default:
                 return React.createElement(WelcomeMessage, { onNewContact: () => setViewState({ type: 'new_form' }) });
