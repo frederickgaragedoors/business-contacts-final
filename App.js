@@ -88,14 +88,29 @@ const App = () => {
             if (savedData) {
                 const parsed = JSON.parse(savedData);
 
-                // Sanitize loaded contacts to ensure data integrity with new versions
-                const sanitizedContacts = (parsed.contacts || initialContacts).map(c => ({
-                    ...initialContacts[0], // provides a base structure
-                    ...c,
-                    files: c.files || [],
-                    customFields: c.customFields || [],
-                    jobTickets: c.jobTickets || [],
-                }));
+                // Deep sanitize loaded contacts to ensure data integrity with new/old versions
+                const sanitizedContacts = (parsed.contacts || initialContacts).map((contact) => {
+                    const jobTickets = (Array.isArray(contact.jobTickets) ? contact.jobTickets : [])
+                        .filter(ticket => ticket && typeof ticket === 'object')
+                        .map((ticket) => ({
+                            id: ticket.id || generateId(),
+                            date: ticket.date || new Date().toISOString().split('T')[0],
+                            status: ticket.status || 'Scheduled',
+                            notes: ticket.notes || '',
+                            parts: Array.isArray(ticket.parts) ? ticket.parts : [],
+                            laborCost: typeof ticket.laborCost === 'number' ? ticket.laborCost : 0,
+                            salesTaxRate: ticket.salesTaxRate,
+                            processingFeeRate: ticket.processingFeeRate,
+                        }));
+
+                    return {
+                        id: '', name: '', email: '', phone: '', address: '', photoUrl: '',
+                        ...contact,
+                        files: Array.isArray(contact.files) ? contact.files : [],
+                        customFields: Array.isArray(contact.customFields) ? contact.customFields : [],
+                        jobTickets: jobTickets,
+                    };
+                });
 
                 return {
                     contacts: sanitizedContacts,
@@ -213,7 +228,7 @@ const App = () => {
         // Redirect from invoice if contact/ticket is deleted
         if (viewState.type === 'invoice') {
             const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
-            const ticketForInvoice = contactForInvoice?.jobTickets.find(t => t.id === viewState.ticketId);
+            const ticketForInvoice = contactForInvoice?.jobTickets?.find(t => t.id === viewState.ticketId);
             if (!contactForInvoice || !ticketForInvoice) {
                 setViewState({ type: 'dashboard' });
             }
@@ -455,7 +470,7 @@ const App = () => {
                 });
             case 'invoice':
                 if (!selectedContact) return null; // Handled by useEffect
-                const ticketForInvoice = selectedContact.jobTickets.find(t => t.id === (viewState.type === 'invoice' && viewState.ticketId));
+                const ticketForInvoice = (selectedContact.jobTickets || []).find(t => t.id === (viewState.type === 'invoice' && viewState.ticketId));
                 if (!ticketForInvoice) return null; // Handled by useEffect
 
                 return React.createElement(InvoiceView, {
