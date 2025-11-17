@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { JobTicket, JobStatus, Part } from '../types.ts';
 import { XIcon, PlusIcon, TrashIcon } from './icons.tsx';
-import { generateId } from '../utils.ts';
+import { generateId, calculateJobTicketTotal } from '../utils.ts';
 
 interface JobTicketModalProps {
   entry?: JobTicket | null;
@@ -54,35 +54,23 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
     setParts(parts.filter(p => p.id !== id));
   };
 
-  const { subtotal, taxAmount, feeAmount, finalTotal } = useMemo(() => {
-    const partsTotal = parts.reduce((sum, part) => sum + Number(part.cost || 0), 0);
-    const sub = partsTotal + Number(laborCost || 0);
-    const tax = sub * (Number(salesTaxRate || 0) / 100);
-    const totalWithTax = sub + tax;
-    const fee = totalWithTax * (Number(processingFeeRate || 0) / 100);
-    const final = totalWithTax + fee;
-    
-    return {
-        subtotal: sub,
-        taxAmount: tax,
-        feeAmount: fee,
-        finalTotal: final,
-    };
-  }, [parts, laborCost, salesTaxRate, processingFeeRate]);
+  const currentTicketState = useMemo((): JobTicket => ({
+      id: entry?.id || '',
+      date,
+      status,
+      notes,
+      parts,
+      laborCost: Number(laborCost || 0),
+      salesTaxRate: Number(salesTaxRate || 0),
+      processingFeeRate: Number(processingFeeRate || 0),
+  }), [entry, date, status, notes, parts, laborCost, salesTaxRate, processingFeeRate]);
+
+  const { subtotal, taxAmount, feeAmount, totalCost: finalTotal } = calculateJobTicketTotal(currentTicketState);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (notes.trim() && date) {
-      onSave({
-        id: entry?.id,
-        date,
-        status,
-        notes,
-        parts,
-        laborCost: Number(laborCost || 0),
-        salesTaxRate: Number(salesTaxRate || 0),
-        processingFeeRate: Number(processingFeeRate || 0),
-      });
+      onSave(currentTicketState);
     }
   };
 
