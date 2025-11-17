@@ -1,4 +1,4 @@
-const CACHE_NAME = 'business-contacts-v14-js'; // Incremented version
+const CACHE_NAME = 'business-contacts-v15-js'; // Incremented version
 const urlsToCache = [
   './',
   './index.html',
@@ -16,8 +16,9 @@ const urlsToCache = [
   './components/Settings.js',
   './components/PhotoGalleryModal.js',
   './components/JobTicketModal.js',
-  './components/JobTemplateModal.js', // Added JobTemplateModal
+  './components/JobTemplateModal.js',
   './components/InvoiceView.js',
+  './components/JobDetailView.js', // Added JobDetailView
   './components/icons.js',
   'https://cdn.tailwindcss.com'
 ];
