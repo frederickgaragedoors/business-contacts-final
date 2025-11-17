@@ -83,17 +83,31 @@ const App = () => {
     });
 
     const [appState, setAppState] = useState(() => {
-        const savedData = localStorage.getItem(APP_STORAGE_KEY);
-        if (savedData) {
-            const parsed = JSON.parse(savedData);
-            return {
-                contacts: parsed.contacts || initialContacts,
-                defaultFields: parsed.defaultFields || initialDefaultFields,
-                businessInfo: parsed.businessInfo || initialBusinessInfo,
-                autoBackupEnabled: parsed.autoBackupEnabled || false,
-                lastAutoBackup: parsed.lastAutoBackup || null,
-                theme: parsed.theme || 'system',
-            };
+        try {
+            const savedData = localStorage.getItem(APP_STORAGE_KEY);
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+
+                // Sanitize loaded contacts to ensure data integrity with new versions
+                const sanitizedContacts = (parsed.contacts || initialContacts).map(c => ({
+                    ...initialContacts[0], // provides a base structure
+                    ...c,
+                    files: c.files || [],
+                    customFields: c.customFields || [],
+                    jobTickets: c.jobTickets || [],
+                }));
+
+                return {
+                    contacts: sanitizedContacts,
+                    defaultFields: parsed.defaultFields || initialDefaultFields,
+                    businessInfo: parsed.businessInfo || initialBusinessInfo,
+                    autoBackupEnabled: parsed.autoBackupEnabled || false,
+                    lastAutoBackup: parsed.lastAutoBackup || null,
+                    theme: parsed.theme || 'system',
+                };
+            }
+        } catch (error) {
+            console.error("Failed to load or parse state from localStorage", error);
         }
         return {
             contacts: initialContacts,
@@ -146,7 +160,7 @@ const App = () => {
                     ...appState,
                     contacts: appState.contacts.map(contact => ({
                         ...contact,
-                        files: contact.files.map(({ dataUrl, ...fileMetadata }) => fileMetadata),
+                        files: (contact.files || []).map(({ dataUrl, ...fileMetadata }) => fileMetadata),
                     })),
                 };
                 localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(stateToSave));
@@ -273,7 +287,7 @@ const App = () => {
         setAppState(current => ({
             ...current,
             contacts: current.contacts.map(c => 
-                c.id === contactId ? { ...c, files: [...c.files, ...filesMetadata] } : c
+                c.id === contactId ? { ...c, files: [...(c.files || []), ...filesMetadata] } : c
             )
         }));
     };
