@@ -88,9 +88,9 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          <div className="p-6 border-b">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-grow min-h-0">
+          <div className="p-6 border-b flex-shrink-0">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-slate-800">{entry ? 'Edit Job Ticket' : 'Add Job Ticket'}</h2>
               <button type="button" onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-200">
@@ -228,7 +228,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
             </div>
           </div>
           
-          <div className="bg-slate-50 px-6 py-4 flex justify-between items-center rounded-b-lg border-t">
+          <div className="bg-slate-50 px-6 py-4 flex justify-between items-center rounded-b-lg border-t flex-shrink-0">
              <div className="text-sm">
                 <p>Subtotal: <span className="font-medium">${subtotal.toFixed(2)}</span></p>
                 <p>Tax ({Number(salesTaxRate || 0)}%): <span className="font-medium">${taxAmount.toFixed(2)}</span></p>
