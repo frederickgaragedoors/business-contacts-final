@@ -443,23 +443,25 @@ const App = () => {
             )
         ),
 
-        React.createElement(Header, {
-            currentView: viewState.type,
-            onNewContact: () => setViewState({ type: 'new_form' }),
-            onGoToSettings: () => setViewState({ type: 'settings' }),
-            onGoToDashboard: () => setViewState({ type: 'dashboard' }),
-            onGoToList: () => setViewState({ type: 'list' }),
-        }),
+        React.createElement("div", { className: viewState.type === 'invoice' ? 'print:hidden' : '' },
+            React.createElement(Header, {
+                currentView: viewState.type,
+                onNewContact: () => setViewState({ type: 'new_form' }),
+                onGoToSettings: () => setViewState({ type: 'settings' }),
+                onGoToDashboard: () => setViewState({ type: 'dashboard' }),
+                onGoToList: () => setViewState({ type: 'list' }),
+            })
+        ),
 
         React.createElement("div", { className: "flex flex-grow h-0" },
-            React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'}` },
+            React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:hidden' : ''}` },
                 React.createElement(ContactList, {
                     contacts: appState.contacts,
                     selectedContactId: selectedContactId,
                     onSelectContact: (id) => setViewState({ type: 'detail', id }),
                 })
             ),
-            React.createElement("main", { className: `flex-grow bg-white h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'}` },
+            React.createElement("main", { className: `flex-grow bg-white h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}` },
                 renderMainContent()
             )
         )
