@@ -6,6 +6,7 @@ import ContactForm from './components/ContactForm.js';
 import Settings from './components/Settings.js';
 import Dashboard from './components/Dashboard.js';
 import InvoiceView from './components/InvoiceView.js';
+import JobDetailView from './components/JobDetailView.js';
 import EmptyState from './components/EmptyState.js';
 import { UserCircleIcon } from './components/icons.js';
 import { generateId } from './utils.js';
@@ -221,10 +222,10 @@ const App = () => {
         if ((viewState.type === 'detail' || viewState.type === 'edit_form') && !appState.contacts.some(c => c.id === viewState.id)) {
             setViewState({ type: 'dashboard' });
         }
-        if (viewState.type === 'invoice') {
-            const contactForInvoice = appState.contacts.find(c => c.id === viewState.contactId);
-            const ticketForInvoice = contactForInvoice?.jobTickets?.find(t => t.id === viewState.ticketId);
-            if (!contactForInvoice || !ticketForInvoice) {
+        if (viewState.type === 'invoice' || viewState.type === 'job_detail') {
+            const contactForView = appState.contacts.find(c => c.id === viewState.contactId);
+            const ticketForView = contactForView?.jobTickets?.find(t => t.id === viewState.ticketId);
+            if (!contactForView || !ticketForView) {
                 setViewState({ type: 'dashboard' });
             }
         }
@@ -359,9 +360,35 @@ const App = () => {
         sessionStorage.removeItem(RECOVERY_STORAGE_KEY);
     };
 
+    const handleUpdateJobTicketForDetailView = (contactId, ticketData) => {
+        const contact = appState.contacts.find(c => c.id === contactId);
+        if (!contact) return;
+        
+        let updatedTickets;
+        const currentTickets = contact.jobTickets || [];
+        if (ticketData.id) {
+            updatedTickets = currentTickets.map(ticket => ticket.id === ticketData.id ? { ...ticket, ...ticketData } : ticket);
+        } else {
+            const newTicket = { ...ticketData, id: generateId() };
+            updatedTickets = [newTicket, ...currentTickets];
+        }
+        updateContactJobTickets(contactId, updatedTickets);
+    };
+    
+    const handleDeleteJobTicketForDetailView = (contactId, ticketId) => {
+        const contact = appState.contacts.find(c => c.id === contactId);
+        if (!contact) return;
+        
+        if (window.confirm('Are you sure you want to delete this job ticket?')) {
+            const updatedTickets = (contact.jobTickets || []).filter(ticket => ticket.id !== ticketId);
+            updateContactJobTickets(contactId, updatedTickets);
+            setViewState({ type: 'detail', id: contactId });
+        }
+    };
+
     const selectedContact = useMemo(() => {
-        if (viewState.type === 'detail' || viewState.type === 'edit_form' || viewState.type === 'invoice') {
-            const id = viewState.type === 'invoice' ? viewState.contactId : viewState.id;
+        if (viewState.type === 'detail' || viewState.type === 'edit_form' || viewState.type === 'invoice' || viewState.type === 'job_detail') {
+            const id = viewState.type === 'invoice' || viewState.type === 'job_detail' ? viewState.contactId : viewState.id;
             return appState.contacts.find(c => c.id === id);
         }
         return undefined;
@@ -374,21 +401,36 @@ const App = () => {
 
     const renderMainContent = () => {
         switch (viewState.type) {
-            case 'dashboard': return React.createElement(Dashboard, { contacts: appState.contacts, onSelectContact: (id) => setViewState({ type: 'detail', id }) });
+            case 'dashboard': return React.createElement(Dashboard, { contacts: appState.contacts, onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }) });
             case 'list': return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one.", actionText: appState.contacts.length === 0 ? "Add First Contact" : undefined, onAction: appState.contacts.length === 0 ? () => setViewState({ type: 'new_form' }) : undefined });
-            case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), jobTemplates: appState.jobTemplates }) : null;
+            case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), jobTemplates: appState.jobTemplates }) : null;
             case 'new_form': return React.createElement(ContactForm, { onSave: addContact, onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}), defaultFields: appState.defaultFields });
             case 'edit_form': return selectedContact ? React.createElement(ContactForm, { initialContact: selectedContact, onSave: (data) => updateContact(selectedContact.id, data), onCancel: () => setViewState({ type: 'detail', id: selectedContact.id }) }) : null;
             case 'settings': return React.createElement(Settings, { defaultFields: appState.defaultFields, onAddDefaultField: addDefaultField, onDeleteDefaultField: deleteDefaultField, onBack: () => setViewState({ type: 'dashboard' }), appStateForBackup: { ...appState }, autoBackupEnabled: appState.autoBackupEnabled, onToggleAutoBackup: handleToggleAutoBackup, lastAutoBackup: appState.lastAutoBackup, onRestoreBackup: (content) => restoreData(content, false), businessInfo: appState.businessInfo, onUpdateBusinessInfo: updateBusinessInfo, currentTheme: appState.theme, onUpdateTheme: updateTheme, jobTemplates: appState.jobTemplates, onAddJobTemplate: addJobTemplate, onUpdateJobTemplate: updateJobTemplate, onDeleteJobTemplate: deleteJobTemplate });
             case 'invoice':
                 if (!selectedContact) return null;
                 const ticketForInvoice = (selectedContact.jobTickets || []).find(t => t.id === (viewState.type === 'invoice' && viewState.ticketId));
-                return ticketForInvoice ? React.createElement(InvoiceView, { contact: selectedContact, ticket: ticketForInvoice, businessInfo: appState.businessInfo, onClose: () => setViewState({ type: 'detail', id: viewState.contactId }), addFilesToContact: addFilesToContact }) : null;
+                return ticketForInvoice ? React.createElement(InvoiceView, { contact: selectedContact, ticket: ticketForInvoice, businessInfo: appState.businessInfo, onClose: () => setViewState({ type: 'job_detail', contactId: viewState.contactId, ticketId: viewState.ticketId }), addFilesToContact: addFilesToContact }) : null;
+            case 'job_detail':
+                const contactForJob = appState.contacts.find(c => c.id === viewState.contactId);
+                if (!contactForJob) return null;
+                const ticketForJob = contactForJob.jobTickets.find(t => t.id === viewState.ticketId);
+                if (!ticketForJob) return null;
+                return React.createElement(JobDetailView, {
+                    contact: contactForJob,
+                    ticket: ticketForJob,
+                    businessInfo: appState.businessInfo,
+                    jobTemplates: appState.jobTemplates,
+                    onBack: () => setViewState({ type: 'detail', id: viewState.contactId }),
+                    onEditTicket: (ticketData) => handleUpdateJobTicketForDetailView(viewState.contactId, ticketData),
+                    onDeleteTicket: () => handleDeleteJobTicketForDetailView(viewState.contactId, viewState.ticketId),
+                    onViewInvoice: () => setViewState({ type: 'invoice', contactId: viewState.contactId, ticketId: viewState.ticketId })
+                });
             default: return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one." });
         }
     };
   
-    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice'].includes(viewState.type);
+    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice', 'job_detail'].includes(viewState.type);
 
     return React.createElement("div", { className: "h-screen w-screen flex flex-col antialiased text-slate-700 dark:text-slate-300 relative" },
         recoveryBackup && React.createElement("div", { className: "absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg" },
@@ -408,7 +450,7 @@ const App = () => {
             React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:hidden' : ''}` },
                 React.createElement(ContactList, { contacts: appState.contacts, selectedContactId: selectedContactId, onSelectContact: (id) => setViewState({ type: 'detail', id }) })
             ),
-            React.createElement("main", { className: `flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}` }, renderMainContent())
+            React.createElement("main", { className: `flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' || viewState.type === 'job_detail' ? 'w-full' : ''}` }, renderMainContent())
         )
     );
 };
