@@ -299,42 +299,40 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                              const statusColor = jobStatusColors[ticket.status];
                              return (
                                 <li key={ticket.id} className="p-4 bg-slate-50 rounded-lg">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <div className="flex items-center gap-x-3">
-                                                <p className="font-semibold text-slate-700">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
-                                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
-                                                    {ticket.status}
-                                                </span>
-                                            </div>
-                                            <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">{ticket.notes}</p>
-                                        </div>
-                                        <div className="text-right flex-shrink-0 ml-4">
-                                            <p className="font-bold text-lg text-slate-800">${totalCost.toFixed(2)}</p>
-                                             <div className="mt-2 flex items-center justify-end space-x-1">
-                                                <button 
-                                                    onClick={() => onViewInvoice(contact.id, ticket.id)}
-                                                    className="px-3 py-1 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 rounded-md"
-                                                >
-                                                   View/Print
-                                                </button>
-                                                <button 
-                                                    onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
-                                                    className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full"
-                                                    aria-label="Edit job ticket"
-                                                >
-                                                    <EditIcon className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteJobTicket(ticket.id)}
-                                                    className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full"
-                                                    aria-label="Delete job ticket"
-                                                >
-                                                    <TrashIcon className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
+                                    <div className="flex justify-start items-center mb-2">
+                                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                                            {ticket.status}
+                                        </span>
                                     </div>
+                                    <div className="flex justify-between items-baseline mb-3">
+                                        <p className="font-semibold text-slate-700">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                                        <p className="font-bold text-lg text-slate-800">${totalCost.toFixed(2)}</p>
+                                    </div>
+                                    <div className="flex items-center justify-end space-x-1 mb-3">
+                                        <button 
+                                            onClick={() => onViewInvoice(contact.id, ticket.id)}
+                                            className="px-3 py-1 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 rounded-md"
+                                        >
+                                           View/Print
+                                        </button>
+                                        <button 
+                                            onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
+                                            className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-100 rounded-full"
+                                            aria-label="Edit job ticket"
+                                        >
+                                            <EditIcon className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteJobTicket(ticket.id)}
+                                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full"
+                                            aria-label="Delete job ticket"
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    {ticket.notes && (
+                                        <p className="text-sm text-slate-600 whitespace-pre-wrap border-t border-slate-200 pt-3">{ticket.notes}</p>
+                                    )}
                                 </li>
                              )
                         })}
