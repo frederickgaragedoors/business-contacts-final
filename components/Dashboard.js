@@ -4,7 +4,7 @@ import EmptyState from './EmptyState.js';
 import { ClipboardListIcon, UsersIcon, BriefcaseIcon, BellIcon } from './icons.js';
 
 
-const Dashboard = ({ contacts, onSelectContact }) => {
+const Dashboard = ({ contacts, onViewJobDetail }) => {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -83,7 +83,7 @@ const Dashboard = ({ contacts, onSelectContact }) => {
         const statusColor = jobStatusColors[job.status];
         return (
             React.createElement("li", { 
-                onClick: () => onSelectContact(job.contactId),
+                onClick: () => onViewJobDetail(job.contactId, job.id),
                 className: "p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer card-hover"
             },
                 React.createElement("div", { className: "flex justify-between items-start space-x-2" },
