@@ -194,17 +194,17 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                         <div className="space-y-4">
                             <div className="flex items-start">
                                 <MailIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                                <div className="ml-4">
-                                    <a href={`mailto:${contact.email}`} className="font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors">{contact.email}</a>
+                                <div className="ml-4 min-w-0">
+                                    <a href={`mailto:${contact.email}`} className="font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors break-words">{contact.email}</a>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
                                 </div>
                             </div>
                             <div className="flex items-start">
                                 <PhoneIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                                <div className="ml-4 flex-grow">
+                                <div className="ml-4 flex-grow min-w-0">
                                     <div className="flex justify-between items-center">
-                                      <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.phone}</p>
-                                       <div className="flex space-x-2">
+                                      <p className="font-semibold text-slate-700 dark:text-slate-200 break-words">{contact.phone}</p>
+                                       <div className="flex space-x-2 flex-shrink-0 ml-2">
                                             <a href={`tel:${contact.phone}`} className="px-3 py-1 flex items-center space-x-1.5 text-xs font-medium rounded-full text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
                                                 <PhoneIcon className="w-3 h-3" /> <span>Call</span>
                                             </a>
@@ -218,13 +218,13 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                             </div>
                             <div className="flex items-start">
                                 <MapPinIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                                <div className="ml-4">
+                                <div className="ml-4 min-w-0">
                                 {contact.address ? (
                                     <a
                                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors"
+                                        className="font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors break-words"
                                     >{contact.address}</a>
                                 ) : (
                                     <p className="font-semibold text-slate-700 dark:text-slate-200 italic text-slate-400">Not set</p>
@@ -240,8 +240,8 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                     {allCustomFields.map(field => (
                                         <div key={field.id} className="flex items-start">
                                             <TagIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                                            <div className="ml-4">
-                                                <p className={`font-semibold ${field.value ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 italic'}`}>
+                                            <div className="ml-4 min-w-0">
+                                                <p className={`font-semibold break-words ${field.value ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 italic'}`}>
                                                     {field.value || 'Not set'}
                                                 </p>
                                                 <p className="text-sm text-slate-500 dark:text-slate-400">{field.label}</p>
@@ -303,7 +303,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                             </button>
                                         </div>
                                         {ticket.notes && (
-                                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap border-t border-slate-200 dark:border-slate-600 pt-3">{ticket.notes}</p>
+                                            <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words border-t border-slate-200 dark:border-slate-600 pt-3">{ticket.notes}</p>
                                         )}
                                     </li>
                                 })}
@@ -438,7 +438,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                             </button>
                         )}
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{contact.name}</h1>
+                    <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 text-center break-words">{contact.name}</h1>
                     <div className="flex space-x-3 mt-4">
                         <button onClick={onEdit} className="p-2 rounded-full text-slate-600 bg-slate-200 dark:bg-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
                             <EditIcon className="w-5 h-5" />
