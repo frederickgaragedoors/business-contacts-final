@@ -197,7 +197,7 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
                             )
                         ),
                         React.createElement("div", null,
-                            React.createElement("label", { htmlFor: "processing-fee-rate", className: labelStyles }, "Processing Fee (%)"),
+                            React.createElement("label", { htmlFor: "processing-fee-rate", className: labelStyles }, "Card Processing Fee (%)"),
                             React.createElement("div", { className: "relative mt-1" },
                                 React.createElement("input", {
                                     type: "number",
@@ -219,7 +219,7 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
              React.createElement("div", { className: "text-sm dark:text-slate-300" },
                 React.createElement("p", null, "Subtotal: ", React.createElement("span", { className: "font-medium" }, `$${subtotal.toFixed(2)}`)),
                 React.createElement("p", null, `Tax (${Number(salesTaxRate || 0)}%): `, React.createElement("span", { className: "font-medium" }, `$${taxAmount.toFixed(2)}`)),
-                React.createElement("p", null, `Fee (${Number(processingFeeRate || 0)}%): `, React.createElement("span", { className: "font-medium" }, `$${feeAmount.toFixed(2)}`)),
+                React.createElement("p", null, `Card Fee (${Number(processingFeeRate || 0)}%): `, React.createElement("span", { className: "font-medium" }, `$${feeAmount.toFixed(2)}`)),
                 React.createElement("p", { className: "font-bold text-lg text-slate-800 dark:text-slate-100 mt-1" }, "Total: ", React.createElement("span", { className: "font-bold text-xl" }, `$${finalTotal.toFixed(2)}`))
             ),
             React.createElement("div", { className: "flex space-x-2" },
