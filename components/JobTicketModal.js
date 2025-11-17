@@ -133,13 +133,13 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
                         parts.length > 0 && (
                             React.createElement("div", { className: "space-y-2" },
                                 parts.map((part, index) => (
-                                    React.createElement("div", { key: part.id, className: "flex items-center space-x-2" },
+                                    React.createElement("div", { key: part.id, className: "flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0" },
                                         React.createElement("input", {
                                             type: "text",
                                             placeholder: `Part ${index + 1} Name`,
                                             value: part.name,
                                             onChange: (e) => handlePartChange(part.id, 'name', e.target.value),
-                                            className: inputStyles
+                                            className: `${inputStyles} sm:flex-grow`
                                         }),
                                         React.createElement("div", { className: "relative" },
                                             React.createElement("div", { className: "pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3" },
@@ -150,10 +150,10 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
                                                 placeholder: "Cost",
                                                 value: part.cost,
                                                 onChange: (e) => handlePartChange(part.id, 'cost', e.target.value),
-                                                className: `${inputStyles} pl-7 pr-2`
+                                                className: `${inputStyles} pl-7 pr-2 w-full sm:w-40`
                                             })
                                         ),
-                                        React.createElement("button", { type: "button", onClick: () => handleRemovePart(part.id), className: "p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full" },
+                                        React.createElement("button", { type: "button", onClick: () => handleRemovePart(part.id), className: "p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full self-end sm:self-center" },
                                             React.createElement(TrashIcon, { className: "w-4 h-4" })
                                         )
                                     )
@@ -181,7 +181,7 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
                         )
                     ),
                     
-                    React.createElement("div", { className: "!mt-4 grid grid-cols-2 gap-4" },
+                    React.createElement("div", { className: "!mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4" },
                         React.createElement("div", null,
                             React.createElement("label", { htmlFor: "sales-tax-rate", className: labelStyles }, "Sales Tax (%)"),
                             React.createElement("div", { className: "relative mt-1" },
