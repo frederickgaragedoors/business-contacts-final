@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeftIcon } from './icons.js';
 
 const InvoiceView = ({ contact, ticket, businessInfo, onClose }) => {
     const [docType, setDocType] = useState('invoice');
+
+    useEffect(() => {
+        document.body.classList.add('invoice-view-active');
+        // Cleanup function to remove the class when the component unmounts
+        return () => {
+            document.body.classList.remove('invoice-view-active');
+        };
+    }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
 
     const totalPartsCost = ticket.parts.reduce((sum, part) => sum + part.cost, 0);
     const totalCost = totalPartsCost + ticket.laborCost;
@@ -33,8 +41,8 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose }) => {
             ),
 
             // Invoice Paper
-            React.createElement("div", { className: "p-4 md:p-8 flex-grow" },
-                React.createElement("div", { className: "max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none" },
+            React.createElement("div", { className: "p-4 md:p-8 flex-grow invoice-container" },
+                React.createElement("div", { className: "max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper" },
                     React.createElement("header", { className: "flex justify-between items-start pb-8 border-b" },
                         React.createElement("div", null,
                             businessInfo.logoUrl && (
@@ -109,9 +117,43 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose }) => {
             ),
             React.createElement("style", null, `
                 @media print {
-                    body {
-                        background-color: white;
+                    /* When invoice view is active, hide the main header and sidebar */
+                    body.invoice-view-active > #root > div > header,
+                    body.invoice-view-active > #root > div > div > div:first-child {
+                        display: none;
                     }
+                    
+                    /* Expand the main content to fill the page */
+                    body.invoice-view-active > #root > div > div > main {
+                        width: 100%;
+                        display: block !important; /* Override Tailwind responsive classes */
+                    }
+                    
+                    /* Reset container styles for a clean print */
+                    body.invoice-view-active,
+                    body.invoice-view-active > #root,
+                    body.invoice-view-active > #root > div,
+                    body.invoice-view-active > #root > div > div {
+                        background-color: white !important;
+                        height: auto;
+                        overflow: visible;
+                        padding: 0;
+                        margin: 0;
+                    }
+                    
+                    /* Prepare the invoice component's layout for printing */
+                    .invoice-container {
+                        padding: 0 !important;
+                    }
+                    
+                    .invoice-paper {
+                        box-shadow: none !important;
+                        margin: 0 !important;
+                        max-width: 100% !important;
+                        border-radius: 0;
+                    }
+
+                    /* Util classes from the original file */
                     .print\\:hidden {
                         display: none;
                     }
