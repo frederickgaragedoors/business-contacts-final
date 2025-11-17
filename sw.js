@@ -1,4 +1,4 @@
-const CACHE_NAME = 'business-contacts-v10-js'; // Incremented version
+const CACHE_NAME = 'business-contacts-v11-js'; // Incremented version
 const urlsToCache = [
   './',
   './index.html',
