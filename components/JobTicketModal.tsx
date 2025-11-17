@@ -137,47 +137,67 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
                   <div className="mt-2 p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-3">
                       <div>
                           <h4 className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Parts Used</h4>
-                          {parts.length > 0 && (
-                              <div className="space-y-2">
-                                  {parts.map((part, index) => (
-                                     <div key={part.id} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] sm:gap-2 items-center">
-                                        <input
-                                            type="text"
-                                            placeholder={`Part ${index + 1} Name`}
-                                            value={part.name}
-                                            onChange={(e) => handlePartChange(part.id, 'name', e.target.value)}
-                                            className={`${inputStyles} sm:mb-0 mb-2`}
-                                            aria-label="Part name"
-                                        />
-                                        <input
-                                            type="number"
-                                            placeholder="Qty"
-                                            value={part.quantity}
-                                            onChange={(e) => handlePartChange(part.id, 'quantity', e.target.value)}
-                                            className={`${inputStyles} w-20 text-center sm:mb-0 mb-2`}
-                                            min="1"
-                                            aria-label="Quantity"
-                                        />
-                                        <div className="relative sm:mb-0 mb-2">
-                                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                                <span className="text-slate-500 sm:text-sm">$</span>
-                                            </div>
-                                            <input
-                                                type="number"
-                                                placeholder="Unit Cost"
-                                                value={part.cost}
-                                                onChange={(e) => handlePartChange(part.id, 'cost', e.target.value)}
-                                                className={`${inputStyles} pl-7 pr-2 w-full sm:w-32`}
-                                                aria-label="Unit cost"
-                                            />
-                                        </div>
-                                        <button type="button" onClick={() => handleRemovePart(part.id)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full sm:justify-self-center">
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                  ))}
+                           {parts.length > 0 && (
+                              <div className="hidden sm:grid sm:grid-cols-[1fr_80px_120px_40px] sm:gap-x-2 mb-1">
+                                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Part or Service</label>
+                                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center">Qty</label>
+                                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Price</label>
+                                  <span />
                               </div>
                           )}
+                          <div className="space-y-4 sm:space-y-2">
+                              {parts.map((part) => (
+                                  <div key={part.id} className="grid grid-cols-1 sm:grid-cols-[1fr_80px_120px_40px] sm:gap-x-2 sm:items-center">
+                                      <div>
+                                          <label htmlFor={`part-name-${part.id}`} className={`${labelStyles} sm:hidden`}>Part or Service</label>
+                                          <input
+                                              id={`part-name-${part.id}`}
+                                              type="text"
+                                              placeholder="e.g. Inspection Fee"
+                                              value={part.name}
+                                              onChange={(e) => handlePartChange(part.id, 'name', e.target.value)}
+                                              className={`mt-1 sm:mt-0 ${inputStyles}`}
+                                              aria-label="Part or Service"
+                                          />
+                                      </div>
+                                      <div>
+                                          <label htmlFor={`part-qty-${part.id}`} className={`${labelStyles} sm:hidden`}>Qty</label>
+                                          <input
+                                              id={`part-qty-${part.id}`}
+                                              type="number"
+                                              placeholder="1"
+                                              value={part.quantity}
+                                              onChange={(e) => handlePartChange(part.id, 'quantity', e.target.value)}
+                                              className={`mt-1 sm:mt-0 ${inputStyles} text-center`}
+                                              min="1"
+                                              aria-label="Qty"
+                                          />
+                                      </div>
+                                      <div>
+                                          <label htmlFor={`part-price-${part.id}`} className={`${labelStyles} sm:hidden`}>Price</label>
+                                          <div className="relative mt-1 sm:mt-0">
+                                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                  <span className="text-slate-500 sm:text-sm">$</span>
+                                              </div>
+                                              <input
+                                                  id={`part-price-${part.id}`}
+                                                  type="number"
+                                                  placeholder="0.00"
+                                                  value={part.cost}
+                                                  onChange={(e) => handlePartChange(part.id, 'cost', e.target.value)}
+                                                  className={`${inputStyles} pl-7 pr-2`}
+                                                  aria-label="Price"
+                                              />
+                                          </div>
+                                      </div>
+                                      <div className="flex justify-end sm:justify-center">
+                                          <button type="button" onClick={() => handleRemovePart(part.id)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full">
+                                              <TrashIcon className="w-4 h-4" />
+                                          </button>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
                           <button type="button" onClick={handleAddPart} className="mt-2 flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/50 hover:bg-sky-100 dark:hover:bg-sky-900 transition-colors">
                               <PlusIcon className="w-4 h-4 mr-2" /> Add Part
                           </button>
