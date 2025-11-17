@@ -271,23 +271,23 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                         React.createElement("button", {
                                             onClick: () => onViewInvoice(contact.id, ticket.id),
                                             className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500",
-                                            "aria-label": "View Estimate/Receipt"
-                                        }, React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Estimate/Receipt")),
+                                            "aria-label": "View PDF"
+                                        }, React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "PDF")),
                                         React.createElement("button", {
                                             onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
-                                            className: "p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
-                                            "aria-label": "Edit job ticket"
-                                        }, React.createElement(EditIcon, { className: "w-5 h-5" })),
+                                            className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500",
+                                            "aria-label": "Edit job"
+                                        }, React.createElement(EditIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Edit")),
                                         React.createElement("button", {
                                             onClick: () => handleDeleteJobTicket(ticket.id),
-                                            className: "p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
-                                            "aria-label": "Delete job ticket"
-                                        }, React.createElement(TrashIcon, { className: "w-5 h-5" })),
+                                            className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900",
+                                            "aria-label": "Delete job"
+                                        }, React.createElement(TrashIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Delete")),
                                         React.createElement("button", {
                                             onClick: () => onViewJobDetail(contact.id, ticket.id),
-                                            className: "p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-full",
-                                            "aria-label": "View job details"
-                                        }, React.createElement(EyeIcon, { className: "w-5 h-5" }))
+                                            className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600",
+                                            "aria-label": "View job"
+                                        }, React.createElement(EyeIcon, { className: "w-4 h-4" }), React.createElement("span", null, "View"))
                                     )
                                 );
                             })
