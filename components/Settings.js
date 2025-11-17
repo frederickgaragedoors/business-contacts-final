@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon } from './icons.js';
 import { saveJsonFile, fileToDataUrl } from '../utils.js';
+import { getAllFiles } from '../db.js';
 
 const Settings = ({
     defaultFields,
@@ -43,8 +44,15 @@ const Settings = ({
     };
     
     const handleManualBackup = async () => {
-        const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-        await saveJsonFile(appStateForBackup, `contacts-backup-${timestamp}.json`);
+        try {
+            const files = await getAllFiles();
+            const backupData = { ...appStateForBackup, files };
+            const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+            await saveJsonFile(backupData, `contacts-backup-${timestamp}.json`);
+        } catch (error) {
+            console.error("Failed to create backup:", error);
+            alert("Could not create backup. Failed to read attachments from the database.");
+        }
     };
 
     const handleDownloadAutoBackup = async () => {
