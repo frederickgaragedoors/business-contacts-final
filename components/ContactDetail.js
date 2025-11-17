@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
 import {
@@ -17,6 +17,7 @@ import {
   BriefcaseIcon,
 } from './icons.js';
 import { fileToDataUrl, formatFileSize, getInitials, generateId } from '../utils.js';
+import { getFiles } from '../db.js';
 
 const VIEWABLE_MIME_TYPES = [
     'application/pdf',
@@ -41,10 +42,32 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
     const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
     const [editingJobTicket, setEditingJobTicket] = useState(null);
+    const [hydratedFiles, setHydratedFiles] = useState([]);
+    const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
     const imageUploadRef = useRef(null);
     const cameraInputRef = useRef(null);
     const fileUploadRef = useRef(null);
+    
+    useEffect(() => {
+        if (contact.files.length > 0) {
+            setIsLoadingFiles(true);
+            getFiles(contact.files.map(f => f.id))
+                .then(filesFromDb => {
+                    setHydratedFiles(filesFromDb);
+                })
+                .catch(err => {
+                    console.error("Failed to load files from DB", err);
+                    alert("Could not load some attachments for this contact.");
+                })
+                .finally(() => {
+                    setIsLoadingFiles(false);
+                });
+        } else {
+            setHydratedFiles([]);
+            setIsLoadingFiles(false);
+        }
+    }, [contact.files]);
 
     const handleFilesSelected = async (e) => {
         if (e.target.files) {
@@ -59,7 +82,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 };
             });
             const newFiles = await Promise.all(newFilesPromises);
-            addFilesToContact(contact.id, newFiles);
+            await addFilesToContact(contact.id, newFiles);
             if(e.target) e.target.value = ''; // Reset input
         }
         setShowPhotoOptions(false);
@@ -86,16 +109,16 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
         if (contact.photoUrl) {
             images.push({ url: contact.photoUrl, name: `${contact.name} (Profile)` });
         }
-        contact.files.forEach(file => {
-            if (file.type.startsWith('image/')) {
+        hydratedFiles.forEach(file => {
+            if (file.type.startsWith('image/') && file.dataUrl) {
                 images.push({ url: file.dataUrl, name: file.name });
             }
         });
         return images;
-    }, [contact]);
+    }, [contact.photoUrl, contact.name, hydratedFiles]);
     
-    const imageFiles = useMemo(() => contact.files.filter(file => file.type.startsWith('image/')), [contact.files]);
-    const otherFiles = useMemo(() => contact.files.filter(file => !file.type.startsWith('image/')), [contact.files]);
+    const imageFiles = useMemo(() => hydratedFiles.filter(file => file.type.startsWith('image/')), [hydratedFiles]);
+    const otherFiles = useMemo(() => hydratedFiles.filter(file => !file.type.startsWith('image/')), [hydratedFiles]);
 
     const openGallery = (index) => {
         setGalleryCurrentIndex(index);
@@ -308,7 +331,9 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                             )
                         )
                     ),
-                    imageFiles.length > 0 ? (
+                    isLoadingFiles ? (
+                         React.createElement("div", { className: "text-center text-slate-500 py-4" }, "Loading photos...")
+                    ) : imageFiles.length > 0 ? (
                         React.createElement("div", { className: "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-4" },
                             imageFiles.map(file => {
                                 const imageIndexInGallery = galleryImages.findIndex(img => img.url === file.dataUrl);
@@ -338,7 +363,9 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                             "aria-label": "Add file"
                         }, React.createElement(PlusIcon, { className: "w-5 h-5" }))
                     ),
-                     otherFiles.length > 0 ? (
+                     isLoadingFiles ? (
+                        React.createElement("div", { className: "text-center text-slate-500 py-4" }, "Loading files...")
+                     ) : otherFiles.length > 0 ? (
                         React.createElement("ul", { className: "space-y-3" },
                             otherFiles.map(file => (
                                 React.createElement("li", { key: file.id, className: "flex items-center p-3 bg-slate-50 rounded-lg" },
