@@ -356,17 +356,17 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                         ) : otherFiles.length > 0 ? (
                             React.createElement("ul", { className: "space-y-3" },
                                 otherFiles.map(file => (
-                                    React.createElement("li", { key: file.id, className: "flex items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg" },
-                                        React.createElement(FileIcon, { className: "w-6 h-6 text-slate-500 dark:text-slate-400 flex-shrink-0" }),
-                                        React.createElement("div", { className: "ml-3 flex-grow min-w-0" },
+                                    React.createElement("li", { key: file.id, className: "grid grid-cols-[auto_1fr_auto] items-center gap-x-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg" },
+                                        React.createElement(FileIcon, { className: "w-6 h-6 text-slate-500 dark:text-slate-400" }),
+                                        React.createElement("div", { className: "min-w-0" },
                                             React.createElement("p", { className: "font-medium text-slate-700 dark:text-slate-200 truncate" }, file.name),
                                             React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400" }, formatFileSize(file.size))
                                         ),
-                                        React.createElement("div", { className: "ml-4 flex-shrink-0 flex items-center space-x-4" },
+                                        React.createElement("div", { className: "flex items-center space-x-2 flex-shrink-0" },
                                             VIEWABLE_MIME_TYPES.includes(file.type) && file.dataUrl && (
-                                                React.createElement("button", { onClick: () => handleViewFile(file), className: "text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm" }, "View")
+                                                React.createElement("button", { onClick: () => handleViewFile(file), className: "text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm flex-shrink-0" }, "View")
                                             ),
-                                            file.dataUrl && React.createElement("a", { href: file.dataUrl, download: file.name, className: "text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm" }, "Download")
+                                            file.dataUrl && React.createElement("a", { href: file.dataUrl, download: file.name, className: "text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm flex-shrink-0" }, "Download")
                                         )
                                     )
                                 ))
