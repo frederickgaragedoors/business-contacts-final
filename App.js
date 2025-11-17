@@ -110,23 +110,29 @@ const App = () => {
     }, []);
 
     useEffect(() => {
-        try {
-             const stateToSave = {
-                ...appState,
-                contacts: appState.contacts.map(contact => ({
-                    ...contact,
-                    files: contact.files.map(({ dataUrl, ...fileMetadata }) => fileMetadata),
-                })),
-            };
-            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(stateToSave));
-        } catch (error) {
-            console.error('Failed to save state to localStorage:', error);
-            if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
-                 alert('Could not save changes. The application storage is full. Please remove some large attachments from contacts to free up space.');
-            } else {
-                 alert('An unexpected error occurred while saving data.');
+        const handler = setTimeout(() => {
+            try {
+                const stateToSave = {
+                    ...appState,
+                    contacts: appState.contacts.map(contact => ({
+                        ...contact,
+                        files: contact.files.map(({ dataUrl, ...fileMetadata }) => fileMetadata),
+                    })),
+                };
+                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(stateToSave));
+            } catch (error) {
+                console.error('Failed to save state to localStorage:', error);
+                if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.code === 22)) {
+                    alert('Could not save changes. The application storage is full. Please remove some large attachments from contacts to free up space.');
+                } else {
+                    alert('An unexpected error occurred while saving data.');
+                }
             }
-        }
+        }, 500); // 500ms debounce delay
+
+        return () => {
+            clearTimeout(handler);
+        };
     }, [appState]);
 
     useEffect(() => {
