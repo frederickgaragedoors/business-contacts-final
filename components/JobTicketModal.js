@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { XIcon, PlusIcon, TrashIcon } from './icons.js';
 import { generateId, calculateJobTicketTotal } from '../utils.js';
 
-const jobStatuses = ['Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Paid'];
+const jobStatuses = ['Estimate Scheduled', 'Quote Sent', 'Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Paid', 'Declined'];
 
 const JobTicketModal = ({ entry, onSave, onClose }) => {
   const [date, setDate] = useState('');
-  const [status, setStatus] = useState('Scheduled');
+  const [status, setStatus] = useState('Estimate Scheduled');
   const [notes, setNotes] = useState('');
   const [parts, setParts] = useState([]);
   const [laborCost, setLaborCost] = useState('');
@@ -25,7 +25,7 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
       setProcessingFeeRate(entry.processingFeeRate || 0);
     } else {
       setDate(new Date().toISOString().split('T')[0]);
-      setStatus('Scheduled');
+      setStatus('Estimate Scheduled');
       setNotes('');
       setParts([]);
       setLaborCost(0);
@@ -125,7 +125,7 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
               })
             ),
             
-            React.createElement("div", null,
+            status !== 'Estimate Scheduled' && React.createElement("div", null,
                 React.createElement("h3", { className: "text-md font-medium text-slate-700 dark:text-slate-200" }, "Costs"),
                 React.createElement("div", { className: "mt-2 p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-3" },
                     React.createElement("div", null,
@@ -216,12 +216,12 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
           ),
           
           React.createElement("div", { className: "bg-slate-50 dark:bg-slate-900 px-6 py-4 flex justify-between items-center rounded-b-lg border-t dark:border-slate-700 flex-shrink-0" },
-             React.createElement("div", { className: "text-sm dark:text-slate-300" },
+            status !== 'Estimate Scheduled' ? React.createElement("div", { className: "text-sm dark:text-slate-300" },
                 React.createElement("p", null, "Subtotal: ", React.createElement("span", { className: "font-medium" }, `$${subtotal.toFixed(2)}`)),
                 React.createElement("p", null, `Tax (${Number(salesTaxRate || 0)}%): `, React.createElement("span", { className: "font-medium" }, `$${taxAmount.toFixed(2)}`)),
                 React.createElement("p", null, `Card Fee (${Number(processingFeeRate || 0)}%): `, React.createElement("span", { className: "font-medium" }, `$${feeAmount.toFixed(2)}`)),
                 React.createElement("p", { className: "font-bold text-lg text-slate-800 dark:text-slate-100 mt-1" }, "Total: ", React.createElement("span", { className: "font-bold text-xl" }, `$${finalTotal.toFixed(2)}`))
-            ),
+            ) : React.createElement("div", null),
             React.createElement("div", { className: "flex space-x-2" },
                 React.createElement("button", { type: "button", onClick: onClose, className: "px-4 py-2 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" },
                 "Cancel"
