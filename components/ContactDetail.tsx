@@ -17,7 +17,7 @@ import {
   CameraIcon,
   BriefcaseIcon,
 } from './icons.tsx';
-import { fileToDataUrl, formatFileSize, getInitials, generateId } from '../utils.ts';
+import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal } from '../utils.ts';
 import { getFiles } from '../db.ts';
 
 interface ContactDetailProps {
@@ -295,11 +295,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 {sortedJobTickets.length > 0 ? (
                     <ul className="space-y-4">
                         {sortedJobTickets.map(ticket => {
-                             const subtotal = ticket.laborCost + ticket.parts.reduce((sum, part) => sum + part.cost, 0);
-                             const taxAmount = subtotal * ((ticket.salesTaxRate || 0) / 100);
-                             const totalAfterTaxes = subtotal + taxAmount;
-                             const feeAmount = totalAfterTaxes * ((ticket.processingFeeRate || 0) / 100);
-                             const totalCost = totalAfterTaxes + feeAmount;
+                             const { totalCost } = calculateJobTicketTotal(ticket);
                              const statusColor = jobStatusColors[ticket.status];
                              return (
                                 <li key={ticket.id} className="p-4 bg-slate-50 rounded-lg">
