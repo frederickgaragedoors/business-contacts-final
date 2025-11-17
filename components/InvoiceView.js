@@ -10,10 +10,15 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
     const invoiceContentRef = useRef(null);
 
     const generatePdf = async () => {
-        if (!invoiceContentRef.current) return null;
+        const element = invoiceContentRef.current;
+        if (!element) return null;
+
+        // Temporarily set a base font size to prevent mobile font boosting issues.
+        const originalFontSize = element.style.fontSize;
+        element.style.fontSize = '16px';
         
         try {
-            const canvas = await html2canvas(invoiceContentRef.current, {
+            const canvas = await html2canvas(element, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: '#ffffff'
@@ -50,6 +55,11 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
             console.error("Failed to generate or save PDF", error);
             alert("Sorry, there was an error creating the PDF.");
             return null;
+        } finally {
+            // Restore original style to avoid affecting the on-screen display
+            if (element) {
+                element.style.fontSize = originalFontSize;
+            }
         }
     };
 
