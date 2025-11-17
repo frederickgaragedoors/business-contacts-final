@@ -17,6 +17,8 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
   const [notes, setNotes] = useState('');
   const [parts, setParts] = useState<Part[]>([]);
   const [laborCost, setLaborCost] = useState<number | ''>(0);
+  const [salesTaxRate, setSalesTaxRate] = useState<number | ''>(0);
+  const [processingFeeRate, setProcessingFeeRate] = useState<number | ''>(0);
 
   useEffect(() => {
     if (entry) {
@@ -25,12 +27,16 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
       setNotes(entry.notes);
       setParts(entry.parts.map(p => ({...p}))); // Create a copy to avoid direct mutation
       setLaborCost(entry.laborCost);
+      setSalesTaxRate(entry.salesTaxRate || 0);
+      setProcessingFeeRate(entry.processingFeeRate || 0);
     } else {
       setDate(new Date().toISOString().split('T')[0]);
       setStatus('Scheduled');
       setNotes('');
       setParts([]);
       setLaborCost(0);
+      setSalesTaxRate(0);
+      setProcessingFeeRate(0);
     }
   }, [entry]);
 
@@ -48,10 +54,21 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
     setParts(parts.filter(p => p.id !== id));
   };
 
-  const totalCost = useMemo(() => {
+  const { subtotal, taxAmount, feeAmount, finalTotal } = useMemo(() => {
     const partsTotal = parts.reduce((sum, part) => sum + Number(part.cost || 0), 0);
-    return partsTotal + Number(laborCost || 0);
-  }, [parts, laborCost]);
+    const sub = partsTotal + Number(laborCost || 0);
+    const tax = sub * (Number(salesTaxRate || 0) / 100);
+    const totalWithTax = sub + tax;
+    const fee = totalWithTax * (Number(processingFeeRate || 0) / 100);
+    const final = totalWithTax + fee;
+    
+    return {
+        subtotal: sub,
+        taxAmount: tax,
+        feeAmount: fee,
+        finalTotal: final,
+    };
+  }, [parts, laborCost, salesTaxRate, processingFeeRate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +80,8 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
         notes,
         parts,
         laborCost: Number(laborCost || 0),
+        salesTaxRate: Number(salesTaxRate || 0),
+        processingFeeRate: Number(processingFeeRate || 0),
       });
     }
   };
@@ -174,14 +193,47 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
                             />
                         </div>
                     </div>
+                    
+                    <div className="!mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="sales-tax-rate" className="block text-sm font-medium text-slate-600">Sales Tax (%)</label>
+                            <div className="relative mt-1">
+                                <input
+                                    type="number"
+                                    id="sales-tax-rate"
+                                    value={salesTaxRate}
+                                    onChange={(e) => setSalesTaxRate(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                    className="block w-full rounded-md border-slate-300 pr-2 py-2 sm:text-sm"
+                                    step="0.01"
+                                    placeholder="e.g. 8.5"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="processing-fee-rate" className="block text-sm font-medium text-slate-600">Processing Fee (%)</label>
+                            <div className="relative mt-1">
+                                <input
+                                    type="number"
+                                    id="processing-fee-rate"
+                                    value={processingFeeRate}
+                                    onChange={(e) => setProcessingFeeRate(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                    className="block w-full rounded-md border-slate-300 pr-2 py-2 sm:text-sm"
+                                    step="0.01"
+                                    placeholder="e.g. 2.9"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
           </div>
           
           <div className="bg-slate-50 px-6 py-4 flex justify-between items-center rounded-b-lg border-t mt-auto">
-             <div>
-                <span className="text-sm text-slate-500">Total: </span>
-                <span className="font-bold text-xl text-slate-800">${totalCost.toFixed(2)}</span>
+             <div className="text-sm">
+                <p>Subtotal: <span className="font-medium">${subtotal.toFixed(2)}</span></p>
+                <p>Tax ({Number(salesTaxRate || 0)}%): <span className="font-medium">${taxAmount.toFixed(2)}</span></p>
+                <p>Fee ({Number(processingFeeRate || 0)}%): <span className="font-medium">${feeAmount.toFixed(2)}</span></p>
+                <p className="font-bold text-lg text-slate-800 mt-1">Total: <span className="font-bold text-xl">${finalTotal.toFixed(2)}</span></p>
             </div>
             <div className="flex space-x-2">
                 <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium text-slate-700 bg-slate-200 hover:bg-slate-300 transition-colors">
