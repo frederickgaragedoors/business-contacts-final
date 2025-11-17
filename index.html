@@ -14,6 +14,19 @@
       }
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Add some subtle transitions for a more modern feel */
+      .card-hover {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      }
+      .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+      .tab-button {
+        transition: color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
