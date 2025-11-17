@@ -244,9 +244,10 @@ const App = () => {
             await addFiles(newFiles);
         }
 
-        const originalFileIds = new Set(originalContact.files.map(f => f.id));
-        const updatedFileIds = new Set(contactData.files.map(f => f.id));
+        const originalFileIds = new Set((originalContact.files || []).map(f => f.id));
+        const updatedFileIds = new Set((contactData.files || []).map(f => f.id));
         const deletedFileIds = [...originalFileIds].filter(fileId => !updatedFileIds.has(fileId));
+
 
         if (deletedFileIds.length > 0) {
             await deleteFiles(deletedFileIds);
@@ -289,8 +290,9 @@ const App = () => {
     const deleteContact = async (id) => {
         if (window.confirm('Are you sure you want to delete this contact?')) {
             const contactToDelete = appState.contacts.find(c => c.id === id);
-            if (contactToDelete && contactToDelete.files.length > 0) {
-                await deleteFiles(contactToDelete.files.map(f => f.id));
+            if (contactToDelete && contactToDelete.files && contactToDelete.files.length > 0) {
+                const fileIds = contactToDelete.files.map(f => f.id).filter(id => id != null);
+                await deleteFiles(fileIds);
             }
             const remainingContacts = appState.contacts.filter(c => c.id !== id);
             setAppState(current => ({ ...current, contacts: remainingContacts }));
