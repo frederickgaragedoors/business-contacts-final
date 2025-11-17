@@ -2,7 +2,7 @@ export interface FileAttachment {
   id: string;
   name: string;
   type: string;
-  dataUrl: string; // Base64 encoded file content
+  dataUrl?: string; // Base64 encoded file content
   size: number;
 }
 
