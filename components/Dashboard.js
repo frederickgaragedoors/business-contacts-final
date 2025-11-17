@@ -1,12 +1,5 @@
 import React, { useMemo } from 'react';
-
-const jobStatusColors = {
-  Scheduled: { base: 'bg-sky-100', text: 'text-sky-800' },
-  'In Progress': { base: 'bg-yellow-100', text: 'text-yellow-800' },
-  'Awaiting Parts': { base: 'bg-purple-100', text: 'text-purple-800' },
-  Completed: { base: 'bg-green-100', text: 'text-green-800' },
-  Invoiced: { base: 'bg-slate-200', text: 'text-slate-700' },
-};
+import { jobStatusColors } from '../types.ts';
 
 const Dashboard = ({ contacts, onSelectContact }) => {
 
@@ -58,31 +51,31 @@ const Dashboard = ({ contacts, onSelectContact }) => {
         return (
             React.createElement("li", { 
                 onClick: () => onSelectContact(job.contactId),
-                className: "p-4 bg-white rounded-lg shadow-sm border border-slate-200 hover:shadow-md hover:border-sky-500 cursor-pointer transition-all"
+                className: "p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer transition-all"
             },
                 React.createElement("div", { className: "flex justify-between items-start" },
                     React.createElement("div", null,
-                        React.createElement("p", { className: "font-semibold text-slate-800" }, job.contactName),
-                        React.createElement("p", { className: "text-sm text-slate-500" }, new Date(job.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }))
+                        React.createElement("p", { className: "font-semibold text-slate-800 dark:text-slate-100" }, job.contactName),
+                        React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400" }, new Date(job.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }))
                     ),
                      React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
                         job.status
                     )
                 ),
-                React.createElement("p", { className: "mt-2 text-sm text-slate-600 truncate" }, job.notes)
+                React.createElement("p", { className: "mt-2 text-sm text-slate-600 dark:text-slate-300 truncate" }, job.notes)
             )
         );
     };
 
     const Section = ({ title, jobs, emptyMessage }) => (
         React.createElement("section", null,
-            React.createElement("h2", { className: "text-xl font-bold text-slate-800 mb-4" }, title),
+            React.createElement("h2", { className: "text-xl font-bold text-slate-800 dark:text-slate-100 mb-4" }, title),
             jobs.length > 0 ? (
                 React.createElement("ul", { className: "space-y-3" },
                     jobs.map(job => React.createElement(JobCard, { key: job.id, job: job }))
                 )
             ) : (
-                React.createElement("div", { className: "text-center text-slate-500 py-6 px-4 bg-slate-50 rounded-lg" },
+                React.createElement("div", { className: "text-center text-slate-500 dark:text-slate-400 py-6 px-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg" },
                     React.createElement("p", null, emptyMessage)
                 )
             )
@@ -90,10 +83,10 @@ const Dashboard = ({ contacts, onSelectContact }) => {
     );
 
     return (
-        React.createElement("div", { className: "h-full flex flex-col bg-slate-100 overflow-y-auto" },
-            React.createElement("div", { className: "px-4 sm:px-6 py-6 border-b border-slate-200 bg-white" },
-                React.createElement("h1", { className: "text-2xl md:text-3xl font-bold text-slate-800" }, "Jobs Dashboard"),
-                React.createElement("p", { className: "mt-1 text-slate-500" }, "A summary of your active jobs.")
+        React.createElement("div", { className: "h-full flex flex-col bg-slate-100 dark:bg-slate-900 overflow-y-auto" },
+            React.createElement("div", { className: "px-4 sm:px-6 py-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800" },
+                React.createElement("h1", { className: "text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100" }, "Jobs Dashboard"),
+                React.createElement("p", { className: "mt-1 text-slate-500 dark:text-slate-400" }, "A summary of your active jobs.")
             ),
             React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow space-y-8" },
                 React.createElement(Section, { 
