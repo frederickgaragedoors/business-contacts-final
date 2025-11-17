@@ -67,9 +67,10 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     };
     
     useEffect(() => {
-        if (contact.files.length > 0) {
+        const contactFiles = contact.files || [];
+        if (contactFiles.length > 0) {
             setIsLoadingFiles(true);
-            getFiles(contact.files.map(f => f.id))
+            getFiles(contactFiles.map(f => f.id))
                 .then(filesFromDb => {
                     setHydratedFiles(filesFromDb);
                 })
@@ -88,27 +89,31 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
 
     const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            // FIX: Explicitly type 'file' as 'File' to avoid it being inferred as 'unknown'.
-            const newFilesPromises = Array.from(e.target.files).map(async (file: File) => {
-                const dataUrl = await fileToDataUrl(file);
-                return {
-                    id: generateId(),
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    dataUrl: dataUrl,
-                };
-            });
-            const newFiles = await Promise.all(newFilesPromises);
-            await addFilesToContact(contact.id, newFiles);
+            try {
+                const newFilesPromises = Array.from(e.target.files).map(async (file: File) => {
+                    const dataUrl = await fileToDataUrl(file);
+                    return {
+                        id: generateId(),
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        dataUrl: dataUrl,
+                    };
+                });
+                const newFiles = await Promise.all(newFilesPromises);
+                await addFilesToContact(contact.id, newFiles);
+            } catch(error) {
+                console.error("Error reading files:", error);
+                alert("There was an error processing your files. They might be too large or corrupted.");
+            }
             if(e.target) e.target.value = ''; // Reset input
         }
         setShowPhotoOptions(false);
     };
 
     const allCustomFields = useMemo(() => {
-        const fieldsToShow = [...contact.customFields];
-        const existingLabels = new Set(contact.customFields.map(cf => cf.label.toLowerCase()));
+        const fieldsToShow = [...(contact.customFields || [])];
+        const existingLabels = new Set(fieldsToShow.map(cf => cf.label.toLowerCase()));
 
         defaultFields.forEach(df => {
             if (!existingLabels.has(df.label.toLowerCase())) {
@@ -145,8 +150,9 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
 
     const handleSaveJobTicket = (entry: Omit<JobTicket, 'id'> & { id?: string }) => {
         let updatedTickets;
+        const currentTickets = contact.jobTickets || [];
         if (entry.id) {
-            updatedTickets = contact.jobTickets.map(ticket => ticket.id === entry.id ? { ...ticket, ...entry } : ticket);
+            updatedTickets = currentTickets.map(ticket => ticket.id === entry.id ? { ...ticket, ...entry } : ticket);
         } else {
             const newTicket: JobTicket = { 
                 id: generateId(), 
@@ -158,7 +164,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 salesTaxRate: entry.salesTaxRate,
                 processingFeeRate: entry.processingFeeRate,
             };
-            updatedTickets = [newTicket, ...contact.jobTickets];
+            updatedTickets = [newTicket, ...currentTickets];
         }
         updateContactJobTickets(contact.id, updatedTickets);
         setIsJobTicketModalOpen(false);
@@ -167,13 +173,13 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     
     const handleDeleteJobTicket = (id: string) => {
         if (window.confirm('Are you sure you want to delete this job ticket?')) {
-            const updatedTickets = contact.jobTickets.filter(ticket => ticket.id !== id);
+            const updatedTickets = (contact.jobTickets || []).filter(ticket => ticket.id !== id);
             updateContactJobTickets(contact.id, updatedTickets);
         }
     };
     
     const sortedJobTickets = useMemo(() => {
-        return [...contact.jobTickets].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return [...(contact.jobTickets || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [contact.jobTickets]);
 
     return (
