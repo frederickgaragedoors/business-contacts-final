@@ -18,63 +18,6 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     const [docType, setDocType] = useState<'invoice' | 'quote'>('invoice');
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef<HTMLDivElement>(null);
-    const printStyleId = 'printable-invoice-style';
-
-    const handlePrint = () => {
-        if (document.getElementById(printStyleId)) return; // Prevent double injection
-
-        const printStyles = `
-            @media print {
-                body * {
-                    visibility: hidden;
-                }
-                .invoice-paper, .invoice-paper * {
-                    visibility: visible;
-                }
-                .invoice-paper {
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    right: 0;
-                    width: 100%;
-                    margin: 0;
-                    padding: 0;
-                    box-shadow: none;
-                }
-            }
-        `;
-        const styleSheet = document.createElement("style");
-        styleSheet.id = printStyleId;
-        styleSheet.innerText = printStyles;
-        document.head.appendChild(styleSheet);
-        window.print();
-    };
-    
-    useEffect(() => {
-        const mediaQueryList = window.matchMedia('print');
-
-        const handlePrintChange = (mql: MediaQueryListEvent) => {
-            // This event fires when the print dialog is closed (either by printing or canceling)
-            if (!mql.matches) {
-                const style = document.getElementById(printStyleId);
-                if (style) {
-                    style.remove();
-                }
-            }
-        };
-
-        mediaQueryList.addEventListener('change', handlePrintChange);
-
-        return () => {
-            mediaQueryList.removeEventListener('change', handlePrintChange);
-            // Eager cleanup if component unmounts while print dialog is open
-            const style = document.getElementById(printStyleId);
-            if (style) {
-                style.remove();
-            }
-        };
-    }, []);
-
 
     const handleSaveAndAttach = async () => {
         if (!invoiceContentRef.current || isSaving) return;
@@ -137,7 +80,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
 
     return (
-        <div className="h-full flex flex-col bg-slate-200 overflow-y-auto">
+        <div className="h-full flex flex-col bg-slate-200 overflow-y-auto print:bg-white">
             {/* Toolbar */}
             <div className="p-4 flex items-center justify-between border-b border-slate-300 bg-white print:hidden">
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
@@ -159,7 +102,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         </button>
                     </div>
                     <button 
-                        onClick={handlePrint}
+                        onClick={() => window.print()}
                         className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200"
                     >
                         Print
@@ -175,7 +118,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             </div>
 
             {/* Invoice Paper */}
-            <div className="p-4 md:p-8 flex-grow">
+            <div className="p-4 md:p-8 flex-grow print:p-0">
                 <div ref={invoiceContentRef} className="max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper">
                     <header className="flex justify-between items-start pb-8 border-b">
                         <div>
