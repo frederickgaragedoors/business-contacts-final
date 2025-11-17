@@ -50,7 +50,7 @@ export const calculateJobTicketTotal = (ticket) => {
     if (!ticket) {
         return { subtotal: 0, taxAmount: 0, feeAmount: 0, totalCost: 0 };
     }
-    const partsTotal = ticket.parts.reduce((sum, part) => sum + Number(part.cost || 0), 0);
+    const partsTotal = ticket.parts.reduce((sum, part) => sum + (Number(part.cost || 0) * Number(part.quantity || 1)), 0);
     const subtotal = partsTotal + Number(ticket.laborCost || 0);
     const taxAmount = subtotal * (Number(ticket.salesTaxRate || 0) / 100);
     const totalAfterTaxes = subtotal + taxAmount;
