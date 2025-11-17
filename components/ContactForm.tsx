@@ -24,29 +24,42 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
   const [stagedFiles, setStagedFiles] = useState<FileAttachment[]>([]);
 
   const handlePhotoChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const dataUrl = await fileToDataUrl(file);
-      setPhotoUrl(dataUrl);
+    const input = e.target;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      try {
+        const dataUrl = await fileToDataUrl(file);
+        setPhotoUrl(dataUrl);
+      } catch (error) {
+        console.error("Error reading photo:", error);
+        alert("There was an error processing the photo. It might be too large or corrupted.");
+      }
     }
+    input.value = '';
   }, []);
 
   const handleFilesChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFilesPromises = Array.from(e.target.files).map(async (file: File) => {
-        const dataUrl = await fileToDataUrl(file);
-        return {
-          id: generateId(),
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          dataUrl: dataUrl,
-        };
-      });
-      const newFiles = await Promise.all(newFilesPromises);
-      setStagedFiles(prevFiles => [...prevFiles, ...newFiles]);
-      if(e.target) e.target.value = ''; // Reset input for re-uploading the same file
+    const input = e.target;
+    if (input.files) {
+      try {
+        const newFilesPromises = Array.from(input.files).map(async (file: File) => {
+          const dataUrl = await fileToDataUrl(file);
+          return {
+            id: generateId(),
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            dataUrl: dataUrl,
+          };
+        });
+        const newFiles = await Promise.all(newFilesPromises);
+        setStagedFiles(prevFiles => [...prevFiles, ...newFiles]);
+      } catch (error) {
+        console.error("Error reading files:", error);
+        alert("There was an error processing your files. They might be too large or corrupted.");
+      }
     }
+    input.value = '';
   }, []);
 
   const removeFile = (id: string, isStaged: boolean) => {
@@ -90,7 +103,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
         </div>
       </div>
       
-      <div className="p-6 flex-grow">
+      <div className="px-4 sm:px-6 py-6 flex-grow">
         <div className="flex flex-col items-center mb-6">
             <div className="relative w-24 h-24">
                 {photoUrl ? (
