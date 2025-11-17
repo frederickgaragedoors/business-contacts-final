@@ -205,6 +205,8 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                             <thead>
                                 <tr>
                                     <th className="p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Description</th>
+                                    <th className="p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Qty</th>
+                                    <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Unit Price</th>
                                     <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Amount</th>
                                 </tr>
                             </thead>
@@ -212,11 +214,13 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                                 {ticket.parts.map(part => (
                                     <tr key={part.id} className="border-b border-slate-100">
                                         <td className="p-3 text-sm text-slate-700">{part.name}</td>
+                                        <td className="p-3 text-center text-sm text-slate-700">{part.quantity}</td>
                                         <td className="p-3 text-right text-sm text-slate-700">${part.cost.toFixed(2)}</td>
+                                        <td className="p-3 text-right text-sm text-slate-700">${(part.cost * part.quantity).toFixed(2)}</td>
                                     </tr>
                                 ))}
                                  <tr className="border-b border-slate-100">
-                                    <td className="p-3 text-sm text-slate-700">Labor</td>
+                                    <td className="p-3 text-sm text-slate-700" colSpan={3}>Labor</td>
                                     <td className="p-3 text-right text-sm text-slate-700">${ticket.laborCost.toFixed(2)}</td>
                                 </tr>
                             </tbody>
