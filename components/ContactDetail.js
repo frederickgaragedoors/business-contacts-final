@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
@@ -77,20 +78,26 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     }, [contact.files]);
 
     const handleFilesSelected = async (e) => {
-        if (e.target.files) {
-            const newFilesPromises = Array.from(e.target.files).map(async (file) => {
-                const dataUrl = await fileToDataUrl(file);
-                return {
-                    id: generateId(),
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    dataUrl: dataUrl,
-                };
-            });
-            const newFiles = await Promise.all(newFilesPromises);
-            await addFilesToContact(contact.id, newFiles);
-            if(e.target) e.target.value = ''; // Reset input
+        const input = e.target;
+        if (input.files) {
+            try {
+                const newFilesPromises = Array.from(input.files).map(async (file) => {
+                    const dataUrl = await fileToDataUrl(file);
+                    return {
+                        id: generateId(),
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        dataUrl: dataUrl,
+                    };
+                });
+                const newFiles = await Promise.all(newFilesPromises);
+                await addFilesToContact(contact.id, newFiles);
+            } catch (error) {
+                 console.error("Error reading files:", error);
+                 alert("There was an error processing your files. They might be too large or corrupted.");
+            }
+            if(input) input.value = ''; // Reset input
         }
         setShowPhotoOptions(false);
     };
