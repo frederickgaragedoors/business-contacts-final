@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { DefaultFieldSetting, BusinessInfo } from '../types.ts';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon } from './icons.tsx';
+import { DefaultFieldSetting, BusinessInfo, JobTemplate } from '../types.ts';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon } from './icons.tsx';
 import { saveJsonFile, fileToDataUrl } from '../utils.ts';
 import { getAllFiles } from '../db.ts';
+import JobTemplateModal from './JobTemplateModal.tsx';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -20,6 +21,11 @@ interface SettingsProps {
     onUpdateBusinessInfo: (info: BusinessInfo) => void;
     currentTheme: Theme;
     onUpdateTheme: (theme: Theme) => void;
+    // FIX: Add missing props to handle job templates.
+    jobTemplates: JobTemplate[];
+    onAddJobTemplate: (template: Omit<JobTemplate, 'id'>) => void;
+    onUpdateJobTemplate: (id: string, template: Omit<JobTemplate, 'id'>) => void;
+    onDeleteJobTemplate: (id: string) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -35,10 +41,16 @@ const Settings: React.FC<SettingsProps> = ({
     businessInfo,
     onUpdateBusinessInfo,
     currentTheme,
-    onUpdateTheme
+    onUpdateTheme,
+    jobTemplates,
+    onAddJobTemplate,
+    onUpdateJobTemplate,
+    onDeleteJobTemplate,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState<BusinessInfo>(businessInfo);
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+    const [editingTemplate, setEditingTemplate] = useState<JobTemplate | null>(null);
 
     const handleDefaultFieldSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -95,6 +107,16 @@ const Settings: React.FC<SettingsProps> = ({
             reader.readAsText(file);
         }
         if(e.target) e.target.value = ''; // Reset input
+    };
+
+    const handleSaveTemplate = (templateData: Omit<JobTemplate, 'id'> & { id?: string }) => {
+        if (templateData.id) {
+            onUpdateJobTemplate(templateData.id, templateData);
+        } else {
+            onAddJobTemplate(templateData);
+        }
+        setIsTemplateModalOpen(false);
+        setEditingTemplate(null);
     };
 
     return (
@@ -203,6 +225,50 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
 
                 <div className="mt-8 border-t dark:border-slate-700 pt-6">
+                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Manage Job Templates</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Create reusable templates for common jobs to save time.</p>
+                    <div className="mt-6">
+                        <button
+                            type="button"
+                            onClick={() => { setEditingTemplate(null); setIsTemplateModalOpen(true); }}
+                            className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors"
+                        >
+                            <PlusIcon className="w-5 h-5 mr-2" />
+                            Create New Template
+                        </button>
+                    </div>
+                    <div className="mt-4 border-t dark:border-slate-700 pt-4">
+                        {jobTemplates.length > 0 ? (
+                            <ul className="space-y-2">
+                                {jobTemplates.map(template => (
+                                    <li key={template.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">{template.name}</span>
+                                        <div className="flex items-center space-x-2">
+                                            <button
+                                                onClick={() => { setEditingTemplate(template); setIsTemplateModalOpen(true); }}
+                                                className="p-2 text-slate-500 dark:text-slate-400 hover:text-sky-600 hover:bg-sky-100 dark:hover:bg-sky-900/50 rounded-full transition-colors"
+                                                aria-label={`Edit ${template.name} template`}
+                                            >
+                                                <EditIcon className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={() => onDeleteJobTemplate(template.id)}
+                                                className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full transition-colors"
+                                                aria-label={`Delete ${template.name} template`}
+                                            >
+                                                <TrashIcon className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-center text-slate-500 dark:text-slate-400 p-4">No job templates have been created.</p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mt-8 border-t dark:border-slate-700 pt-6">
                     <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Backup & Restore</h3>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage your application data. Backups include all contacts, custom fields, and work logs.</p>
                     <div className="mt-6 space-y-3">
@@ -257,6 +323,13 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
                 </div>
             </div>
+            {isTemplateModalOpen && (
+                <JobTemplateModal
+                    template={editingTemplate}
+                    onSave={handleSaveTemplate}
+                    onClose={() => { setIsTemplateModalOpen(false); setEditingTemplate(null); }}
+                />
+            )}
         </div>
     );
 };
