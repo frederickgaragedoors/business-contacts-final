@@ -167,7 +167,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     ),
                     React.createElement("h2", { className: "ml-4 font-bold text-lg text-slate-700" }, "Contact Details")
                 ),
-                React.createElement("div", { className: "flex flex-col items-center p-6 bg-slate-50 border-b border-slate-200" },
+                React.createElement("div", { className: "flex flex-col items-center px-4 sm:px-6 py-6 bg-slate-50 border-b border-slate-200" },
                     React.createElement("div", { className: "relative group w-32 h-32 rounded-full overflow-hidden bg-slate-300 flex items-center justify-center mb-4 ring-4 ring-white ring-offset-2 ring-offset-slate-50" },
                         contact.photoUrl ? (
                             React.createElement("img", { src: contact.photoUrl, alt: contact.name, className: "w-full h-full object-cover" })
@@ -204,7 +204,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                         React.createElement("span", { className: "text-sm font-medium" }, "Email")
                     )
                 ),
-                React.createElement("div", { className: "p-6 space-y-4" },
+                React.createElement("div", { className: "px-4 sm:px-6 py-6 space-y-4" },
                     React.createElement("div", { className: "flex items-start" },
                         React.createElement(MailIcon, { className: "w-5 h-5 text-slate-400 mt-1 flex-shrink-0" }),
                         React.createElement("div", { className: "ml-4" },
@@ -237,7 +237,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     )
                 ),
                 allCustomFields.length > 0 && (
-                    React.createElement("div", { className: "p-6 border-t border-slate-200" },
+                    React.createElement("div", { className: "px-4 sm:px-6 py-6 border-t border-slate-200" },
                         React.createElement("h2", { className: "text-lg font-semibold text-slate-800 mb-4" }, "Additional Information"),
                         React.createElement("div", { className: "space-y-4" },
                             allCustomFields.map(field => (
@@ -254,7 +254,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                         )
                     )
                 ),
-                React.createElement("div", { className: "p-6 border-t border-slate-200" },
+                React.createElement("div", { className: "px-4 sm:px-6 py-6 border-t border-slate-200" },
                     React.createElement("div", { className: "flex justify-between items-center mb-4" },
                         React.createElement("div", { className: "flex items-center" },
                             React.createElement(BriefcaseIcon, { className: "w-5 h-5 text-slate-400" }),
@@ -318,7 +318,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 React.createElement("input", { type: "file", accept: "image/*", multiple: true, ref: imageUploadRef, onChange: handleFilesSelected, className: "hidden" }),
                 React.createElement("input", { type: "file", accept: "image/*", capture: "environment", ref: cameraInputRef, onChange: handleFilesSelected, className: "hidden" }),
                 React.createElement("input", { type: "file", multiple: true, ref: fileUploadRef, onChange: handleFilesSelected, className: "hidden" }),
-                React.createElement("div", { className: "p-6 border-t border-slate-200" },
+                React.createElement("div", { className: "px-4 sm:px-6 py-6 border-t border-slate-200" },
                     React.createElement("div", { className: "flex justify-between items-center mb-4" },
                         React.createElement("h2", { className: "text-lg font-semibold text-slate-800" }, "Photos"),
                         React.createElement("div", { className: "relative" },
@@ -362,7 +362,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                         )
                     )
                 ),
-                React.createElement("div", { className: "p-6 border-t border-slate-200" },
+                React.createElement("div", { className: "px-4 sm:px-6 py-6 border-t border-slate-200" },
                     React.createElement("div", { className: "flex justify-between items-center mb-4" },
                         React.createElement("h2", { className: "text-lg font-semibold text-slate-800" }, "Files"),
                         React.createElement("button", { 
