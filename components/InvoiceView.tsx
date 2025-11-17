@@ -189,7 +189,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                             )}
                             {(ticket.processingFeeRate || 0) > 0 && (
                                 <div className="flex justify-between py-2 border-b">
-                                    <span className="text-sm font-medium text-slate-600">Processing Fee ({ticket.processingFeeRate}%)</span>
+                                    <span className="text-sm font-medium text-slate-600">Card Processing Fee ({ticket.processingFeeRate}%)</span>
                                     <span className="text-sm font-medium">${feeAmount.toFixed(2)}</span>
                                 </div>
                             )}
