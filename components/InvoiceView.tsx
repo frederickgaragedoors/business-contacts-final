@@ -18,8 +18,11 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     const [docType, setDocType] = useState<'invoice' | 'quote'>('invoice');
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef<HTMLDivElement>(null);
+    const printStyleId = 'printable-invoice-style';
 
     const handlePrint = () => {
+        if (document.getElementById(printStyleId)) return; // Prevent double injection
+
         const printStyles = `
             @media print {
                 body * {
@@ -41,12 +44,32 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             }
         `;
         const styleSheet = document.createElement("style");
-        styleSheet.type = "text/css";
+        styleSheet.id = printStyleId;
         styleSheet.innerText = printStyles;
         document.head.appendChild(styleSheet);
         window.print();
-        document.head.removeChild(styleSheet);
     };
+    
+    useEffect(() => {
+        const handleAfterPrint = () => {
+            const style = document.getElementById(printStyleId);
+            if (style) {
+                style.remove();
+            }
+        };
+
+        window.addEventListener('afterprint', handleAfterPrint);
+
+        return () => {
+            window.removeEventListener('afterprint', handleAfterPrint);
+            // Eager cleanup if component unmounts
+            const style = document.getElementById(printStyleId);
+            if (style) {
+                style.remove();
+            }
+        };
+    }, []);
+
 
     const handleSaveAndAttach = async () => {
         if (!invoiceContentRef.current || isSaving) return;
