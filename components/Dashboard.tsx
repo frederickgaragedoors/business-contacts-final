@@ -14,14 +14,9 @@ type JobWithContact = JobTicket & {
 
 const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
     
-    const getLocalDateAsString = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    const todayStr = getLocalDateAsString(new Date());
+    // Get the start of today in the local timezone for accurate comparisons.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const allJobs = useMemo<JobWithContact[]>(() => {
         return contacts.flatMap(contact => 
@@ -33,29 +28,37 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
         );
     }, [contacts]);
 
+    // Helper to parse 'YYYY-MM-DD' strings into local Date objects.
+    // This avoids timezone issues where new Date('YYYY-MM-DD') is parsed as UTC midnight.
+    const parseDateAsLocal = (dateString: string) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    };
+
     const jobsAwaitingParts = useMemo(() => {
         return allJobs
             .filter(job => job.status === 'Awaiting Parts')
-            .sort((a, b) => a.date.localeCompare(b.date));
+            .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs]);
     
     const todaysJobs = useMemo(() => {
         return allJobs
-            .filter(job => 
-                (job.status === 'Scheduled' || job.status === 'In Progress') &&
-                job.date === todayStr
-            )
-            .sort((a, b) => a.date.localeCompare(b.date));
-    }, [allJobs, todayStr]);
+            .filter(job => {
+                const jobDate = parseDateAsLocal(job.date);
+                return (job.status === 'Scheduled' || job.status === 'In Progress') &&
+                       jobDate.getTime() === today.getTime();
+            })
+            .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
+    }, [allJobs, today]);
 
     const upcomingJobs = useMemo(() => {
         return allJobs
-            .filter(job => 
-                job.status === 'Scheduled' &&
-                job.date > todayStr
-            )
-            .sort((a, b) => a.date.localeCompare(b.date));
-    }, [allJobs, todayStr]);
+            .filter(job => {
+                 const jobDate = parseDateAsLocal(job.date);
+                 return job.status === 'Scheduled' && jobDate > today;
+            })
+            .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
+    }, [allJobs, today]);
 
     const JobCard: React.FC<{ job: JobWithContact }> = ({ job }) => {
         const statusColor = jobStatusColors[job.status];
@@ -95,7 +98,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
 
     return (
         <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-900 overflow-y-auto">
-             <div className="px-4 sm:px-6 py-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <div className="px-4 sm:px-6 py-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">Jobs Dashboard</h1>
                 <p className="mt-1 text-slate-500 dark:text-slate-400">A summary of your active jobs.</p>
             </div>
