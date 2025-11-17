@@ -485,23 +485,25 @@ const App: React.FC = () => {
                 </div>
             )}
 
-            <Header 
-                currentView={viewState.type}
-                onNewContact={() => setViewState({ type: 'new_form' })}
-                onGoToSettings={() => setViewState({ type: 'settings' })}
-                onGoToDashboard={() => setViewState({ type: 'dashboard' })}
-                onGoToList={() => setViewState({ type: 'list' })}
-            />
+            <div className={viewState.type === 'invoice' ? 'print:hidden' : ''}>
+                <Header 
+                    currentView={viewState.type}
+                    onNewContact={() => setViewState({ type: 'new_form' })}
+                    onGoToSettings={() => setViewState({ type: 'settings' })}
+                    onGoToDashboard={() => setViewState({ type: 'dashboard' })}
+                    onGoToList={() => setViewState({ type: 'list' })}
+                />
+            </div>
             
             <div className="flex flex-grow h-0"> {/* h-0 is key for flex overflow */}
-                <div className={`w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'}`}>
+                <div className={`w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:hidden' : ''}`}>
                     <ContactList
                         contacts={appState.contacts}
                         selectedContactId={selectedContactId}
                         onSelectContact={(id) => setViewState({ type: 'detail', id })}
                     />
                 </div>
-                <main className={`flex-grow bg-white h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'}`}>
+                <main className={`flex-grow bg-white h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}`}>
                     {renderMainContent()}
                 </main>
             </div>
