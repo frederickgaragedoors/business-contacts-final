@@ -86,36 +86,38 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
         React.createElement("div", { className: "h-full flex flex-col bg-slate-200 dark:bg-slate-900 overflow-y-auto print:bg-white" },
             // Toolbar
             React.createElement("div", { className: "p-4 border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 print:hidden" },
-                React.createElement("div", { className: "flex items-center justify-between" },
-                    React.createElement("button", { onClick: onClose, className: "p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" },
-                        React.createElement(ArrowLeftIcon, { className: "w-6 h-6 text-slate-600 dark:text-slate-300" })
+                React.createElement("div", { className: "flex flex-col sm:flex-row items-start sm:items-center sm:justify-between" },
+                    React.createElement("div", { className: "flex items-center" },
+                        React.createElement("button", { onClick: onClose, className: "p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" },
+                            React.createElement(ArrowLeftIcon, { className: "w-6 h-6 text-slate-600 dark:text-slate-300" })
+                        ),
+                        React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg ml-4" },
+                            React.createElement("button", {
+                                onClick: () => setDocType('estimate'),
+                                className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'estimate' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
+                            }, "Estimate"),
+                            React.createElement("button", {
+                                onClick: () => setDocType('receipt'),
+                                className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'receipt' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
+                            }, "Receipt")
+                        )
                     ),
-                    React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg" },
+                    React.createElement("div", { className: "mt-4 sm:mt-0 flex items-center justify-end space-x-2 w-full sm:w-auto" },
                         React.createElement("button", {
-                            onClick: () => setDocType('estimate'),
-                            className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'estimate' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
-                        }, "Estimate"),
+                            onClick: () => window.print(),
+                            className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
+                        }, "Print"),
                         React.createElement("button", {
-                             onClick: () => setDocType('receipt'),
-                            className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'receipt' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
-                        }, "Receipt")
+                            onClick: handleDownload,
+                            disabled: isSaving,
+                            className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
+                        }, isSaving ? 'Working...' : 'Download'),
+                        React.createElement("button", {
+                            onClick: handleAttach,
+                            disabled: isSaving,
+                            className: "px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait"
+                        }, isSaving ? 'Working...' : 'Attach PDF')
                     )
-                ),
-                React.createElement("div", { className: "mt-4 flex items-center justify-end space-x-2" },
-                    React.createElement("button", { 
-                        onClick: () => window.print(),
-                        className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }, "Print"),
-                    React.createElement("button", { 
-                        onClick: handleDownload,
-                        disabled: isSaving,
-                        className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
-                    }, isSaving ? 'Working...' : 'Download'),
-                    React.createElement("button", { 
-                        onClick: handleAttach,
-                        disabled: isSaving,
-                        className: "px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait"
-                    }, isSaving ? 'Working...' : 'Attach PDF')
                 )
             ),
 
@@ -176,26 +178,41 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                     ),
 
                     React.createElement("section", { className: "mt-8 flex justify-end" },
-                        React.createElement("div", { className: "w-full max-w-xs space-y-2 text-slate-700" },
-                            React.createElement("div", { className: "flex justify-between py-2 border-b" },
-                                React.createElement("span", { className: "text-sm font-medium text-slate-600" }, "Subtotal"),
-                                React.createElement("span", { className: "text-sm font-medium" }, `$${subtotal.toFixed(2)}`)
-                            ),
-                            (ticket.salesTaxRate || 0) > 0 && (
+                        docType === 'estimate' && (ticket.processingFeeRate || 0) > 0 ? (
+                            React.createElement("div", { className: "w-full max-w-sm space-y-3 text-slate-700 p-4 bg-slate-50 rounded-lg border" },
+                                React.createElement("h4", { className: "font-bold text-lg text-slate-800 text-center" }, "Payment Options"),
+                                React.createElement("div", { className: "flex justify-between py-2 border-t" },
+                                    React.createElement("span", { className: "text-base font-semibold" }, "Pay by Check/Cash"),
+                                    React.createElement("span", { className: "text-base font-semibold" }, `$${(subtotal + taxAmount).toFixed(2)}`)
+                                ),
+                                React.createElement("div", { className: "flex justify-between py-2 border-t bg-green-50 px-2 rounded-md" },
+                                    React.createElement("span", { className: "text-base font-semibold text-green-800" }, "Pay by Card"),
+                                    React.createElement("span", { className: "text-base font-semibold text-green-800" }, `$${totalCost.toFixed(2)}`)
+                                ),
+                                React.createElement("p", { className: "text-xs text-slate-500 text-center pt-2" }, `A ${ticket.processingFeeRate}% card processing fee is included in the card payment total.`)
+                            )
+                        ) : (
+                            React.createElement("div", { className: "w-full max-w-xs space-y-2 text-slate-700" },
                                 React.createElement("div", { className: "flex justify-between py-2 border-b" },
-                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Sales Tax (${ticket.salesTaxRate}%)`),
-                                    React.createElement("span", { className: "text-sm font-medium" }, `$${taxAmount.toFixed(2)}`)
+                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, "Subtotal"),
+                                    React.createElement("span", { className: "text-sm font-medium" }, `$${subtotal.toFixed(2)}`)
+                                ),
+                                (ticket.salesTaxRate || 0) > 0 && (
+                                    React.createElement("div", { className: "flex justify-between py-2 border-b" },
+                                        React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Sales Tax (${ticket.salesTaxRate}%)`),
+                                        React.createElement("span", { className: "text-sm font-medium" }, `$${taxAmount.toFixed(2)}`)
+                                    )
+                                ),
+                                (ticket.processingFeeRate || 0) > 0 && (
+                                    React.createElement("div", { className: "flex justify-between py-2 border-b" },
+                                        React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Card Processing Fee (${ticket.processingFeeRate}%)`),
+                                        React.createElement("span", { className: "text-sm font-medium" }, `$${feeAmount.toFixed(2)}`)
+                                    )
+                                ),
+                                React.createElement("div", { className: "flex justify-between py-2 bg-slate-100 px-3 mt-2 rounded-md" },
+                                    React.createElement("span", { className: "text-lg font-bold text-slate-800" }, "Total"),
+                                    React.createElement("span", { className: "text-lg font-bold text-slate-800" }, `$${totalCost.toFixed(2)}`)
                                 )
-                            ),
-                            (ticket.processingFeeRate || 0) > 0 && (
-                                React.createElement("div", { className: "flex justify-between py-2 border-b" },
-                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Card Processing Fee (${ticket.processingFeeRate}%)`),
-                                    React.createElement("span", { className: "text-sm font-medium" }, `$${feeAmount.toFixed(2)}`)
-                                )
-                            ),
-                            React.createElement("div", { className: "flex justify-between py-2 bg-slate-100 px-3 mt-2 rounded-md" },
-                                React.createElement("span", { className: "text-lg font-bold text-slate-800" }, "Total"),
-                                React.createElement("span", { className: "text-lg font-bold text-slate-800" }, `$${totalCost.toFixed(2)}`)
                             )
                         )
                     ),
