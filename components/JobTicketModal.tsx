@@ -99,7 +99,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
             </div>
           </div>
 
-          <div className="p-6 space-y-4 overflow-y-auto">
+          <div className="p-6 space-y-4 overflow-y-auto flex-grow">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="job-date" className="block text-sm font-medium text-slate-600">Date</label>
@@ -228,7 +228,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose 
             </div>
           </div>
           
-          <div className="bg-slate-50 px-6 py-4 flex justify-between items-center rounded-b-lg border-t mt-auto">
+          <div className="bg-slate-50 px-6 py-4 flex justify-between items-center rounded-b-lg border-t">
              <div className="text-sm">
                 <p>Subtotal: <span className="font-medium">${subtotal.toFixed(2)}</span></p>
                 <p>Tax ({Number(salesTaxRate || 0)}%): <span className="font-medium">${taxAmount.toFixed(2)}</span></p>
