@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Contact, JobTicket, jobStatusColors } from '../types.ts';
 import EmptyState from './EmptyState.tsx';
-import { ClipboardListIcon, UsersIcon, BriefcaseIcon } from './icons.tsx';
+import { ClipboardListIcon, UsersIcon, BriefcaseIcon, BellIcon } from './icons.tsx';
 
 interface DashboardProps {
     contacts: Contact[];
@@ -17,6 +17,10 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(today.getDate() - 3);
+    threeDaysAgo.setHours(0, 0, 0, 0);
 
     const allJobs = useMemo<JobWithContact[]>(() => {
         return contacts.flatMap(contact => 
@@ -39,18 +43,32 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs]);
     
-    const todaysJobs = useMemo(() => {
-        return allJobs
-            .filter(job => {
-                if (!job.date) return false;
-                const jobDate = parseDateAsLocal(job.date);
-                return (job.status === 'Scheduled' || job.status === 'In Progress') &&
-                       jobDate.getTime() === today.getTime();
-            })
-            .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
+    const todaysAppointments = useMemo(() => {
+        return allJobs.filter(job => {
+            if (!job.date) return false;
+            const jobDate = parseDateAsLocal(job.date);
+            return job.status === 'Estimate Scheduled' && jobDate.getTime() === today.getTime();
+        });
     }, [allJobs, today]);
 
-    const upcomingJobs = useMemo(() => {
+    const todaysWork = useMemo(() => {
+        return allJobs.filter(job => {
+            if (!job.date) return false;
+            const jobDate = parseDateAsLocal(job.date);
+            return (job.status === 'Scheduled' || job.status === 'In Progress') &&
+                   jobDate.getTime() === today.getTime();
+        });
+    }, [allJobs, today]);
+
+    const quotesToFollowUp = useMemo(() => {
+        return allJobs.filter(job => {
+            if (!job.date) return false;
+            const jobDate = parseDateAsLocal(job.date);
+            return job.status === 'Quote Sent' && jobDate.getTime() <= threeDaysAgo.getTime();
+        }).sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
+    }, [allJobs, threeDaysAgo]);
+
+    const upcomingWork = useMemo(() => {
         return allJobs
             .filter(job => {
                  if (!job.date) return false;
@@ -111,31 +129,42 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
                 <p className="mt-1 text-slate-500 dark:text-slate-400">Here's a summary of your business activity.</p>
             </div>
             <div className="px-4 sm:px-6 py-6 flex-grow space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     <StatCard Icon={UsersIcon} title="Total Contacts" value={contacts.length} color="bg-gradient-to-br from-sky-500 to-sky-600" />
-                    <StatCard Icon={ClipboardListIcon} title="Jobs Today" value={todaysJobs.length} color="bg-gradient-to-br from-green-500 to-green-600" />
+                    <StatCard Icon={ClipboardListIcon} title="Jobs Today" value={todaysAppointments.length + todaysWork.length} color="bg-gradient-to-br from-green-500 to-green-600" />
+                    <StatCard Icon={BellIcon} title="Follow Ups" value={quotesToFollowUp.length} color="bg-gradient-to-br from-orange-500 to-orange-600" />
                     <StatCard Icon={BriefcaseIcon} title="Awaiting Parts" value={jobsAwaitingParts.length} color="bg-gradient-to-br from-purple-500 to-purple-600" />
                 </div>
                 
                 {allJobs.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 space-y-8">
+                            <Section 
+                                title="Today's Appointments" 
+                                jobs={todaysAppointments} 
+                                emptyMessage="No estimates scheduled for today." 
+                            />
+                            <Section 
+                                title="Today's Work" 
+                                jobs={todaysWork} 
+                                emptyMessage="No work scheduled for today." 
+                            />
+                             <Section 
+                                title="Upcoming Work" 
+                                jobs={upcomingWork} 
+                                emptyMessage="No upcoming jobs scheduled." 
+                            />
+                        </div>
                         <div className="lg:col-span-1 space-y-8">
+                            <Section 
+                                title="Follow-Ups Required" 
+                                jobs={quotesToFollowUp} 
+                                emptyMessage="No quotes need follow-up." 
+                            />
                             <Section 
                                 title="Awaiting Parts" 
                                 jobs={jobsAwaitingParts} 
                                 emptyMessage="No jobs are awaiting parts." 
-                            />
-                        </div>
-                        <div className="lg:col-span-2 space-y-8">
-                            <Section 
-                                title="Today's Jobs" 
-                                jobs={todaysJobs} 
-                                emptyMessage="You're all clear for today!" 
-                            />
-                            <Section 
-                                title="Upcoming" 
-                                jobs={upcomingJobs} 
-                                emptyMessage="No upcoming jobs scheduled." 
                             />
                         </div>
                     </div>
