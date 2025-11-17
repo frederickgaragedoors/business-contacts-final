@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { XIcon, PlusIcon, TrashIcon } from './icons.js';
 import { generateId, calculateJobTicketTotal } from '../utils.js';
 
-const jobStatuses = ['Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Invoiced'];
+const jobStatuses = ['Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Paid'];
 
 const JobTicketModal = ({ entry, onSave, onClose }) => {
   const [date, setDate] = useState('');
