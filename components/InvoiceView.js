@@ -70,8 +70,11 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
         }
     };
 
-    const totalPartsCost = ticket.parts.reduce((sum, part) => sum + part.cost, 0);
-    const totalCost = totalPartsCost + ticket.laborCost;
+    const subtotal = ticket.parts.reduce((sum, part) => sum + part.cost, 0) + ticket.laborCost;
+    const taxAmount = subtotal * ((ticket.salesTaxRate || 0) / 100);
+    const totalAfterTaxes = subtotal + taxAmount;
+    const feeAmount = totalAfterTaxes * ((ticket.processingFeeRate || 0) / 100);
+    const totalCost = totalAfterTaxes + feeAmount;
 
     return (
         React.createElement("div", { className: "h-full flex flex-col bg-slate-200 overflow-y-auto" },
@@ -161,10 +164,22 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                     ),
 
                     React.createElement("section", { className: "mt-8 flex justify-end" },
-                        React.createElement("div", { className: "w-full max-w-xs" },
+                        React.createElement("div", { className: "w-full max-w-xs space-y-2" },
                             React.createElement("div", { className: "flex justify-between py-2 border-b" },
                                 React.createElement("span", { className: "text-sm font-medium text-slate-600" }, "Subtotal"),
-                                React.createElement("span", { className: "text-sm font-medium text-slate-700" }, `$${totalCost.toFixed(2)}`)
+                                React.createElement("span", { className: "text-sm font-medium text-slate-700" }, `$${subtotal.toFixed(2)}`)
+                            ),
+                            (ticket.salesTaxRate || 0) > 0 && (
+                                React.createElement("div", { className: "flex justify-between py-2 border-b" },
+                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Sales Tax (${ticket.salesTaxRate}%)`),
+                                    React.createElement("span", { className: "text-sm font-medium text-slate-700" }, `$${taxAmount.toFixed(2)}`)
+                                )
+                            ),
+                            (ticket.processingFeeRate || 0) > 0 && (
+                                React.createElement("div", { className: "flex justify-between py-2 border-b" },
+                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Processing Fee (${ticket.processingFeeRate}%)`),
+                                    React.createElement("span", { className: "text-sm font-medium text-slate-700" }, `$${feeAmount.toFixed(2)}`)
+                                )
                             ),
                              React.createElement("div", { className: "flex justify-between py-2 bg-slate-100 px-3 mt-2 rounded-md" },
                                 React.createElement("span", { className: "text-lg font-bold text-slate-800" }, "Total"),
