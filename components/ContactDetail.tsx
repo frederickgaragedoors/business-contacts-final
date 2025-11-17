@@ -282,9 +282,10 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                         <div className="flex items-center justify-evenly mb-3">
                                             <button
                                                 onClick={() => onViewInvoice(contact.id, ticket.id)}
-                                                className="px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 rounded-md"
+                                                className="p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-md"
+                                                aria-label="View/Print invoice"
                                             >
-                                            View/Print
+                                                <EyeIcon className="w-4 h-4" />
                                             </button>
                                             <button 
                                                 onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
