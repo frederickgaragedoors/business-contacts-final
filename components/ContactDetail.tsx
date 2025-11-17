@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Contact, DefaultFieldSetting, FileAttachment, JobTicket } from '../types.ts';
+import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
 import JobTicketModal from './JobTicketModal.tsx';
 import {
@@ -39,14 +39,6 @@ const VIEWABLE_MIME_TYPES = [
     'text/xml',
     'image/svg+xml',
 ];
-
-const jobStatusColors = {
-  Scheduled: { base: 'bg-sky-100', text: 'text-sky-800' },
-  'In Progress': { base: 'bg-yellow-100', text: 'text-yellow-800' },
-  'Awaiting Parts': { base: 'bg-purple-100', text: 'text-purple-800' },
-  Completed: { base: 'bg-green-100', text: 'text-green-800' },
-  Invoiced: { base: 'bg-slate-200', text: 'text-slate-700' },
-};
 
 const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -172,19 +164,19 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
 
     return (
         <>
-            <div className="h-full flex flex-col bg-white overflow-y-auto">
-                <div className="p-4 flex items-center md:hidden border-b border-slate-200">
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
-                        <ArrowLeftIcon className="w-6 h-6 text-slate-600" />
+            <div className="h-full flex flex-col bg-white dark:bg-slate-800 overflow-y-auto">
+                <div className="p-4 flex items-center md:hidden border-b border-slate-200 dark:border-slate-700">
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                        <ArrowLeftIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
                     </button>
-                    <h2 className="ml-4 font-bold text-lg text-slate-700">Contact Details</h2>
+                    <h2 className="ml-4 font-bold text-lg text-slate-700 dark:text-slate-200">Contact Details</h2>
                 </div>
-                <div className="flex flex-col items-center px-4 sm:px-6 py-6 bg-slate-50 border-b border-slate-200">
-                    <div className="relative group w-32 h-32 rounded-full overflow-hidden bg-slate-300 flex items-center justify-center mb-4 ring-4 ring-white ring-offset-2 ring-offset-slate-50">
+                <div className="flex flex-col items-center px-4 sm:px-6 py-6 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                    <div className="relative group w-32 h-32 rounded-full overflow-hidden bg-slate-300 dark:bg-slate-600 flex items-center justify-center mb-4 ring-4 ring-white dark:ring-slate-700 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-800">
                         {contact.photoUrl ? (
                             <img src={contact.photoUrl} alt={contact.name} className="w-full h-full object-cover" />
                         ) : (
-                            <span className="text-5xl text-slate-600 font-semibold">{getInitials(contact.name)}</span>
+                            <span className="text-5xl text-slate-600 dark:text-slate-300 font-semibold">{getInitials(contact.name)}</span>
                         )}
                         {galleryImages.length > 0 && (
                             <button onClick={() => openGallery(0)} className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-label="View photos">
@@ -192,26 +184,26 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                             </button>
                         )}
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-800">{contact.name}</h1>
+                    <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{contact.name}</h1>
                     <div className="flex space-x-3 mt-4">
-                        <button onClick={onEdit} className="p-2 rounded-full text-slate-600 bg-slate-200 hover:bg-slate-300 transition-colors">
+                        <button onClick={onEdit} className="p-2 rounded-full text-slate-600 bg-slate-200 dark:bg-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
                             <EditIcon className="w-5 h-5" />
                         </button>
-                        <button onClick={onDelete} className="p-2 rounded-full text-red-600 bg-red-100 hover:bg-red-200 transition-colors">
+                        <button onClick={onDelete} className="p-2 rounded-full text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900 transition-colors">
                             <TrashIcon className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4 p-4 border-b border-slate-200">
-                    <a href={`tel:${contact.phone}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 transition-colors text-sky-600">
+                <div className="grid grid-cols-3 gap-4 p-4 border-b border-slate-200 dark:border-slate-700">
+                    <a href={`tel:${contact.phone}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors text-sky-600 dark:text-sky-400">
                         <PhoneIcon className="w-6 h-6 mb-1" />
                         <span className="text-sm font-medium">Call</span>
                     </a>
-                    <a href={`sms:${contact.phone}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 transition-colors text-sky-600">
+                    <a href={`sms:${contact.phone}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors text-sky-600 dark:text-sky-400">
                         <MessageIcon className="w-6 h-6 mb-1" />
                         <span className="text-sm font-medium">Text</span>
                     </a>
-                    <a href={`mailto:${contact.email}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 transition-colors text-sky-600">
+                    <a href={`mailto:${contact.email}`} className="flex flex-col items-center p-3 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors text-sky-600 dark:text-sky-400">
                         <MailIcon className="w-6 h-6 mb-1" />
                         <span className="text-sm font-medium">Email</span>
                     </a>
@@ -220,15 +212,15 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     <div className="flex items-start">
                         <MailIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
                         <div className="ml-4">
-                            <p className="font-semibold text-slate-700">{contact.email}</p>
-                            <p className="text-sm text-slate-500">Email</p>
+                            <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.email}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
                         </div>
                     </div>
                     <div className="flex items-start">
                         <PhoneIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
                         <div className="ml-4">
-                            <p className="font-semibold text-slate-700">{contact.phone}</p>
-                            <p className="text-sm text-slate-500">Mobile</p>
+                            <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.phone}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Mobile</p>
                         </div>
                     </div>
                     <div className="flex items-start">
@@ -239,42 +231,42 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
                                target="_blank"
                                rel="noopener noreferrer"
-                               className="font-semibold text-slate-700 hover:text-sky-600 hover:underline cursor-pointer transition-colors"
+                               className="font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors"
                              >{contact.address}</a>
                            ) : (
-                             <p className="font-semibold text-slate-700 italic text-slate-400">Not set</p>
+                             <p className="font-semibold text-slate-700 dark:text-slate-200 italic text-slate-400">Not set</p>
                            )}
-                           <p className="text-sm text-slate-500">Address</p>
+                           <p className="text-sm text-slate-500 dark:text-slate-400">Address</p>
                         </div>
                     </div>
                 </div>
                 {allCustomFields.length > 0 && (
-                    <div className="px-4 sm:px-6 py-6 border-t border-slate-200">
-                        <h2 className="text-lg font-semibold text-slate-800 mb-4">Additional Information</h2>
+                    <div className="px-4 sm:px-6 py-6 border-t border-slate-200 dark:border-slate-700">
+                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Additional Information</h2>
                         <div className="space-y-4">
                             {allCustomFields.map(field => (
                                 <div key={field.id} className="flex items-start">
                                     <TagIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
                                     <div className="ml-4">
-                                        <p className={`font-semibold ${field.value ? 'text-slate-700' : 'text-slate-400 italic'}`}>
+                                        <p className={`font-semibold ${field.value ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 italic'}`}>
                                             {field.value || 'Not set'}
                                         </p>
-                                        <p className="text-sm text-slate-500">{field.label}</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{field.label}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
-                <div className="px-4 sm:px-6 py-6 border-t border-slate-200">
+                <div className="px-4 sm:px-6 py-6 border-t border-slate-200 dark:border-slate-700">
                     <div className="flex justify-between items-center mb-4">
                         <div className="flex items-center">
                             <BriefcaseIcon className="w-5 h-5 text-slate-400" />
-                            <h2 className="ml-3 text-lg font-semibold text-slate-800">Jobs</h2>
+                            <h2 className="ml-3 text-lg font-semibold text-slate-800 dark:text-slate-100">Jobs</h2>
                         </div>
                         <button 
                             onClick={() => { setEditingJobTicket(null); setIsJobTicketModalOpen(true); }}
-                            className="p-2 rounded-full text-slate-500 hover:bg-slate-200"
+                            className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                             aria-label="Add Job Ticket"
                         ><PlusIcon className="w-5 h-5" /></button>
                     </div>
@@ -283,20 +275,20 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                             {sortedJobTickets.map(ticket => {
                                 const { totalCost } = calculateJobTicketTotal(ticket);
                                 const statusColor = jobStatusColors[ticket.status];
-                                return <li key={ticket.id} className="p-4 bg-slate-50 rounded-lg">
+                                return <li key={ticket.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                                     <div className="flex justify-start items-center mb-2">
                                         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
                                             {ticket.status}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-baseline mb-3">
-                                        <p className="font-semibold text-slate-700">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
-                                        <p className="font-bold text-lg text-slate-800">{`$${totalCost.toFixed(2)}`}</p>
+                                        <p className="font-semibold text-slate-700 dark:text-slate-200">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                                        <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{`$${totalCost.toFixed(2)}`}</p>
                                     </div>
                                     <div className="flex items-center justify-evenly mb-3">
                                         <button
                                             onClick={() => onViewInvoice(contact.id, ticket.id)}
-                                            className="px-3 py-1 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 rounded-md"
+                                            className="px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 rounded-md"
                                         >
                                            View/Print
                                         </button>
@@ -316,13 +308,13 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                         </button>
                                     </div>
                                     {ticket.notes && (
-                                        <p className="text-sm text-slate-600 whitespace-pre-wrap border-t border-slate-200 pt-3">{ticket.notes}</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap border-t border-slate-200 dark:border-slate-600 pt-3">{ticket.notes}</p>
                                     )}
                                 </li>
                             })}
                         </ul>
                     ) : (
-                        <div className="text-center text-slate-500 py-4">
+                        <div className="text-center text-slate-500 dark:text-slate-400 py-4">
                             <p>No jobs have been logged for this contact.</p>
                         </div>
                     )}
@@ -330,21 +322,21 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 <input type="file" accept="image/*" multiple ref={imageUploadRef} onChange={handleFilesSelected} className="hidden" />
                 <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleFilesSelected} className="hidden" />
                 <input type="file" multiple ref={fileUploadRef} onChange={handleFilesSelected} className="hidden" />
-                <div className="px-4 sm:px-6 py-6 border-t border-slate-200">
+                <div className="px-4 sm:px-6 py-6 border-t border-slate-200 dark:border-slate-700">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg font-semibold text-slate-800">Photos</h2>
+                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Photos</h2>
                         <div className="relative">
                             <button 
                                 onClick={() => setShowPhotoOptions(!showPhotoOptions)} 
-                                className="p-2 rounded-full text-slate-500 hover:bg-slate-200"
+                                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                                 aria-label="Add photo"
                             ><PlusIcon className="w-5 h-5" /></button>
                             {showPhotoOptions && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 ring-1 ring-black ring-opacity-5">
-                                    <button onClick={() => cameraInputRef.current?.click()} className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-700 rounded-md shadow-lg z-10 ring-1 ring-black ring-opacity-5">
+                                    <button onClick={() => cameraInputRef.current?.click()} className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600">
                                         <CameraIcon className="w-5 h-5 mr-3" />Take Photo
                                     </button>
-                                    <button onClick={() => imageUploadRef.current?.click()} className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                                    <button onClick={() => imageUploadRef.current?.click()} className="w-full text-left flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600">
                                         <FileIcon className="w-5 h-5 mr-3" />Upload Image
                                     </button>
                                 </div>
@@ -352,7 +344,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                         </div>
                     </div>
                     {isLoadingFiles ? (
-                         <div className="text-center text-slate-500 py-4">Loading photos...</div>
+                         <div className="text-center text-slate-500 dark:text-slate-400 py-4">Loading photos...</div>
                     ) : imageFiles.length > 0 ? (
                         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {imageFiles.map(file => {
@@ -361,7 +353,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                     <button
                                         key={file.id}
                                         onClick={() => openGallery(imageIndexInGallery)}
-                                        className="aspect-square rounded-lg overflow-hidden bg-slate-200 group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+                                        className="aspect-square rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
                                     >
                                         <img src={file.dataUrl} alt={file.name} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
                                     </button>
@@ -369,42 +361,42 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                             })}
                         </div>
                     ) : (
-                        <div className="text-center text-slate-500 py-4">
+                        <div className="text-center text-slate-500 dark:text-slate-400 py-4">
                             <p>No photos attached.</p>
                         </div>
                     )}
                 </div>
-                <div className="px-4 sm:px-6 py-6 border-t border-slate-200">
+                <div className="px-4 sm:px-6 py-6 border-t border-slate-200 dark:border-slate-700">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg font-semibold text-slate-800">Files</h2>
+                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Files</h2>
                         <button 
                             onClick={() => fileUploadRef.current?.click()}
-                            className="p-2 rounded-full text-slate-500 hover:bg-slate-200"
+                            className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                             aria-label="Add file"
                         ><PlusIcon className="w-5 h-5" /></button>
                     </div>
                      {isLoadingFiles ? (
-                        <div className="text-center text-slate-500 py-4">Loading files...</div>
+                        <div className="text-center text-slate-500 dark:text-slate-400 py-4">Loading files...</div>
                      ) : otherFiles.length > 0 ? (
                         <ul className="space-y-3">
                             {otherFiles.map(file => (
-                                <li key={file.id} className="flex items-center p-3 bg-slate-50 rounded-lg">
-                                    <FileIcon className="w-6 h-6 text-slate-500 flex-shrink-0" />
+                                <li key={file.id} className="flex items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                    <FileIcon className="w-6 h-6 text-slate-500 dark:text-slate-400 flex-shrink-0" />
                                     <div className="ml-3 flex-grow truncate">
-                                        <p className="font-medium text-slate-700 truncate">{file.name}</p>
-                                        <p className="text-sm text-slate-500">{formatFileSize(file.size)}</p>
+                                        <p className="font-medium text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{formatFileSize(file.size)}</p>
                                     </div>
                                     <div className="ml-4 flex-shrink-0 flex items-center space-x-4">
                                         {VIEWABLE_MIME_TYPES.includes(file.type) && file.dataUrl && (
-                                            <a href={file.dataUrl} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 font-medium text-sm">View</a>
+                                            <a href={file.dataUrl} target="_blank" rel="noopener noreferrer" className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">View</a>
                                         )}
-                                        {file.dataUrl && <a href={file.dataUrl} download={file.name} className="text-sky-600 hover:text-sky-800 font-medium text-sm">Download</a>}
+                                        {file.dataUrl && <a href={file.dataUrl} download={file.name} className="text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-medium text-sm">Download</a>}
                                     </div>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <div className="text-center text-slate-500 py-4">
+                        <div className="text-center text-slate-500 dark:text-slate-400 py-4">
                             <p>No files attached.</p>
                         </div>
                     )}
