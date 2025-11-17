@@ -186,7 +186,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
                 {files.map(file => (
                   <li key={file.id} className="flex items-center p-2 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm">
                     <FileIcon className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                    <div className="ml-3 flex-grow truncate">
+                    <div className="ml-3 flex-grow min-w-0">
                         <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{file.name}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(file.size)}</p>
                     </div>
@@ -206,7 +206,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
                 {stagedFiles.map(file => (
                   <li key={file.id} className="flex items-center p-2 bg-white dark:bg-slate-700 rounded-md shadow-sm">
                     <FileIcon className="w-5 h-5 text-sky-500 flex-shrink-0" />
-                    <div className="ml-3 flex-grow truncate">
+                    <div className="ml-3 flex-grow min-w-0">
                         <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{file.name}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(file.size)}</p>
                     </div>
