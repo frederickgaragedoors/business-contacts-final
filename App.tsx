@@ -24,7 +24,7 @@ const initialContacts: Contact[] = [
     customFields: [{id: 'cf1', label: 'Company', value: 'CorpNet Inc.'}],
     jobTickets: [
         { id: 'jt1', date: '2024-07-15', notes: 'Customer reported grinding noise when opening door. Inspected tracks and rollers.', status: 'Scheduled', parts: [], laborCost: 150 },
-        { id: 'jt2', date: '2023-10-22', notes: 'Replaced both torsion springs and lubricated all moving parts. Door is now operating smoothly.', status: 'Invoiced', parts: [{id: 'p1', name: 'Torsion Spring (x2)', cost: 120}], laborCost: 200 },
+        { id: 'jt2', date: '2023-10-22', notes: 'Replaced both torsion springs and lubricated all moving parts. Door is now operating smoothly.', status: 'Paid', parts: [{id: 'p1', name: 'Torsion Spring (x2)', cost: 120}], laborCost: 200 },
         { id: 'jt3', date: '2024-06-01', notes: 'Needs new logic board for opener. Part ordered.', status: 'Awaiting Parts', parts: [], laborCost: 75 },
     ],
   },
