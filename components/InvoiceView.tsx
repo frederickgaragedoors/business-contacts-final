@@ -161,7 +161,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             {/* Invoice Paper */}
             <div className="p-4 md:p-8 flex-grow print:p-0">
                 <div ref={invoiceContentRef} className="max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper">
-                    <header className="flex justify-between items-start pb-8 border-b text-slate-800">
+                    <header className="flex justify-between items-baseline pb-6 border-b border-slate-200 text-slate-800">
                         <div>
                             {businessInfo.logoUrl && (
                                 <img src={businessInfo.logoUrl} alt="Business Logo" className="h-16 w-auto mb-4" />
@@ -172,7 +172,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                             <p className="text-sm text-slate-500">{businessInfo.email}</p>
                         </div>
                         <div className="text-right">
-                            <h2 className="text-3xl uppercase font-bold text-slate-600">{docType}</h2>
+                            <h2 className="text-4xl uppercase font-bold text-slate-700">{docType}</h2>
                             <p className="text-sm text-slate-500 mt-2">
                                 <span className="font-semibold text-slate-600">Job ID:</span> {ticket.id}
                             </p>
@@ -182,7 +182,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         </div>
                     </header>
 
-                    <section className="mt-8">
+                    <section className="mt-6">
                         <h3 className="text-sm font-semibold uppercase text-slate-500">Bill To</h3>
                         <div className="mt-2 text-slate-700">
                             <p className="font-bold">{contact.name}</p>
@@ -192,22 +192,22 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         </div>
                     </section>
 
-                    <section className="mt-8">
+                    <section className="mt-6">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="bg-slate-100">
-                                    <th className="p-3 text-sm font-semibold text-slate-600">Description</th>
-                                    <th className="p-3 text-right text-sm font-semibold text-slate-600">Amount</th>
+                                <tr>
+                                    <th className="p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Description</th>
+                                    <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200">Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {ticket.parts.map(part => (
-                                    <tr key={part.id} className="border-b">
+                                    <tr key={part.id} className="border-b border-slate-100">
                                         <td className="p-3 text-sm text-slate-700">{part.name}</td>
                                         <td className="p-3 text-right text-sm text-slate-700">${part.cost.toFixed(2)}</td>
                                     </tr>
                                 ))}
-                                 <tr className="border-b">
+                                 <tr className="border-b border-slate-100">
                                     <td className="p-3 text-sm text-slate-700">Labor</td>
                                     <td className="p-3 text-right text-sm text-slate-700">${ticket.laborCost.toFixed(2)}</td>
                                 </tr>
@@ -215,15 +215,15 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         </table>
                     </section>
 
-                    <section className="mt-8 flex justify-end">
+                    <section className="mt-6 flex justify-end">
                        {docType === 'estimate' && (ticket.processingFeeRate || 0) > 0 ? (
-                            <div className="w-full max-w-sm space-y-3 text-slate-700 p-4 bg-slate-50 rounded-lg border">
-                                <div className="flex justify-between pb-2 border-b">
+                            <div className="w-full max-w-sm space-y-3 text-slate-700 border-t-2 border-slate-200 pt-4">
+                                <div className="flex justify-between pb-2">
                                     <span className="text-sm font-medium text-slate-600">Subtotal</span>
                                     <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
                                 </div>
                                 {(ticket.salesTaxRate || 0) > 0 && (
-                                    <div className="flex justify-between pb-2 border-b">
+                                    <div className="flex justify-between pb-2">
                                         <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
                                         <span className="text-sm font-medium">${taxAmount.toFixed(2)}</span>
                                     </div>
@@ -233,33 +233,33 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                                     <span className="text-base font-semibold">Pay by Check/Cash</span>
                                     <span className="text-base font-semibold">${(subtotal + taxAmount).toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between py-2 border-t bg-green-50 px-2 rounded-md">
-                                    <span className="text-base font-semibold text-green-800">Pay by Card</span>
-                                    <span className="text-base font-semibold text-green-800">${totalCost.toFixed(2)}</span>
+                                <div className="flex justify-between py-2 border-t text-green-700 dark:text-green-400">
+                                    <span className="text-base font-semibold">Pay by Card</span>
+                                    <span className="text-base font-semibold">${totalCost.toFixed(2)}</span>
                                 </div>
                                 <p className="text-xs text-slate-500 text-center pt-2">A {ticket.processingFeeRate}% card processing fee is included in the card payment total.</p>
                             </div>
                        ) : (
                             <div className="w-full max-w-xs space-y-2 text-slate-700">
-                                <div className="flex justify-between py-2 border-b">
+                                <div className="flex justify-between py-2 border-b border-slate-100">
                                     <span className="text-sm font-medium text-slate-600">Subtotal</span>
                                     <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
                                 </div>
                                 {(ticket.salesTaxRate || 0) > 0 && (
-                                    <div className="flex justify-between py-2 border-b">
+                                    <div className="flex justify-between py-2 border-b border-slate-100">
                                         <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
                                         <span className="text-sm font-medium">${taxAmount.toFixed(2)}</span>
                                     </div>
                                 )}
                                 {(ticket.processingFeeRate || 0) > 0 && (
-                                    <div className="flex justify-between py-2 border-b">
+                                    <div className="flex justify-between py-2 border-b border-slate-100">
                                         <span className="text-sm font-medium text-slate-600">Card Processing Fee ({ticket.processingFeeRate}%)</span>
                                         <span className="text-sm font-medium">${feeAmount.toFixed(2)}</span>
                                     </div>
                                 )}
-                                 <div className="flex justify-between py-2 bg-slate-100 px-3 mt-2 rounded-md">
-                                    <span className="text-lg font-bold text-slate-800">Total</span>
-                                    <span className="text-lg font-bold text-slate-800">${totalCost.toFixed(2)}</span>
+                                 <div className="flex justify-between py-3 mt-2 border-t-2 border-slate-300">
+                                    <span className="text-base font-bold text-slate-800">Total</span>
+                                    <span className="text-base font-bold text-slate-800">${totalCost.toFixed(2)}</span>
                                 </div>
                             </div>
                        )}
