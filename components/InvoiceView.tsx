@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Contact, JobTicket, BusinessInfo, FileAttachment } from '../types.ts';
@@ -19,10 +19,8 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef<HTMLDivElement>(null);
 
-    const handleSaveAndAttach = async () => {
-        if (!invoiceContentRef.current || isSaving) return;
-        
-        setIsSaving(true);
+    const generatePdf = async () => {
+        if (!invoiceContentRef.current) return null;
         
         try {
             const canvas = await html2canvas(invoiceContentRef.current, {
@@ -39,7 +37,6 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             });
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
             const canvasWidth = canvas.width;
             const canvasHeight = canvas.height;
             const ratio = canvasWidth / canvasHeight;
@@ -51,11 +48,31 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             
             const docTypeName = docType.charAt(0).toUpperCase() + docType.slice(1);
             const fileName = `${contact.name} - ${docTypeName} ${ticket.id}.pdf`;
-            
-            // Trigger download
-            pdf.save(fileName);
 
-            // Create FileAttachment and add to contact
+            return { pdf, fileName };
+        } catch (error) {
+            console.error("Failed to generate PDF", error);
+            alert("Sorry, there was an error creating the PDF.");
+            return null;
+        }
+    };
+
+    const handleDownload = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+        const pdfData = await generatePdf();
+        if (pdfData) {
+            pdfData.pdf.save(pdfData.fileName);
+        }
+        setIsSaving(false);
+    };
+
+    const handleAttach = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+        const pdfData = await generatePdf();
+        if (pdfData) {
+            const { pdf, fileName } = pdfData;
             const pdfBlob = pdf.output('blob');
             const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
             const dataUrl = await fileToDataUrl(pdfFile);
@@ -68,14 +85,10 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                 dataUrl: dataUrl
             };
             
-            addFilesToContact(contact.id, [newFileAttachment]);
-
-        } catch (error) {
-            console.error("Failed to generate or save PDF", error);
-            alert("Sorry, there was an error creating the PDF.");
-        } finally {
-            setIsSaving(false);
+            await addFilesToContact(contact.id, [newFileAttachment]);
+            alert('PDF attached successfully!');
         }
+        setIsSaving(false);
     };
 
     const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
@@ -109,11 +122,18 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         Print
                     </button>
                     <button 
-                        onClick={handleSaveAndAttach}
+                        onClick={handleDownload}
+                        disabled={isSaving}
+                        className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
+                    >
+                        {isSaving ? 'Working...' : 'Download'}
+                    </button>
+                    <button 
+                        onClick={handleAttach}
                         disabled={isSaving}
                         className="px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait"
                     >
-                        {isSaving ? 'Saving...' : 'Save & Attach PDF'}
+                        {isSaving ? 'Working...' : 'Attach PDF'}
                     </button>
                 </div>
             </div>
