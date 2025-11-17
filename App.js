@@ -115,7 +115,6 @@ const App = () => {
         const root = window.document.documentElement;
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-        // This function will be the event listener.
         const systemThemeListener = (e) => {
             if (e.matches) {
                 root.classList.add('dark');
@@ -124,16 +123,11 @@ const App = () => {
             }
         };
 
-        // Remove any existing listener first.
-        mediaQuery.removeEventListener('change', systemThemeListener);
-
-        // Apply the theme based on the current setting.
         if (appState.theme === 'light') {
             root.classList.remove('dark');
         } else if (appState.theme === 'dark') {
             root.classList.add('dark');
         } else { // 'system'
-            // For system, apply the current state and then listen for changes.
             if (mediaQuery.matches) {
                 root.classList.add('dark');
             } else {
@@ -142,7 +136,6 @@ const App = () => {
             mediaQuery.addEventListener('change', systemThemeListener);
         }
 
-        // The cleanup function will remove the listener if it was added.
         return () => {
             mediaQuery.removeEventListener('change', systemThemeListener);
         };
