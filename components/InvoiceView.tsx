@@ -28,6 +28,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             const canvas = await html2canvas(invoiceContentRef.current, {
                 scale: 2, // Higher scale for better quality
                 useCORS: true,
+                backgroundColor: '#ffffff',
             });
 
             const imgData = canvas.toDataURL('image/png');
@@ -80,30 +81,30 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
     const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
 
     return (
-        <div className="h-full flex flex-col bg-slate-200 overflow-y-auto print:bg-white">
+        <div className="h-full flex flex-col bg-slate-200 dark:bg-slate-900 overflow-y-auto print:bg-white">
             {/* Toolbar */}
-            <div className="p-4 flex items-center justify-between border-b border-slate-300 bg-white print:hidden">
-                <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100">
-                    <ArrowLeftIcon className="w-6 h-6 text-slate-600" />
+            <div className="p-4 flex items-center justify-between border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 print:hidden">
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <ArrowLeftIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
                 </button>
                 <div className="flex items-center space-x-2">
-                     <div className="flex items-center space-x-1 p-1 bg-slate-200 rounded-lg">
+                     <div className="flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg">
                         <button
                             onClick={() => setDocType('quote')}
-                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'quote' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:bg-slate-300'}`}
+                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'quote' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
                         >
                             Quote
                         </button>
                         <button
                              onClick={() => setDocType('invoice')}
-                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'invoice' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:bg-slate-300'}`}
+                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'invoice' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
                         >
                             Invoice
                         </button>
                     </div>
                     <button 
                         onClick={() => window.print()}
-                        className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200"
+                        className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
                     >
                         Print
                     </button>
@@ -120,12 +121,12 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             {/* Invoice Paper */}
             <div className="p-4 md:p-8 flex-grow print:p-0">
                 <div ref={invoiceContentRef} className="max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper">
-                    <header className="flex justify-between items-start pb-8 border-b">
+                    <header className="flex justify-between items-start pb-8 border-b text-slate-800">
                         <div>
                             {businessInfo.logoUrl && (
                                 <img src={businessInfo.logoUrl} alt="Business Logo" className="h-16 w-auto mb-4" />
                             )}
-                            <h1 className="text-2xl font-bold text-slate-800">{businessInfo.name || 'Your Company'}</h1>
+                            <h1 className="text-2xl font-bold">{businessInfo.name || 'Your Company'}</h1>
                             <p className="text-sm text-slate-500 whitespace-pre-line">{businessInfo.address}</p>
                             <p className="text-sm text-slate-500">{businessInfo.phone}</p>
                             <p className="text-sm text-slate-500">{businessInfo.email}</p>
@@ -133,21 +134,21 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         <div className="text-right">
                             <h2 className="text-3xl uppercase font-bold text-slate-600">{docType}</h2>
                             <p className="text-sm text-slate-500 mt-2">
-                                <span className="font-semibold">Job ID:</span> {ticket.id}
+                                <span className="font-semibold text-slate-600">Job ID:</span> {ticket.id}
                             </p>
                             <p className="text-sm text-slate-500">
-                                <span className="font-semibold">Date:</span> {new Date(ticket.date).toLocaleDateString(undefined, { timeZone: 'UTC'})}
+                                <span className="font-semibold text-slate-600">Date:</span> {new Date(ticket.date).toLocaleDateString(undefined, { timeZone: 'UTC'})}
                             </p>
                         </div>
                     </header>
 
                     <section className="mt-8">
                         <h3 className="text-sm font-semibold uppercase text-slate-500">Bill To</h3>
-                        <div className="mt-2">
-                            <p className="font-bold text-slate-700">{contact.name}</p>
-                            <p className="text-sm text-slate-600 whitespace-pre-line">{contact.address}</p>
-                            <p className="text-sm text-slate-600">{contact.phone}</p>
-                            <p className="text-sm text-slate-600">{contact.email}</p>
+                        <div className="mt-2 text-slate-700">
+                            <p className="font-bold">{contact.name}</p>
+                            <p className="text-sm whitespace-pre-line">{contact.address}</p>
+                            <p className="text-sm">{contact.phone}</p>
+                            <p className="text-sm">{contact.email}</p>
                         </div>
                     </section>
 
@@ -175,21 +176,21 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                     </section>
 
                     <section className="mt-8 flex justify-end">
-                        <div className="w-full max-w-xs space-y-2">
+                        <div className="w-full max-w-xs space-y-2 text-slate-700">
                             <div className="flex justify-between py-2 border-b">
                                 <span className="text-sm font-medium text-slate-600">Subtotal</span>
-                                <span className="text-sm font-medium text-slate-700">${subtotal.toFixed(2)}</span>
+                                <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
                             </div>
                             {(ticket.salesTaxRate || 0) > 0 && (
                                 <div className="flex justify-between py-2 border-b">
                                     <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
-                                    <span className="text-sm font-medium text-slate-700">${taxAmount.toFixed(2)}</span>
+                                    <span className="text-sm font-medium">${taxAmount.toFixed(2)}</span>
                                 </div>
                             )}
                             {(ticket.processingFeeRate || 0) > 0 && (
                                 <div className="flex justify-between py-2 border-b">
                                     <span className="text-sm font-medium text-slate-600">Processing Fee ({ticket.processingFeeRate}%)</span>
-                                    <span className="text-sm font-medium text-slate-700">${feeAmount.toFixed(2)}</span>
+                                    <span className="text-sm font-medium">${feeAmount.toFixed(2)}</span>
                                 </div>
                             )}
                              <div className="flex justify-between py-2 bg-slate-100 px-3 mt-2 rounded-md">
