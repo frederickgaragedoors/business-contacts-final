@@ -61,7 +61,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
             const fileName = `${contact.name} - ${docTypeName} ${ticket.id}.pdf`;
 
             return { pdf, fileName };
-        } catch (error) {35=`9-8 91z3`
+        } catch (error) {
             console.error("Failed to generate or save PDF", error);
             alert("Sorry, there was an error creating the PDF.");
             return null;
