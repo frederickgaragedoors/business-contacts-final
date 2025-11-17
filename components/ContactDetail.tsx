@@ -288,31 +288,34 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                             <button
                                                 onClick={() => onViewInvoice(contact.id, ticket.id)}
                                                 className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500"
-                                                aria-label="View Estimate/Receipt"
+                                                aria-label="View PDF"
                                             >
                                                 <ClipboardListIcon className="w-4 h-4" />
-                                                <span>Estimate/Receipt</span>
+                                                <span>PDF</span>
                                             </button>
                                             <button 
                                                 onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
-                                                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                                                aria-label="Edit job ticket"
+                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500"
+                                                aria-label="Edit job"
                                             >
-                                                <EditIcon className="w-5 h-5" />
+                                                <EditIcon className="w-4 h-4" />
+                                                <span>Edit</span>
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteJobTicket(ticket.id)}
-                                                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                                                aria-label="Delete job ticket"
+                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900"
+                                                aria-label="Delete job"
                                             >
-                                                <TrashIcon className="w-5 h-5" />
+                                                <TrashIcon className="w-4 h-4" />
+                                                <span>Delete</span>
                                             </button>
                                             <button
                                                 onClick={() => onViewJobDetail(contact.id, ticket.id)}
-                                                className="p-2 bg-sky-500 hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500 text-white rounded-full"
-                                                aria-label="View job details"
+                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600"
+                                                aria-label="View job"
                                             >
-                                                <EyeIcon className="w-5 h-5" />
+                                                <EyeIcon className="w-4 h-4" />
+                                                <span>View</span>
                                             </button>
                                         </div>
                                     </li>
