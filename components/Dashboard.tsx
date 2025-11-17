@@ -95,11 +95,11 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onSelectContact }) => {
 
     return (
         <div className="h-full flex flex-col bg-slate-100 overflow-y-auto">
-             <div className="p-6 border-b border-slate-200 bg-white">
+             <div className="px-4 sm:px-6 py-6 border-b border-slate-200 bg-white">
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Jobs Dashboard</h1>
                 <p className="mt-1 text-slate-500">A summary of your active jobs.</p>
             </div>
-            <div className="p-6 flex-grow space-y-8">
+            <div className="px-4 sm:px-6 py-6 flex-grow space-y-8">
                 <Section 
                     title="Awaiting Parts" 
                     jobs={jobsAwaitingParts} 
