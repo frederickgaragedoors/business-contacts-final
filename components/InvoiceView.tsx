@@ -202,7 +202,17 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                     <section className="mt-8 flex justify-end">
                        {docType === 'estimate' && (ticket.processingFeeRate || 0) > 0 ? (
                             <div className="w-full max-w-sm space-y-3 text-slate-700 p-4 bg-slate-50 rounded-lg border">
-                                <h4 className="font-bold text-lg text-slate-800 text-center">Payment Options</h4>
+                                <div className="flex justify-between pb-2 border-b">
+                                    <span className="text-sm font-medium text-slate-600">Subtotal</span>
+                                    <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
+                                </div>
+                                {(ticket.salesTaxRate || 0) > 0 && (
+                                    <div className="flex justify-between pb-2 border-b">
+                                        <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
+                                        <span className="text-sm font-medium">${taxAmount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <h4 className="font-bold text-lg text-slate-800 text-center pt-2">Payment Options</h4>
                                 <div className="flex justify-between py-2 border-t">
                                     <span className="text-base font-semibold">Pay by Check/Cash</span>
                                     <span className="text-base font-semibold">${(subtotal + taxAmount).toFixed(2)}</span>
