@@ -5,11 +5,20 @@ import { SearchIcon } from './icons.js';
 const ContactList = ({ contacts, selectedContactId, onSelectContact }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.phone.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredContacts = contacts.filter(contact => {
+    const query = searchQuery.toLowerCase();
+    const hasMatchingJobTicket = contact.jobTickets.some(ticket =>
+      ticket.id.toLowerCase().includes(query)
+    );
+    
+    return (
+      contact.name.toLowerCase().includes(query) ||
+      contact.email.toLowerCase().includes(query) ||
+      contact.phone.toLowerCase().includes(query) ||
+      (contact.address && contact.address.toLowerCase().includes(query)) ||
+      hasMatchingJobTicket
+    );
+  });
 
   return (
     React.createElement("div", { className: "h-full bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col" },
