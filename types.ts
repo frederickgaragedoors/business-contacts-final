@@ -49,6 +49,16 @@ export interface JobTicket {
   processingFeeRate?: number;
 }
 
+export interface JobTemplate {
+  id: string;
+  name: string;
+  notes: string;
+  parts: Part[];
+  laborCost: number;
+  salesTaxRate?: number;
+  processingFeeRate?: number;
+}
+
 export interface Contact {
   id: string;
   name: string;
