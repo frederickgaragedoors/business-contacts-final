@@ -115,27 +115,25 @@ const App = () => {
         const root = window.document.documentElement;
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-        const systemThemeListener = (e) => {
-            if (e.matches) {
-                root.classList.add('dark');
-            } else {
-                root.classList.remove('dark');
-            }
-        };
+        // Determine if dark mode should be enabled
+        const isDark = appState.theme === 'dark' || 
+                       (appState.theme === 'system' && mediaQuery.matches);
+        
+        // Apply or remove the 'dark' class
+        root.classList.toggle('dark', isDark);
 
-        if (appState.theme === 'light') {
-            root.classList.remove('dark');
-        } else if (appState.theme === 'dark') {
-            root.classList.add('dark');
-        } else { // 'system'
-            if (mediaQuery.matches) {
-                root.classList.add('dark');
-            } else {
-                root.classList.remove('dark');
-            }
+        // Listener for system theme changes
+        const systemThemeListener = (e) => {
+            // This only needs to apply the class, toggle handles the logic
+            root.classList.toggle('dark', e.matches);
+        };
+        
+        // If theme is 'system', listen for changes.
+        if (appState.theme === 'system') {
             mediaQuery.addEventListener('change', systemThemeListener);
         }
 
+        // Cleanup listener on component unmount or when theme setting changes
         return () => {
             mediaQuery.removeEventListener('change', systemThemeListener);
         };
