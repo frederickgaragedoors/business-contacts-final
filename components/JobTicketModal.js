@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { XIcon, PlusIcon, TrashIcon } from './icons.js';
-import { generateId } from '../utils.js';
+import { generateId, calculateJobTicketTotal } from '../utils.js';
 
 const jobStatuses = ['Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Invoiced'];
 
@@ -9,9 +9,9 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
   const [status, setStatus] = useState('Scheduled');
   const [notes, setNotes] = useState('');
   const [parts, setParts] = useState([]);
-  const [laborCost, setLaborCost] = useState(0);
-  const [salesTaxRate, setSalesTaxRate] = useState(0);
-  const [processingFeeRate, setProcessingFeeRate] = useState(0);
+  const [laborCost, setLaborCost] = useState('');
+  const [salesTaxRate, setSalesTaxRate] = useState('');
+  const [processingFeeRate, setProcessingFeeRate] = useState('');
 
 
   useEffect(() => {
@@ -47,36 +47,25 @@ const JobTicketModal = ({ entry, onSave, onClose }) => {
   const handleRemovePart = (id) => {
     setParts(parts.filter(p => p.id !== id));
   };
+  
+  const currentTicketState = useMemo(() => ({
+      id: entry?.id || '',
+      date,
+      status,
+      notes,
+      parts,
+      laborCost: Number(laborCost || 0),
+      salesTaxRate: Number(salesTaxRate || 0),
+      processingFeeRate: Number(processingFeeRate || 0),
+  }), [entry, date, status, notes, parts, laborCost, salesTaxRate, processingFeeRate]);
 
-  const { subtotal, taxAmount, feeAmount, finalTotal } = useMemo(() => {
-    const partsTotal = parts.reduce((sum, part) => sum + Number(part.cost || 0), 0);
-    const sub = partsTotal + Number(laborCost || 0);
-    const tax = sub * (Number(salesTaxRate || 0) / 100);
-    const totalWithTax = sub + tax;
-    const fee = totalWithTax * (Number(processingFeeRate || 0) / 100);
-    const final = totalWithTax + fee;
-    
-    return {
-        subtotal: sub,
-        taxAmount: tax,
-        feeAmount: fee,
-        finalTotal: final,
-    };
-  }, [parts, laborCost, salesTaxRate, processingFeeRate]);
+  const { subtotal, taxAmount, feeAmount, totalCost: finalTotal } = calculateJobTicketTotal(currentTicketState);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (notes.trim() && date) {
-      onSave({
-        id: entry?.id,
-        date,
-        status,
-        notes,
-        parts,
-        laborCost: Number(laborCost || 0),
-        salesTaxRate: Number(salesTaxRate || 0),
-        processingFeeRate: Number(processingFeeRate || 0),
-      });
+      onSave(currentTicketState);
     }
   };
 
