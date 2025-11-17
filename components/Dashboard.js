@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { jobStatusColors } from '../types.ts';
+import { jobStatusColors } from '../types.js';
 
 const Dashboard = ({ contacts, onSelectContact }) => {
 
