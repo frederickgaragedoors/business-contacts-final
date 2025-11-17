@@ -18,7 +18,7 @@ import {
 } from './icons.js';
 import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal } from '../utils.js';
 import { getFiles } from '../db.js';
-import { jobStatusColors } from '../types.ts';
+import { jobStatusColors } from '../types.js';
 
 
 const VIEWABLE_MIME_TYPES = [
