@@ -195,14 +195,24 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                             <div className="flex items-start">
                                 <MailIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
                                 <div className="ml-4">
-                                    <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.email}</p>
+                                    <a href={`mailto:${contact.email}`} className="font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline cursor-pointer transition-colors">{contact.email}</a>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Email</p>
                                 </div>
                             </div>
                             <div className="flex items-start">
                                 <PhoneIcon className="w-5 h-5 text-slate-400 mt-1 flex-shrink-0" />
-                                <div className="ml-4">
-                                    <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.phone}</p>
+                                <div className="ml-4 flex-grow">
+                                    <div className="flex justify-between items-center">
+                                      <p className="font-semibold text-slate-700 dark:text-slate-200">{contact.phone}</p>
+                                       <div className="flex space-x-2">
+                                            <a href={`tel:${contact.phone}`} className="px-3 py-1 flex items-center space-x-1.5 text-xs font-medium rounded-full text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                                                <PhoneIcon className="w-3 h-3" /> <span>Call</span>
+                                            </a>
+                                            <a href={`sms:${contact.phone}`} className="px-3 py-1 flex items-center space-x-1.5 text-xs font-medium rounded-full text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                                                <MessageIcon className="w-3 h-3" /> <span>Text</span>
+                                            </a>
+                                        </div>
+                                    </div>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Mobile</p>
                                 </div>
                             </div>
@@ -429,16 +439,10 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     </div>
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{contact.name}</h1>
                     <div className="flex space-x-3 mt-4">
-                        <a href={`tel:${contact.phone}`} className="px-4 py-2 flex items-center space-x-2 text-sm font-medium rounded-full text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
-                            <PhoneIcon className="w-4 h-4" /> <span>Call</span>
-                        </a>
-                         <a href={`mailto:${contact.email}`} className="px-4 py-2 flex items-center space-x-2 text-sm font-medium rounded-full text-sky-700 bg-sky-100 dark:bg-sky-900/50 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
-                            <MailIcon className="w-4 h-4" /> <span>Email</span>
-                        </a>
                         <button onClick={onEdit} className="p-2 rounded-full text-slate-600 bg-slate-200 dark:bg-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
                             <EditIcon className="w-5 h-5" />
                         </button>
-                        <button onClick={onDelete} className="p-2 rounded-full text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900 transition-colors">
+                        <button onClick={onDelete} className="p-2 rounded-full text-white bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 transition-colors">
                             <TrashIcon className="w-5 h-5" />
                         </button>
                     </div>
