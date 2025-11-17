@@ -165,7 +165,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                             ),
                             (ticket.processingFeeRate || 0) > 0 && (
                                 React.createElement("div", { className: "flex justify-between py-2 border-b" },
-                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Processing Fee (${ticket.processingFeeRate}%)`),
+                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Card Processing Fee (${ticket.processingFeeRate}%)`),
                                     React.createElement("span", { className: "text-sm font-medium" }, `$${feeAmount.toFixed(2)}`)
                                 )
                             ),
