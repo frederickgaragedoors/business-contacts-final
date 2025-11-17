@@ -489,7 +489,7 @@ const App = () => {
                     onSelectContact: (id) => setViewState({ type: 'detail', id }),
                 })
             ),
-            React.createElement("main", { className: `flex-grow bg-white dark:bg-slate-800 h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}` },
+            React.createElement("main", { className: `flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}` },
                 renderMainContent()
             )
         )
