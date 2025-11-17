@@ -15,7 +15,7 @@ interface InvoiceViewProps {
 }
 
 const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo, onClose, addFilesToContact }) => {
-    const [docType, setDocType] = useState<'invoice' | 'quote'>('invoice');
+    const [docType, setDocType] = useState<'receipt' | 'estimate'>('receipt');
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef<HTMLDivElement>(null);
 
@@ -90,16 +90,16 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                 <div className="flex items-center space-x-2">
                      <div className="flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg">
                         <button
-                            onClick={() => setDocType('quote')}
-                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'quote' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                            onClick={() => setDocType('estimate')}
+                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'estimate' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
                         >
-                            Quote
+                            Estimate
                         </button>
                         <button
-                             onClick={() => setDocType('invoice')}
-                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'invoice' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
+                             onClick={() => setDocType('receipt')}
+                            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'receipt' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
                         >
-                            Invoice
+                            Receipt
                         </button>
                     </div>
                     <button 
