@@ -197,21 +197,25 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                 @media print {
                     body.invoice-view-active > #root > div > header,
                     body.invoice-view-active > #root > div > div > div:first-child {
-                        display: none;
+                        display: none !important;
                     }
                     body.invoice-view-active > #root > div > div > main {
-                        width: 100%;
+                        width: 100% !important;
                         display: block !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                        flex-grow: 0 !important;
                     }
                     body.invoice-view-active,
                     body.invoice-view-active > #root,
                     body.invoice-view-active > #root > div,
                     body.invoice-view-active > #root > div > div {
+                        display: block !important;
                         background-color: white !important;
-                        height: auto;
-                        overflow: visible;
-                        padding: 0;
-                        margin: 0;
+                        height: auto !important;
+                        overflow: visible !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
                     }
                     .invoice-container {
                         padding: 0 !important;
@@ -220,7 +224,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                         box-shadow: none !important;
                         margin: 0 !important;
                         max-width: 100% !important;
-                        border-radius: 0;
+                        border-radius: 0 !important;
                     }
                 }
             `)
