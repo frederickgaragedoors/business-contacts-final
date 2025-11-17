@@ -69,6 +69,8 @@ const initialBusinessInfo: BusinessInfo = {
     logoUrl: '',
 };
 
+type Theme = 'light' | 'dark' | 'system';
+
 interface AppState {
     contacts: Contact[];
     defaultFields: DefaultFieldSetting[];
@@ -78,6 +80,7 @@ interface AppState {
         timestamp: string; // ISO string
         data: string;      // JSON string of all app state
     } | null;
+    theme: Theme;
 }
 
 const APP_STORAGE_KEY = 'businessContactsApp';
@@ -108,6 +111,7 @@ const App: React.FC = () => {
                 businessInfo: parsed.businessInfo || initialBusinessInfo,
                 autoBackupEnabled: parsed.autoBackupEnabled || false,
                 lastAutoBackup: parsed.lastAutoBackup || null,
+                theme: parsed.theme || 'system',
             };
         }
         return {
@@ -116,6 +120,7 @@ const App: React.FC = () => {
             businessInfo: initialBusinessInfo,
             autoBackupEnabled: false,
             lastAutoBackup: null,
+            theme: 'system',
         };
     });
 
@@ -125,6 +130,27 @@ const App: React.FC = () => {
     useEffect(() => {
         initDB().catch(err => console.error("Failed to initialize DB", err));
     }, []);
+    
+    // Effect to manage the theme
+    useEffect(() => {
+        const root = window.document.documentElement;
+        const isDark =
+          appState.theme === 'dark' ||
+          (appState.theme === 'system' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        
+        root.classList.toggle('dark', isDark);
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = () => {
+             const isDark =
+                appState.theme === 'dark' ||
+                (appState.theme === 'system' && mediaQuery.matches);
+             root.classList.toggle('dark', isDark);
+        }
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, [appState.theme]);
 
     // Debounced effect to persist the entire app state to localStorage
     useEffect(() => {
@@ -179,6 +205,10 @@ const App: React.FC = () => {
     const updateBusinessInfo = (info: BusinessInfo) => {
         setAppState(current => ({ ...current, businessInfo: info }));
         alert('Business information saved!');
+    };
+    
+    const updateTheme = (theme: Theme) => {
+        setAppState(current => ({ ...current, theme }));
     };
 
     const addContact = async (contactData: Omit<Contact, 'id'>) => {
@@ -433,6 +463,8 @@ const App: React.FC = () => {
                         onRestoreBackup={(content) => restoreData(content, false)}
                         businessInfo={appState.businessInfo}
                         onUpdateBusinessInfo={updateBusinessInfo}
+                        currentTheme={appState.theme}
+                        onUpdateTheme={updateTheme}
                     />
                 );
             case 'invoice':
@@ -459,7 +491,7 @@ const App: React.FC = () => {
     const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice'].includes(viewState.type);
 
     return (
-        <div className="h-screen w-screen flex flex-col antialiased text-slate-700 relative">
+        <div className="h-screen w-screen flex flex-col antialiased text-slate-700 dark:text-slate-300 relative">
             {recoveryBackup && (
                 <div className="absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg">
                     <div>
@@ -503,7 +535,7 @@ const App: React.FC = () => {
                         onSelectContact={(id) => setViewState({ type: 'detail', id })}
                     />
                 </div>
-                <main className={`flex-grow bg-white h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}`}>
+                <main className={`flex-grow bg-white dark:bg-slate-800 h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:w-full' : ''}`}>
                     {renderMainContent()}
                 </main>
             </div>
@@ -512,10 +544,10 @@ const App: React.FC = () => {
 };
 
 const WelcomeMessage: React.FC<{onNewContact?: () => void}> = ({ onNewContact }) => (
-  <div className="h-full flex flex-col justify-center items-center text-center p-8 bg-slate-50">
-    <UserCircleIcon className="w-24 h-24 text-slate-300" />
-    <h2 className="mt-4 text-2xl font-bold text-slate-600">Welcome to your Contacts</h2>
-    <p className="mt-2 text-slate-500">Select a contact to view their details or add a new one.</p>
+  <div className="h-full flex flex-col justify-center items-center text-center p-8 bg-slate-50 dark:bg-slate-800">
+    <UserCircleIcon className="w-24 h-24 text-slate-300 dark:text-slate-600" />
+    <h2 className="mt-4 text-2xl font-bold text-slate-600 dark:text-slate-300">Welcome to your Contacts</h2>
+    <p className="mt-2 text-slate-500 dark:text-slate-400">Select a contact to view their details or add a new one.</p>
     {onNewContact && (
         <button 
             onClick={onNewContact} 
