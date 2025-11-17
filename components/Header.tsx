@@ -21,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({
     const isListActive = !isDashboardActive;
 
     return (
-        <header className="p-4 border-b border-slate-200 flex justify-between items-center space-x-2 bg-slate-50 flex-shrink-0 z-20">
+        <header className="px-4 sm:px-6 py-4 border-b border-slate-200 flex justify-between items-center space-x-2 bg-slate-50 flex-shrink-0 z-20">
             <div className="flex items-center space-x-1 p-1 bg-slate-200 rounded-lg">
                 <button
                     onClick={onGoToDashboard}
