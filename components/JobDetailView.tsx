@@ -12,7 +12,7 @@ import {
   ClipboardListIcon,
   MessageIcon,
 } from './icons.tsx';
-import { calculateJobTicketTotal } from '../utils.ts';
+import { calculateJobTicketTotal, formatTime } from '../utils.ts';
 
 interface JobDetailViewProps {
   contact: Contact;
@@ -77,7 +77,10 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             <div className="flex flex-col items-start gap-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-6 border border-slate-100 dark:border-slate-700">
                 <div>
                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</p>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
+                        {new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
+                        {ticket.time && <span className="ml-2 text-slate-600 dark:text-slate-300 font-normal">at {formatTime(ticket.time)}</span>}
+                    </p>
                 </div>
                 <div>
                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Job ID</p>
