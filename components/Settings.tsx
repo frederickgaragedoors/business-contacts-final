@@ -1,8 +1,9 @@
 
+
 import React, { useState } from 'react';
-import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES } from '../types.ts';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon } from './icons.tsx';
-import { saveJsonFile, fileToDataUrl } from '../utils.ts';
+import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact } from '../types.ts';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon } from './icons.tsx';
+import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.ts';
 import { getAllFiles } from '../db.ts';
 import JobTemplateModal from './JobTemplateModal.tsx';
 
@@ -28,6 +29,7 @@ interface SettingsProps {
     onDeleteJobTemplate: (id: string) => void;
     enabledStatuses: Record<JobStatus, boolean>;
     onToggleJobStatus: (status: JobStatus, enabled: boolean) => void;
+    contacts: Contact[];
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -50,6 +52,7 @@ const Settings: React.FC<SettingsProps> = ({
     onDeleteJobTemplate,
     enabledStatuses,
     onToggleJobStatus,
+    contacts,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState<BusinessInfo>(businessInfo);
@@ -121,6 +124,11 @@ const Settings: React.FC<SettingsProps> = ({
         }
         setIsTemplateModalOpen(false);
         setEditingTemplate(null);
+    };
+    
+    const handleExportCalendar = () => {
+        const icsContent = generateICSContent(contacts);
+        downloadICSFile(icsContent);
     };
 
     return (
@@ -288,6 +296,23 @@ const Settings: React.FC<SettingsProps> = ({
                             <p className="text-center text-slate-500 dark:text-slate-400 p-4">No job templates have been created.</p>
                         )}
                     </div>
+                </div>
+                
+                <div className="mt-8 border-t dark:border-slate-700 pt-6">
+                     <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Calendar Integration</h3>
+                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Export your jobs to an external calendar.</p>
+                      <div className="mt-6">
+                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                            <div>
+                                <p className="font-medium text-slate-700 dark:text-slate-200">Export Calendar</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Download an .ics file to import into Google Calendar, Outlook, etc.</p>
+                            </div>
+                            <button onClick={handleExportCalendar} className="inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                                <CalendarIcon className="w-4 h-4" />
+                                <span>Export .ics</span>
+                            </button>
+                        </div>
+                      </div>
                 </div>
 
                 <div className="mt-8 border-t dark:border-slate-700 pt-6">
