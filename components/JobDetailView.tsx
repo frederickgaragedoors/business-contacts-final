@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors } from '../types.ts';
+import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors, JobStatus } from '../types.ts';
 import JobTicketModal from './JobTicketModal.tsx';
 import {
   ArrowLeftIcon,
@@ -23,6 +23,7 @@ interface JobDetailViewProps {
   onEditTicket: (ticketData: Omit<JobTicket, 'id'> & { id?: string }) => void;
   onDeleteTicket: () => void;
   onViewInvoice: () => void;
+  enabledStatuses: Record<JobStatus, boolean>;
 }
 
 const JobDetailView: React.FC<JobDetailViewProps> = ({
@@ -34,6 +35,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
   onEditTicket,
   onDeleteTicket,
   onViewInvoice,
+  enabledStatuses,
 }) => {
   const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
 
@@ -125,7 +127,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
               <div className="flex items-start">
                 <MapPinIcon className="w-4 h-4 text-slate-400 mr-3 mt-1" />
                 <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`,
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors whitespace-pre-line"
@@ -192,6 +194,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
           }}
           onClose={() => setIsJobTicketModalOpen(false)}
           jobTemplates={jobTemplates}
+          enabledStatuses={enabledStatuses}
         />
       )}
     </>
