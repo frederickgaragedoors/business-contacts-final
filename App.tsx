@@ -11,7 +11,7 @@ import InvoiceView from './components/InvoiceView.tsx';
 import JobDetailView from './components/JobDetailView.tsx';
 import EmptyState from './components/EmptyState.tsx';
 import { UserCircleIcon } from './components/icons.tsx';
-import { generateId } from './utils.ts';
+import { generateId, generateICSContent, downloadICSFile } from './utils.ts';
 import { initDB, addFiles, deleteFiles, getAllFiles, clearAndAddFiles } from './db.ts';
 
 
@@ -86,6 +86,7 @@ interface AppState {
     theme: Theme;
     jobTemplates: JobTemplate[];
     enabledStatuses: Record<JobStatus, boolean>;
+    autoCalendarExportEnabled: boolean;
 }
 
 const APP_STORAGE_KEY = 'businessContactsApp';
@@ -183,6 +184,7 @@ const App: React.FC = () => {
                     theme: parsed.theme || 'system',
                     jobTemplates: sanitizedTemplates,
                     enabledStatuses: defaultEnabledStatuses,
+                    autoCalendarExportEnabled: parsed.autoCalendarExportEnabled || false,
                 };
             }
         } catch (error) {
@@ -203,6 +205,7 @@ const App: React.FC = () => {
             theme: 'system',
             jobTemplates: [],
             enabledStatuses: defaultEnabledStatuses,
+            autoCalendarExportEnabled: false,
         };
     });
 
@@ -280,6 +283,7 @@ const App: React.FC = () => {
                 businessInfo: appState.businessInfo,
                 jobTemplates: appState.jobTemplates,
                 enabledStatuses: appState.enabledStatuses,
+                autoCalendarExportEnabled: appState.autoCalendarExportEnabled,
             };
             const newBackup = {
                 timestamp: new Date().toISOString(),
@@ -292,7 +296,7 @@ const App: React.FC = () => {
              // Also save to sessionStorage for recovery
             sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
-    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates, appState.enabledStatuses]);
+    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates, appState.enabledStatuses, appState.autoCalendarExportEnabled]);
 
     // Effect to handle view transitions and data consistency checks
     useEffect(() => {
@@ -336,6 +340,10 @@ const App: React.FC = () => {
         }));
     };
 
+    const toggleAutoCalendarExport = (enabled: boolean) => {
+        setAppState(current => ({ ...current, autoCalendarExportEnabled: enabled }));
+    };
+
     const addContact = async (contactData: Omit<Contact, 'id'>) => {
         const filesWithData = contactData.files.filter(f => f.dataUrl);
         if (filesWithData.length > 0) {
@@ -348,12 +356,16 @@ const App: React.FC = () => {
             jobTickets: [],
             files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
         };
+        
+        const newContacts = [newContact, ...appState.contacts];
 
-        setAppState(current => {
-            const newContacts = [newContact, ...current.contacts];
-            return { ...current, contacts: newContacts };
-        });
+        setAppState(current => ({ ...current, contacts: newContacts }));
         setViewState({ type: 'detail', id: newContact.id });
+
+        if (appState.autoCalendarExportEnabled) {
+            const icsContent = generateICSContent(newContacts);
+            downloadICSFile(icsContent);
+        }
     };
 
     const updateContact = async (id: string, contactData: Omit<Contact, 'id'>) => {
@@ -377,14 +389,21 @@ const App: React.FC = () => {
             ...contactData,
             files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
         };
+        
+        const newContacts = appState.contacts.map(c => 
+            c.id === id ? { ...c, ...finalContactData, id } : c
+        );
 
         setAppState(current => ({
             ...current,
-            contacts: current.contacts.map(c => 
-                c.id === id ? { ...c, ...finalContactData, id } : c
-            )
+            contacts: newContacts
         }));
         setViewState({ type: 'detail', id });
+
+        if (appState.autoCalendarExportEnabled) {
+             const icsContent = generateICSContent(newContacts);
+             downloadICSFile(icsContent);
+        }
     };
   
     const addFilesToContact = async (contactId: string, newFiles: FileAttachment[]) => {
@@ -401,12 +420,19 @@ const App: React.FC = () => {
     };
   
     const updateContactJobTickets = (contactId: string, jobTickets: JobTicket[]) => {
+        const newContacts = appState.contacts.map(c =>
+            c.id === contactId ? { ...c, jobTickets } : c
+        );
+
         setAppState(current => ({
             ...current,
-            contacts: current.contacts.map(c =>
-                c.id === contactId ? { ...c, jobTickets } : c
-            )
+            contacts: newContacts
         }));
+
+        if (appState.autoCalendarExportEnabled) {
+            const icsContent = generateICSContent(newContacts);
+            downloadICSFile(icsContent);
+        }
     };
 
     const deleteContact = async (id: string) => {
@@ -421,6 +447,11 @@ const App: React.FC = () => {
             
             if ((viewState.type === 'detail' || viewState.type === 'edit_form') && viewState.id === id) {
                  setViewState({ type: 'dashboard' });
+            }
+
+             if (appState.autoCalendarExportEnabled) {
+                const icsContent = generateICSContent(remainingContacts);
+                downloadICSFile(icsContent);
             }
         }
     };
@@ -495,6 +526,7 @@ const App: React.FC = () => {
                         businessInfo: stateToRestore.businessInfo || initialBusinessInfo,
                         jobTemplates: stateToRestore.jobTemplates || [],
                         enabledStatuses: restoredEnabledStatuses,
+                        autoCalendarExportEnabled: stateToRestore.autoCalendarExportEnabled || false,
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
@@ -648,6 +680,8 @@ const App: React.FC = () => {
                         enabledStatuses={appState.enabledStatuses}
                         onToggleJobStatus={toggleJobStatus}
                         contacts={appState.contacts}
+                        autoCalendarExportEnabled={appState.autoCalendarExportEnabled}
+                        onToggleAutoCalendarExport={toggleAutoCalendarExport}
                     />
                 );
             case 'invoice':
