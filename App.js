@@ -12,6 +12,7 @@ import EmptyState from './components/EmptyState.js';
 import { UserCircleIcon } from './components/icons.js';
 import { generateId } from './utils.js';
 import { initDB, addFiles, deleteFiles, getAllFiles, clearAndAddFiles } from './db.js';
+import { ALL_JOB_STATUSES } from './types.js';
 
 const initialContacts = [
   {
@@ -143,6 +144,12 @@ const App = () => {
                     processingFeeRate: template.processingFeeRate,
                 }));
 
+                const loadedEnabledStatuses = parsed.enabledStatuses || {};
+                const defaultEnabledStatuses = ALL_JOB_STATUSES.reduce((acc, status) => {
+                    acc[status] = loadedEnabledStatuses[status] !== undefined ? loadedEnabledStatuses[status] : true;
+                    return acc;
+                }, {});
+
                 return {
                     contacts: sanitizedContacts,
                     defaultFields: parsed.defaultFields || initialDefaultFields,
@@ -151,11 +158,18 @@ const App = () => {
                     lastAutoBackup: parsed.lastAutoBackup || null,
                     theme: parsed.theme || 'system',
                     jobTemplates: sanitizedTemplates,
+                    enabledStatuses: defaultEnabledStatuses,
                 };
             }
         } catch (error) {
             console.error("Failed to load or parse state from localStorage", error);
         }
+
+        const defaultEnabledStatuses = ALL_JOB_STATUSES.reduce((acc, status) => {
+            acc[status] = true;
+            return acc;
+        }, {});
+
         return {
             contacts: initialContacts,
             defaultFields: initialDefaultFields,
@@ -164,6 +178,7 @@ const App = () => {
             lastAutoBackup: null,
             theme: 'system',
             jobTemplates: [],
+            enabledStatuses: defaultEnabledStatuses,
         };
     });
 
@@ -215,6 +230,7 @@ const App = () => {
                 defaultFields: appState.defaultFields,
                 businessInfo: appState.businessInfo,
                 jobTemplates: appState.jobTemplates,
+                enabledStatuses: appState.enabledStatuses,
             };
             const newBackup = {
                 timestamp: new Date().toISOString(),
@@ -223,7 +239,7 @@ const App = () => {
             setAppState(current => ({ ...current, lastAutoBackup: newBackup }));
             sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
-    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates]);
+    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates, appState.enabledStatuses]);
 
     useEffect(() => {
         if (viewState.type === 'list' && window.innerWidth >= 768 && appState.contacts.length > 0) {
@@ -247,6 +263,16 @@ const App = () => {
     };
     
     const updateTheme = (theme) => setAppState(current => ({ ...current, theme }));
+    
+    const toggleJobStatus = (status, enabled) => {
+        setAppState(current => ({
+            ...current,
+            enabledStatuses: {
+                ...current.enabledStatuses,
+                [status]: enabled
+            }
+        }));
+    };
 
     const addContact = async (contactData) => {
         const filesWithData = contactData.files.filter(f => f.dataUrl);
@@ -331,12 +357,21 @@ const App = () => {
                  const performRestore = async () => {
                     const { files, ...stateToRestore } = backupData;
                     if (files && Array.isArray(files)) await clearAndAddFiles(files);
+
+                    const restoredEnabledStatuses = ALL_JOB_STATUSES.reduce((acc, status) => {
+                        acc[status] = stateToRestore.enabledStatuses && stateToRestore.enabledStatuses[status] !== undefined 
+                            ? stateToRestore.enabledStatuses[status] 
+                            : true;
+                        return acc;
+                    }, {});
+
                     setAppState(current => ({
                         ...current,
                         contacts: stateToRestore.contacts,
                         defaultFields: stateToRestore.defaultFields || initialDefaultFields,
                         businessInfo: stateToRestore.businessInfo || initialBusinessInfo,
                         jobTemplates: stateToRestore.jobTemplates || [],
+                        enabledStatuses: restoredEnabledStatuses,
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
@@ -413,10 +448,10 @@ const App = () => {
         switch (viewState.type) {
             case 'dashboard': return React.createElement(Dashboard, { contacts: appState.contacts, onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }) });
             case 'list': return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one.", actionText: appState.contacts.length === 0 ? "Add First Contact" : undefined, onAction: appState.contacts.length === 0 ? () => setViewState({ type: 'new_form' }) : undefined });
-            case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), jobTemplates: appState.jobTemplates }) : null;
+            case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), jobTemplates: appState.jobTemplates, enabledStatuses: appState.enabledStatuses }) : null;
             case 'new_form': return React.createElement(ContactForm, { onSave: addContact, onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}), defaultFields: appState.defaultFields });
             case 'edit_form': return selectedContact ? React.createElement(ContactForm, { initialContact: selectedContact, onSave: (data) => updateContact(selectedContact.id, data), onCancel: () => setViewState({ type: 'detail', id: selectedContact.id }) }) : null;
-            case 'settings': return React.createElement(Settings, { defaultFields: appState.defaultFields, onAddDefaultField: addDefaultField, onDeleteDefaultField: deleteDefaultField, onBack: () => setViewState({ type: 'dashboard' }), appStateForBackup: { ...appState }, autoBackupEnabled: appState.autoBackupEnabled, onToggleAutoBackup: handleToggleAutoBackup, lastAutoBackup: appState.lastAutoBackup, onRestoreBackup: (content) => restoreData(content, false), businessInfo: appState.businessInfo, onUpdateBusinessInfo: updateBusinessInfo, currentTheme: appState.theme, onUpdateTheme: updateTheme, jobTemplates: appState.jobTemplates, onAddJobTemplate: addJobTemplate, onUpdateJobTemplate: updateJobTemplate, onDeleteJobTemplate: deleteJobTemplate });
+            case 'settings': return React.createElement(Settings, { defaultFields: appState.defaultFields, onAddDefaultField: addDefaultField, onDeleteDefaultField: deleteDefaultField, onBack: () => setViewState({ type: 'dashboard' }), appStateForBackup: { ...appState }, autoBackupEnabled: appState.autoBackupEnabled, onToggleAutoBackup: handleToggleAutoBackup, lastAutoBackup: appState.lastAutoBackup, onRestoreBackup: (content) => restoreData(content, false), businessInfo: appState.businessInfo, onUpdateBusinessInfo: updateBusinessInfo, currentTheme: appState.theme, onUpdateTheme: updateTheme, jobTemplates: appState.jobTemplates, onAddJobTemplate: addJobTemplate, onUpdateJobTemplate: updateJobTemplate, onDeleteJobTemplate: deleteJobTemplate, enabledStatuses: appState.enabledStatuses, onToggleJobStatus: toggleJobStatus });
             case 'invoice':
                 if (!selectedContact) return null;
                 const ticketForInvoice = (selectedContact.jobTickets || []).find(t => t.id === (viewState.type === 'invoice' && viewState.ticketId));
@@ -434,7 +469,8 @@ const App = () => {
                     onBack: () => setViewState({ type: 'detail', id: viewState.contactId }),
                     onEditTicket: (ticketData) => handleUpdateJobTicketForDetailView(viewState.contactId, ticketData),
                     onDeleteTicket: () => handleDeleteJobTicketForDetailView(viewState.contactId, viewState.ticketId),
-                    onViewInvoice: () => setViewState({ type: 'invoice', contactId: viewState.contactId, ticketId: viewState.ticketId })
+                    onViewInvoice: () => setViewState({ type: 'invoice', contactId: viewState.contactId, ticketId: viewState.ticketId }),
+                    enabledStatuses: appState.enabledStatuses
                 });
             default: return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one." });
         }
