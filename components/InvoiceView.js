@@ -109,7 +109,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
     const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
 
     return (
-        React.createElement("div", { className: "h-full flex flex-col bg-slate-200 dark:bg-slate-900 overflow-y-auto print:bg-white" },
+        React.createElement("div", { className: "h-full flex flex-col bg-slate-200 dark:bg-slate-900 overflow-y-auto print:bg-white print:overflow-visible print:h-auto" },
             // Toolbar
             React.createElement("div", { className: "p-4 border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 print:hidden" },
                 React.createElement("div", { className: "flex flex-col sm:flex-row items-center sm:justify-between gap-4 sm:gap-0" },
