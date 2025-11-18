@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Contact, ViewState, DefaultFieldSetting, FileAttachment, JobTicket, BusinessInfo, Part, JobTemplate } from './types.ts';
+import { Contact, ViewState, DefaultFieldSetting, FileAttachment, JobTicket, BusinessInfo, Part, JobTemplate, JobStatus, ALL_JOB_STATUSES } from './types.ts';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
 import ContactDetail from './components/ContactDetail.tsx';
@@ -85,6 +85,7 @@ interface AppState {
     } | null;
     theme: Theme;
     jobTemplates: JobTemplate[];
+    enabledStatuses: Record<JobStatus, boolean>;
 }
 
 const APP_STORAGE_KEY = 'businessContactsApp';
@@ -163,6 +164,14 @@ const App: React.FC = () => {
                     processingFeeRate: template.processingFeeRate,
                 }));
 
+                 // Ensure enabledStatuses is populated correctly
+                const loadedEnabledStatuses = parsed.enabledStatuses || {};
+                const defaultEnabledStatuses = ALL_JOB_STATUSES.reduce((acc, status) => {
+                    acc[status] = loadedEnabledStatuses[status] !== undefined ? loadedEnabledStatuses[status] : true;
+                    return acc;
+                }, {} as Record<JobStatus, boolean>);
+
+
                 return {
                     contacts: sanitizedContacts,
                     defaultFields: parsed.defaultFields || initialDefaultFields,
@@ -171,11 +180,18 @@ const App: React.FC = () => {
                     lastAutoBackup: parsed.lastAutoBackup || null,
                     theme: parsed.theme || 'system',
                     jobTemplates: sanitizedTemplates,
+                    enabledStatuses: defaultEnabledStatuses,
                 };
             }
         } catch (error) {
             console.error("Failed to load or parse state from localStorage", error);
         }
+        
+        const defaultEnabledStatuses = ALL_JOB_STATUSES.reduce((acc, status) => {
+            acc[status] = true;
+            return acc;
+        }, {} as Record<JobStatus, boolean>);
+
         return {
             contacts: initialContacts,
             defaultFields: initialDefaultFields,
@@ -184,6 +200,7 @@ const App: React.FC = () => {
             lastAutoBackup: null,
             theme: 'system',
             jobTemplates: [],
+            enabledStatuses: defaultEnabledStatuses,
         };
     });
 
@@ -260,6 +277,7 @@ const App: React.FC = () => {
                 defaultFields: appState.defaultFields,
                 businessInfo: appState.businessInfo,
                 jobTemplates: appState.jobTemplates,
+                enabledStatuses: appState.enabledStatuses,
             };
             const newBackup = {
                 timestamp: new Date().toISOString(),
@@ -272,7 +290,7 @@ const App: React.FC = () => {
              // Also save to sessionStorage for recovery
             sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
-    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates]);
+    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates, appState.enabledStatuses]);
 
     // Effect to handle view transitions and data consistency checks
     useEffect(() => {
@@ -304,6 +322,16 @@ const App: React.FC = () => {
     
     const updateTheme = (theme: Theme) => {
         setAppState(current => ({ ...current, theme }));
+    };
+    
+    const toggleJobStatus = (status: JobStatus, enabled: boolean) => {
+        setAppState(current => ({
+            ...current,
+            enabledStatuses: {
+                ...current.enabledStatuses,
+                [status]: enabled
+            }
+        }));
     };
 
     const addContact = async (contactData: Omit<Contact, 'id'>) => {
@@ -449,12 +477,22 @@ const App: React.FC = () => {
                     if (files && Array.isArray(files)) {
                         await clearAndAddFiles(files);
                     }
+                    
+                    // Merge/Restore enabledStatuses
+                    const restoredEnabledStatuses = ALL_JOB_STATUSES.reduce((acc, status) => {
+                        acc[status] = stateToRestore.enabledStatuses && stateToRestore.enabledStatuses[status] !== undefined 
+                            ? stateToRestore.enabledStatuses[status] 
+                            : true;
+                        return acc;
+                    }, {} as Record<JobStatus, boolean>);
+
                     setAppState(current => ({
                         ...current,
                         contacts: stateToRestore.contacts,
                         defaultFields: stateToRestore.defaultFields || initialDefaultFields,
                         businessInfo: stateToRestore.businessInfo || initialBusinessInfo,
                         jobTemplates: stateToRestore.jobTemplates || [],
+                        enabledStatuses: restoredEnabledStatuses,
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
@@ -565,6 +603,7 @@ const App: React.FC = () => {
                         onViewInvoice={(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId })}
                         onViewJobDetail={(contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId })}
                         jobTemplates={appState.jobTemplates}
+                        enabledStatuses={appState.enabledStatuses}
                     />
                 );
             case 'new_form':
@@ -604,6 +643,8 @@ const App: React.FC = () => {
                         onAddJobTemplate={addJobTemplate}
                         onUpdateJobTemplate={updateJobTemplate}
                         onDeleteJobTemplate={deleteJobTemplate}
+                        enabledStatuses={appState.enabledStatuses}
+                        onToggleJobStatus={toggleJobStatus}
                     />
                 );
             case 'invoice':
@@ -635,6 +676,7 @@ const App: React.FC = () => {
                     onEditTicket={(ticketData) => handleUpdateJobTicketForDetailView(viewState.contactId, ticketData)}
                     onDeleteTicket={() => handleDeleteJobTicketForDetailView(viewState.contactId, viewState.ticketId)}
                     onViewInvoice={() => setViewState({ type: 'invoice', contactId: viewState.contactId, ticketId: viewState.ticketId })}
+                    enabledStatuses={appState.enabledStatuses}
                 />;
             default:
                 return (
