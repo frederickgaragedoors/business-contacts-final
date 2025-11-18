@@ -1,3 +1,4 @@
+
 /**
  * Generates a 7-character uppercase alphanumeric ID.
  */
@@ -63,6 +64,18 @@ export const calculateJobTicketTotal = (ticket) => {
         feeAmount,
         totalCost,
     };
+};
+
+/**
+ * Formats a 24h time string (HH:MM) to 12h format with AM/PM.
+ */
+export const formatTime = (time) => {
+    if (!time) return '';
+    const [hours24, minutes] = time.split(':');
+    const hours = parseInt(hours24, 10);
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${minutes} ${suffix}`;
 };
 
 /**
