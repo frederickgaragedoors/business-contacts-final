@@ -12,7 +12,7 @@ import {
   ClipboardListIcon,
   MessageIcon,
 } from './icons.js';
-import { calculateJobTicketTotal } from '../utils.js';
+import { calculateJobTicketTotal, formatTime } from '../utils.js';
 
 const JobDetailView = ({
   contact,
@@ -65,7 +65,10 @@ const JobDetailView = ({
             React.createElement("div", { className: "flex flex-col items-start gap-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-6 border border-slate-100 dark:border-slate-700" },
                 React.createElement("div", null,
                     React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" }, "Date"),
-                    React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }))
+                    React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" },
+                         new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }),
+                         ticket.time && React.createElement("span", { className: "ml-2 text-slate-600 dark:text-slate-300 font-normal" }, `at ${formatTime(ticket.time)}`)
+                    )
                 ),
                 React.createElement("div", null,
                     React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" }, "Job ID"),
