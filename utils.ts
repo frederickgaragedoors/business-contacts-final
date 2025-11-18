@@ -1,5 +1,5 @@
 
-import { JobTicket } from './types.ts';
+import { JobTicket, Contact } from './types.ts';
 
 /**
  * Generates a 7-character uppercase alphanumeric ID.
@@ -137,4 +137,89 @@ export const saveJsonFile = async (data: object, filename: string): Promise<void
     // Fallback for browsers that don't support the API
     console.log('File System Access API not supported, falling back to direct download.');
     downloadJsonFile(data, filename);
+};
+
+
+/**
+ * Generates an iCalendar string from a list of contacts and their job tickets.
+ */
+export const generateICSContent = (contacts: Contact[]): string => {
+    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Business Contacts Manager//EN\nCALSCALE:GREGORIAN\n";
+
+    const formatDate = (dateStr: string, timeStr?: string): string => {
+        const dateObj = new Date(dateStr);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        
+        if (timeStr) {
+            const [hours, minutes] = timeStr.split(':');
+            return `${year}${month}${day}T${hours}${minutes}00`;
+        }
+        return `${year}${month}${day}`;
+    };
+
+    contacts.forEach(contact => {
+        if (!contact.jobTickets) return;
+        
+        contact.jobTickets.forEach(ticket => {
+            if (!ticket.date) return;
+
+            const startDateTime = formatDate(ticket.date, ticket.time);
+            const isAllDay = !ticket.time;
+
+            icsContent += "BEGIN:VEVENT\n";
+            icsContent += `UID:${ticket.id}@businesscontactsmanager\n`;
+            icsContent += `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z\n`;
+            
+            if (isAllDay) {
+                icsContent += `DTSTART;VALUE=DATE:${startDateTime}\n`;
+            } else {
+                icsContent += `DTSTART:${startDateTime}\n`;
+                // Default duration 1 hour if not specified
+                // Parsing date again to add hour for DTEND
+                const year = parseInt(startDateTime.substring(0,4));
+                const month = parseInt(startDateTime.substring(4,6)) - 1;
+                const day = parseInt(startDateTime.substring(6,8));
+                const hour = parseInt(startDateTime.substring(9,11));
+                const min = parseInt(startDateTime.substring(11,13));
+                const end = new Date(year, month, day, hour + 1, min);
+                const endYear = end.getFullYear();
+                const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+                const endDay = String(end.getDate()).padStart(2, '0');
+                const endHour = String(end.getHours()).padStart(2, '0');
+                const endMin = String(end.getMinutes()).padStart(2, '0');
+                icsContent += `DTEND:${endYear}${endMonth}${endDay}T${endHour}${endMin}00\n`;
+            }
+
+            const summary = `${contact.name} - ${ticket.status}`;
+            let description = `Job ID: ${ticket.id}\\nStatus: ${ticket.status}\\n`;
+            if (ticket.notes) description += `Notes: ${ticket.notes.replace(/\n/g, '\\n')}\\n`;
+            if (contact.phone) description += `Phone: ${contact.phone}\\n`;
+            if (contact.email) description += `Email: ${contact.email}\\n`;
+            
+            icsContent += `SUMMARY:${summary}\n`;
+            icsContent += `DESCRIPTION:${description}\n`;
+            if (contact.address) {
+                icsContent += `LOCATION:${contact.address.replace(/\n/g, ', ')}\n`;
+            }
+            
+            icsContent += "END:VEVENT\n";
+        });
+    });
+
+    icsContent += "END:VCALENDAR";
+    return icsContent;
+};
+
+export const downloadICSFile = (content: string): void => {
+  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jobs-calendar.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };
