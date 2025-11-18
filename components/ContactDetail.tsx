@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
