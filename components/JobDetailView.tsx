@@ -51,7 +51,52 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         </div>
 
         <div className="px-4 sm:px-6 py-6 flex-grow space-y-6">
-          {/* Contact Info Card */}
+          
+          {/* Job Overview Card (Combined Notes & Job Info) */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
+            <div className="flex justify-between items-start mb-4">
+                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Job Overview</h3>
+            </div>
+            
+            {/* Notes Section */}
+            <div className="mb-6">
+               <p className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words text-base">
+                  {ticket.notes || 'No notes provided for this job.'}
+               </p>
+            </div>
+
+            {/* Meta Data Section */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-6 border border-slate-100 dark:border-slate-700">
+                 <div className="flex gap-6">
+                    <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Job ID</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{ticket.id}</p>
+                    </div>
+                 </div>
+                 <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                    {ticket.status}
+                </span>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex items-center justify-end space-x-2">
+                <button onClick={() => setIsJobTicketModalOpen(true)} className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500">
+                    <EditIcon className="w-4 h-4" /><span>Edit</span>
+                </button>
+                 <button onClick={onDeleteTicket} className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900">
+                    <TrashIcon className="w-4 h-4" /><span>Delete</span>
+                </button>
+                 <button onClick={onViewInvoice} className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600">
+                    <ClipboardListIcon className="w-4 h-4" /><span>PDF</span>
+                </button>
+            </div>
+          </div>
+
+          {/* Customer Info Card */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2">Customer Information</h3>
             <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{contact.name}</p>
@@ -68,30 +113,6 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                 <MapPinIcon className="w-4 h-4 text-slate-400 mr-3 mt-1" />
                 <span className="text-slate-600 dark:text-slate-300 whitespace-pre-line">{contact.address}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Job Info & Actions Card */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Job ID: {ticket.id}</p>
-                <p className="text-lg font-semibold text-slate-800 dark:text-slate-100 mt-1">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
-              </div>
-              <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
-                {ticket.status}
-              </span>
-            </div>
-            <div className="mt-4 pt-4 border-t dark:border-slate-700 flex items-center justify-end space-x-2">
-                <button onClick={() => setIsJobTicketModalOpen(true)} className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500">
-                    <EditIcon className="w-4 h-4" /><span>Edit</span>
-                </button>
-                 <button onClick={onDeleteTicket} className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900">
-                    <TrashIcon className="w-4 h-4" /><span>Delete</span>
-                </button>
-                 <button onClick={onViewInvoice} className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600">
-                    <ClipboardListIcon className="w-4 h-4" /><span>PDF</span>
-                </button>
             </div>
           </div>
 
@@ -135,13 +156,6 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             </div>
           )}
 
-          {/* Notes Card */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Notes</h3>
-            <p className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words">
-              {ticket.notes || 'No notes for this job.'}
-            </p>
-          </div>
         </div>
       </div>
 
