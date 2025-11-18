@@ -441,7 +441,7 @@ const App = () => {
   
     const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice', 'job_detail'].includes(viewState.type);
 
-    return React.createElement("div", { className: "h-screen w-screen flex flex-col antialiased text-slate-700 dark:text-slate-300 relative" },
+    return React.createElement("div", { className: "h-screen w-full flex flex-col antialiased text-slate-700 dark:text-slate-300 relative" },
         recoveryBackup && React.createElement("div", { className: "absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg" },
             React.createElement("div", null,
                 React.createElement("p", { className: "font-bold text-yellow-800" }, "Data Recovery"),
@@ -459,7 +459,7 @@ const App = () => {
             React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:hidden' : ''}` },
                 React.createElement(ContactList, { contacts: appState.contacts, selectedContactId: selectedContactId, onSelectContact: (id) => setViewState({ type: 'detail', id }) })
             ),
-            React.createElement("main", { className: `flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' || viewState.type === 'job_detail' ? 'w-full' : ''}` }, renderMainContent())
+            React.createElement("main", { className: `flex-grow h-full min-w-0 overflow-hidden ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' || viewState.type === 'job_detail' ? 'w-full' : ''}` }, renderMainContent())
         )
     );
 };
