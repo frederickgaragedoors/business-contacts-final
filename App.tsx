@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Contact, ViewState, DefaultFieldSetting, FileAttachment, JobTicket, BusinessInfo, Part, JobTemplate } from './types.ts';
 import Header from './components/Header.tsx';
