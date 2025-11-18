@@ -455,6 +455,13 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     </div>
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 text-center break-words">{contact.name}</h1>
                     <div className="flex space-x-3 mt-4">
+                        <button 
+                            onClick={() => { setEditingJobTicket(null); setIsJobTicketModalOpen(true); }}
+                            className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors"
+                        >
+                            <BriefcaseIcon className="w-4 h-4" />
+                            <span>Add Job</span>
+                        </button>
                         <button onClick={onEdit} className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors">
                             <EditIcon className="w-4 h-4" />
                             <span>Edit</span>
