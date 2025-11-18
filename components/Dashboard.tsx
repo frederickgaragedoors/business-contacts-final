@@ -127,7 +127,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
                 {allJobs.length > 0 ? (
                     <div className="max-w-4xl mx-auto w-full space-y-8">
                         <Section 
-                            title="Today's Work & Appointments" 
+                            title="Today's Work" 
                             jobs={todaysJobs} 
                             emptyMessage="Nothing scheduled for today." 
                         />
