@@ -1,7 +1,8 @@
 
+
 import React, { useState } from 'react';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon } from './icons.js';
-import { saveJsonFile, fileToDataUrl } from '../utils.js';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon } from './icons.js';
+import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.js';
 import { getAllFiles } from '../db.js';
 import JobTemplateModal from './JobTemplateModal.js';
 import { ALL_JOB_STATUSES } from '../types.js';
@@ -26,6 +27,7 @@ const Settings = ({
     onDeleteJobTemplate,
     enabledStatuses,
     onToggleJobStatus,
+    contacts,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState(businessInfo);
@@ -97,6 +99,11 @@ const Settings = ({
         }
         setIsTemplateModalOpen(false);
         setEditingTemplate(null);
+    };
+
+    const handleExportCalendar = () => {
+        const icsContent = generateICSContent(contacts);
+        downloadICSFile(icsContent);
     };
 
     return (
@@ -177,6 +184,7 @@ const Settings = ({
                     ),
                     React.createElement("button", { type: "submit", className: "mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" }, "Save Business Info")
                 ),
+
                 React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6" },
                     React.createElement("h3", { className: "text-xl font-semibold text-slate-800 dark:text-slate-100" }, "Manage Default Fields"),
                     React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "These fields will be automatically added to any new contact you create."),
@@ -213,6 +221,24 @@ const Settings = ({
                         ) : React.createElement("p", { className: "text-center text-slate-500 dark:text-slate-400 p-4" }, "No job templates have been created.")
                     )
                 ),
+
+                 React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6" },
+                    React.createElement("h3", { className: "text-xl font-semibold text-slate-800 dark:text-slate-100" }, "Calendar Integration"),
+                    React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "Export your jobs to an external calendar."),
+                    React.createElement("div", { className: "mt-6" },
+                         React.createElement("div", { className: "flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg" },
+                            React.createElement("div", null,
+                                React.createElement("p", { className: "font-medium text-slate-700 dark:text-slate-200" }, "Export Calendar"),
+                                React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, "Download an .ics file to import into Google Calendar, Outlook, etc.")
+                            ),
+                            React.createElement("button", { onClick: handleExportCalendar, className: "inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors" },
+                                React.createElement(CalendarIcon, { className: "w-4 h-4" }),
+                                React.createElement("span", null, "Export .ics")
+                            )
+                        )
+                    )
+                ),
+
                 React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6" },
                     React.createElement("h3", { className: "text-xl font-semibold text-slate-800 dark:text-slate-100" }, "Backup & Restore"),
                     React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "Manage your application data. Backups include all contacts, custom fields, and work logs."),
