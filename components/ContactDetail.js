@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
