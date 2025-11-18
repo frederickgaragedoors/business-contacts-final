@@ -33,6 +33,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob, onAddJ
         );
     }, [contacts]);
 
+    // Optimization: Create a map of date string -> jobs to avoid filtering arrays for every calendar cell
+    const jobsByDate = useMemo(() => {
+        const map: Record<string, JobEvent[]> = {};
+        allJobs.forEach(job => {
+            if (job.date) {
+                if (!map[job.date]) {
+                    map[job.date] = [];
+                }
+                map[job.date].push(job);
+            }
+        });
+        return map;
+    }, [allJobs]);
+
     // Helpers for calendar logic
     const getDaysInMonth = (y: number, m: number) => new Date(y, m + 1, 0).getDate();
     const getFirstDayOfMonth = (y: number, m: number) => new Date(y, m, 1).getDay();
@@ -56,16 +70,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob, onAddJ
     // Calculate number of weeks
     const weeksCount = Math.ceil(calendarDays.length / 7);
 
-    const jobsForDate = (date: Date | null) => {
-        if (!date) return [];
-        const offset = date.getTimezoneOffset();
-        const localDate = new Date(date.getTime() - (offset*60*1000));
-        const localDateString = localDate.toISOString().split('T')[0];
-
-        return allJobs.filter(job => job.date === localDateString);
+    // Safe local date string generation "YYYY-MM-DD"
+    const getLocalDateString = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     };
 
-    const selectedDateJobs = useMemo(() => jobsForDate(selectedDate), [selectedDate, allJobs]);
+    const selectedDateString = getLocalDateString(selectedDate);
+    const selectedDateJobs = jobsByDate[selectedDateString] || [];
 
     const handlePrevMonth = () => {
         setCurrentDate(new Date(year, month - 1, 1));
@@ -123,13 +137,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob, onAddJ
                         {calendarDays.map((day, index) => {
                              if (!day) return <div key={`empty-${index}`} className="bg-white dark:bg-slate-800 min-h-[80px]"></div>;
                              
-                             const jobs = jobsForDate(day);
+                             const dateString = getLocalDateString(day);
+                             const jobs = jobsByDate[dateString] || [];
                              const isSelected = day.toDateString() === selectedDate.toDateString();
                              const isToday = day.toDateString() === new Date().toDateString();
 
                              return (
                                 <div 
-                                    key={day.toISOString()} 
+                                    key={dateString} 
                                     onClick={() => setSelectedDate(day)}
                                     className={`bg-white dark:bg-slate-800 p-1 sm:p-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors flex flex-col min-h-[80px] ${isSelected ? 'ring-2 ring-inset ring-sky-500 z-0' : ''}`}
                                 >
