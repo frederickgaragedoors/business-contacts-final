@@ -85,7 +85,7 @@ export interface BusinessInfo {
 
 export type ViewState = 
   | { type: 'list' }
-  | { type: 'detail'; id: string; initialJobDate?: string }
+  | { type: 'detail'; id: string; initialJobDate?: string; openJobId?: string }
   | { type: 'new_form'; initialJobDate?: string }
   | { type: 'edit_form'; id: string }
   | { type: 'settings' }
