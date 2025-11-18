@@ -1,7 +1,9 @@
+
 import React, { useMemo } from 'react';
 import { Contact, JobTicket, jobStatusColors, JobStatus } from '../types.ts';
 import EmptyState from './EmptyState.tsx';
 import { ClipboardListIcon } from './icons.tsx';
+import { formatTime } from '../utils.ts';
 
 interface DashboardProps {
     contacts: Contact[];
@@ -93,7 +95,10 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
                 <div className="flex justify-between items-start space-x-2">
                     <div className="min-w-0">
                         <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">{job.contactName}</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{new Date(job.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {new Date(job.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
+                            {job.time && <span className="ml-1 text-slate-500 font-normal">at {formatTime(job.time)}</span>}
+                        </p>
                     </div>
                      <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
                         {job.status}
