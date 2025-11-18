@@ -30,6 +30,8 @@ export const jobStatusColors: Record<JobStatus, { base: string, text: string }> 
   'Declined': { base: 'bg-red-100 dark:bg-red-900', text: 'text-red-800 dark:text-red-200' },
 };
 
+export const ALL_JOB_STATUSES = Object.keys(jobStatusColors) as JobStatus[];
+
 export interface Part {
   id: string;
   name: string;
