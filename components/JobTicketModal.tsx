@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { JobTicket, JobStatus, Part, JobTemplate } from '../types.ts';
+import { JobTicket, JobStatus, Part, JobTemplate, ALL_JOB_STATUSES } from '../types.ts';
 import { XIcon, PlusIcon, TrashIcon } from './icons.tsx';
 import { generateId, calculateJobTicketTotal } from '../utils.ts';
 
@@ -8,11 +9,10 @@ interface JobTicketModalProps {
   onSave: (entry: Omit<JobTicket, 'id'> & { id?: string }) => void;
   onClose: () => void;
   jobTemplates?: JobTemplate[];
+  enabledStatuses?: Record<JobStatus, boolean>;
 }
 
-const jobStatuses: JobStatus[] = ['Estimate Scheduled', 'Quote Sent', 'Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Paid', 'Declined'];
-
-const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates }) => {
+const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates, enabledStatuses }) => {
   const [date, setDate] = useState('');
   const [status, setStatus] = useState<JobStatus>('Estimate Scheduled');
   const [notes, setNotes] = useState('');
@@ -91,6 +91,12 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
     }
   };
 
+  const visibleStatuses = useMemo(() => {
+    return ALL_JOB_STATUSES.filter(s => 
+        (enabledStatuses ? enabledStatuses[s] : true) || (entry && entry.status === s)
+    );
+  }, [enabledStatuses, entry]);
+
   const inputStyles = "block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm";
   const labelStyles = "block text-sm font-medium text-slate-600 dark:text-slate-300";
 
@@ -142,7 +148,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                     onChange={e => setStatus(e.target.value as JobStatus)}
                     className={`mt-1 ${inputStyles}`}
                     >
-                    {jobStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                    {visibleStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                 </div>
             </div>
