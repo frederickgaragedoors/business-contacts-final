@@ -1,3 +1,4 @@
+
 export interface FileAttachment {
   id: string;
   name: string;
@@ -42,9 +43,10 @@ export interface Part {
 export interface JobTicket {
   id: string;
   date: string; // ISO string format e.g., "2023-10-27"
+  time?: string; // 24h format "14:30"
+  createdAt?: string; // ISO string
   status: JobStatus;
   notes: string;
-  // FIX: Removed stray '6' that was causing a syntax error in the interface definition.
   parts: Part[];
   laborCost: number;
   salesTaxRate?: number;
