@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { XIcon, PlusIcon, TrashIcon } from './icons.js';
 import { generateId, calculateJobTicketTotal } from '../utils.js';
+import { ALL_JOB_STATUSES } from '../types.js';
 
-const jobStatuses = ['Estimate Scheduled', 'Quote Sent', 'Scheduled', 'In Progress', 'Awaiting Parts', 'Completed', 'Paid', 'Declined'];
-
-const JobTicketModal = ({ entry, onSave, onClose, jobTemplates }) => {
+const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, enabledStatuses }) => {
   const [date, setDate] = useState('');
   const [status, setStatus] = useState('Estimate Scheduled');
   const [notes, setNotes] = useState('');
@@ -84,6 +84,12 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates }) => {
         alert("Please add some notes or parts to the job ticket before saving.");
     }
   };
+
+  const visibleStatuses = useMemo(() => {
+    return ALL_JOB_STATUSES.filter(s => 
+        (enabledStatuses ? enabledStatuses[s] : true) || (entry && entry.status === s)
+    );
+  }, [enabledStatuses, entry]);
   
   const inputStyles = "block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm";
   const labelStyles = "block text-sm font-medium text-slate-600 dark:text-slate-300";
@@ -137,7 +143,7 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates }) => {
                       onChange: e => setStatus(e.target.value),
                       className: `mt-1 ${inputStyles}`
                     },
-                      jobStatuses.map(s => React.createElement("option", { key: s, value: s }, s))
+                      visibleStatuses.map(s => React.createElement("option", { key: s, value: s }, s))
                     )
                 )
             ),
