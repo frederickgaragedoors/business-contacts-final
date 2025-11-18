@@ -1,13 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { Contact, JobTicket, jobStatusColors } from '../types.ts';
-import { ChevronLeftIcon, ChevronRightIcon, BriefcaseIcon } from './icons.tsx';
+import { ChevronLeftIcon, ChevronRightIcon, BriefcaseIcon, PlusIcon } from './icons.tsx';
 import { formatTime } from '../utils.ts';
 import EmptyState from './EmptyState.tsx';
 
 interface CalendarViewProps {
     contacts: Contact[];
     onViewJob: (contactId: string, ticketId: string) => void;
+    onAddJob: (date: Date) => void;
 }
 
 type JobEvent = JobTicket & {
@@ -15,7 +16,7 @@ type JobEvent = JobTicket & {
     contactName: string;
 };
 
-const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob, onAddJob }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -54,12 +55,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob }) => {
 
     const jobsForDate = (date: Date | null) => {
         if (!date) return [];
-        const dateString = date.toISOString().split('T')[0]; // Local YYYY-MM-DD
-        // Note: Job dates are stored as YYYY-MM-DD strings. 
-        // Ideally we should handle timezone carefully, but for this simple app, direct string comparison works best
-        // assuming the user input the date as a string and we treat it as "calendar date" regardless of TZ.
-        // However, the Date object 'date' comes from local time construction (new Date(y,m,i)).
-        // To get local YYYY-MM-DD from the Date object:
         const offset = date.getTimezoneOffset();
         const localDate = new Date(date.getTime() - (offset*60*1000));
         const localDateString = localDate.toISOString().split('T')[0];
@@ -171,10 +166,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob }) => {
 
                 {/* Agenda View */}
                 <div className="flex-grow h-[50%] md:h-full md:w-1/3 flex flex-col bg-white dark:bg-slate-800 overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800 dark:text-slate-100">
-                            Schedule for {selectedDate.toLocaleDateString('default', { weekday: 'long', month: 'short', day: 'numeric' })}
+                            {selectedDate.toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </h3>
+                        <button 
+                            onClick={() => onAddJob(selectedDate)}
+                            className="flex items-center space-x-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors"
+                        >
+                            <PlusIcon className="w-3 h-3" />
+                            <span>Add Job</span>
+                        </button>
                     </div>
                     <div className="overflow-y-auto flex-grow p-4">
                         {selectedDateJobs.length > 0 ? (
@@ -203,8 +205,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob }) => {
                         ) : (
                             <EmptyState 
                                 Icon={BriefcaseIcon}
-                                title="No Jobs Scheduled"
-                                message="Select another date or add a job to a contact."
+                                title="No Jobs"
+                                message="No jobs scheduled for this day."
                             />
                         )}
                     </div>
