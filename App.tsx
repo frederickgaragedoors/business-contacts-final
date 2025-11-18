@@ -364,7 +364,14 @@ const App: React.FC = () => {
         const newContacts = [newContact, ...appState.contacts];
 
         setAppState(current => ({ ...current, contacts: newContacts }));
-        setViewState({ type: 'detail', id: newContact.id });
+        
+        // Check if we should auto-open the job ticket modal (e.g. created from calendar)
+        let openJobId: string | undefined;
+        if (viewState.type === 'new_form' && viewState.initialJobDate && newContact.jobTickets.length > 0) {
+            openJobId = newContact.jobTickets[0].id;
+        }
+
+        setViewState({ type: 'detail', id: newContact.id, openJobId });
 
         if (appState.autoCalendarExportEnabled) {
             const icsContent = generateICSContent(newContacts);
@@ -664,6 +671,7 @@ const App: React.FC = () => {
                 if (!selectedContact) return null; // Handled by useEffect
                 return (
                     <ContactDetail
+                        key={selectedContact.id}
                         contact={selectedContact}
                         defaultFields={appState.defaultFields}
                         onEdit={() => setViewState({ type: 'edit_form', id: selectedContact.id })}
@@ -676,6 +684,7 @@ const App: React.FC = () => {
                         jobTemplates={appState.jobTemplates}
                         enabledStatuses={appState.enabledStatuses}
                         initialJobDate={viewState.initialJobDate}
+                        openJobId={(viewState as any).openJobId}
                     />
                 );
             case 'new_form':
