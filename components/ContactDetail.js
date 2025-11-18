@@ -33,7 +33,7 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses, initialJobDate }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -46,6 +46,23 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     const imageUploadRef = useRef(null);
     const cameraInputRef = useRef(null);
     const fileUploadRef = useRef(null);
+
+    // Handle initialJobDate prop to open modal automatically
+    useEffect(() => {
+        if (initialJobDate) {
+            setActiveTab('jobs');
+            setEditingJobTicket({
+                id: generateId(),
+                date: initialJobDate,
+                status: 'Estimate Scheduled',
+                notes: '',
+                parts: [],
+                laborCost: 0,
+                createdAt: new Date().toISOString(),
+            });
+            setIsJobTicketModalOpen(true);
+        }
+    }, [initialJobDate]);
     
     const handleViewFile = async (file) => {
         if (!file.dataUrl) return;
@@ -146,11 +163,11 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     const handleSaveJobTicket = (entry) => {
         let updatedTickets;
         const currentTickets = contact.jobTickets || [];
-        if (entry.id) {
+        if (entry.id && currentTickets.some(t => t.id === entry.id)) {
             updatedTickets = currentTickets.map(ticket => ticket.id === entry.id ? { ...ticket, ...entry } : ticket);
         } else {
             const newTicket = { 
-                id: generateId(), 
+                id: entry.id || generateId(), 
                 date: entry.date, 
                 time: entry.time,
                 notes: entry.notes,
