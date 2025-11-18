@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -111,12 +112,12 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
         React.createElement("div", { className: "h-full flex flex-col bg-slate-200 dark:bg-slate-900 overflow-y-auto print:bg-white" },
             // Toolbar
             React.createElement("div", { className: "p-4 border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 print:hidden" },
-                React.createElement("div", { className: "flex flex-col sm:flex-row items-start sm:items-center sm:justify-between" },
-                    React.createElement("div", { className: "flex items-center" },
-                        React.createElement("button", { onClick: onClose, className: "p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" },
+                React.createElement("div", { className: "flex flex-col sm:flex-row items-center sm:justify-between gap-4 sm:gap-0" },
+                    React.createElement("div", { className: "w-full sm:w-auto flex items-center justify-center sm:justify-start relative" },
+                        React.createElement("button", { onClick: onClose, className: "absolute left-0 sm:static p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" },
                             React.createElement(ArrowLeftIcon, { className: "w-6 h-6 text-slate-600 dark:text-slate-300" })
                         ),
-                        React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg ml-4" },
+                        React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg sm:ml-4" },
                             React.createElement("button", {
                                 onClick: () => setDocType('estimate'),
                                 className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'estimate' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
@@ -127,7 +128,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                             }, "Receipt")
                         )
                     ),
-                    React.createElement("div", { className: "mt-4 sm:mt-0 flex items-center justify-end space-x-2 w-full sm:w-auto" },
+                    React.createElement("div", { className: "w-full sm:w-auto flex items-center justify-center sm:justify-end space-x-2" },
                         React.createElement("button", {
                             onClick: () => window.print(),
                             className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
