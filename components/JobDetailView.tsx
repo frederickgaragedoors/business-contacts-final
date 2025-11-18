@@ -127,10 +127,10 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
               <div className="flex items-start">
                 <MapPinIcon className="w-4 h-4 text-slate-400 mr-3 mt-1" />
                 <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`,
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors whitespace-pre-line"
+                    className="text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors whitespace-pre-line" 
                 >
                     {contact.address}
                 </a>
