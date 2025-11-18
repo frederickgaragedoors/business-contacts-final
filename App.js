@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard.js';
 import InvoiceView from './components/InvoiceView.js';
 import JobDetailView from './components/JobDetailView.js';
 import CalendarView from './components/CalendarView.js';
+import ContactSelectorModal from './components/ContactSelectorModal.js';
 import EmptyState from './components/EmptyState.js';
 import { UserCircleIcon } from './components/icons.js';
 import { generateId, generateICSContent, downloadICSFile } from './utils.js';
@@ -188,6 +189,8 @@ const App = () => {
     });
 
     const [viewState, setViewState] = useState({ type: 'dashboard' });
+    const [isContactSelectorOpen, setIsContactSelectorOpen] = useState(false);
+    const [selectedDateForJob, setSelectedDateForJob] = useState(null);
 
     useEffect(() => {
         initDB().catch(err => console.error("Failed to initialize DB", err));
@@ -290,7 +293,7 @@ const App = () => {
         const newContact = {
             ...contactData,
             id: generateId(),
-            jobTickets: [],
+            jobTickets: contactData.jobTickets || [],
             files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
         };
 
@@ -470,6 +473,31 @@ const App = () => {
         }
     };
 
+    const handleCalendarAddJob = (date) => {
+        setSelectedDateForJob(date);
+        setIsContactSelectorOpen(true);
+    };
+
+    const handleSelectContactForJob = (contactId) => {
+        setIsContactSelectorOpen(false);
+        if (selectedDateForJob) {
+            const offset = selectedDateForJob.getTimezoneOffset();
+            const localDate = new Date(selectedDateForJob.getTime() - (offset*60*1000));
+            const localDateString = localDate.toISOString().split('T')[0];
+            setViewState({ type: 'detail', id: contactId, initialJobDate: localDateString });
+        }
+    };
+
+    const handleCreateContactForJob = () => {
+        setIsContactSelectorOpen(false);
+        if (selectedDateForJob) {
+            const offset = selectedDateForJob.getTimezoneOffset();
+            const localDate = new Date(selectedDateForJob.getTime() - (offset*60*1000));
+            const localDateString = localDate.toISOString().split('T')[0];
+            setViewState({ type: 'new_form', initialJobDate: localDateString });
+        }
+    };
+
     const selectedContact = useMemo(() => {
         if (viewState.type === 'detail' || viewState.type === 'edit_form' || viewState.type === 'invoice' || viewState.type === 'job_detail') {
             const id = viewState.type === 'invoice' || viewState.type === 'job_detail' ? viewState.contactId : viewState.id;
@@ -486,10 +514,10 @@ const App = () => {
     const renderMainContent = () => {
         switch (viewState.type) {
             case 'dashboard': return React.createElement(Dashboard, { contacts: appState.contacts, onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }) });
-            case 'calendar': return React.createElement(CalendarView, { contacts: appState.contacts, onViewJob: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }) });
+            case 'calendar': return React.createElement(CalendarView, { contacts: appState.contacts, onViewJob: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), onAddJob: handleCalendarAddJob });
             case 'list': return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one.", actionText: appState.contacts.length === 0 ? "Add First Contact" : undefined, onAction: appState.contacts.length === 0 ? () => setViewState({ type: 'new_form' }) : undefined });
-            case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), jobTemplates: appState.jobTemplates, enabledStatuses: appState.enabledStatuses }) : null;
-            case 'new_form': return React.createElement(ContactForm, { onSave: addContact, onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}), defaultFields: appState.defaultFields });
+            case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), jobTemplates: appState.jobTemplates, enabledStatuses: appState.enabledStatuses, initialJobDate: viewState.initialJobDate }) : null;
+            case 'new_form': return React.createElement(ContactForm, { onSave: addContact, onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}), defaultFields: appState.defaultFields, initialJobDate: viewState.initialJobDate });
             case 'edit_form': return selectedContact ? React.createElement(ContactForm, { initialContact: selectedContact, onSave: (data) => updateContact(selectedContact.id, data), onCancel: () => setViewState({ type: 'detail', id: selectedContact.id }) }) : null;
             case 'settings': return React.createElement(Settings, { defaultFields: appState.defaultFields, onAddDefaultField: addDefaultField, onDeleteDefaultField: deleteDefaultField, onBack: () => setViewState({ type: 'dashboard' }), appStateForBackup: { ...appState }, autoBackupEnabled: appState.autoBackupEnabled, onToggleAutoBackup: handleToggleAutoBackup, lastAutoBackup: appState.lastAutoBackup, onRestoreBackup: (content) => restoreData(content, false), businessInfo: appState.businessInfo, onUpdateBusinessInfo: updateBusinessInfo, currentTheme: appState.theme, onUpdateTheme: updateTheme, jobTemplates: appState.jobTemplates, onAddJobTemplate: addJobTemplate, onUpdateJobTemplate: updateJobTemplate, onDeleteJobTemplate: deleteJobTemplate, enabledStatuses: appState.enabledStatuses, onToggleJobStatus: toggleJobStatus, contacts: appState.contacts, autoCalendarExportEnabled: appState.autoCalendarExportEnabled, onToggleAutoCalendarExport: toggleAutoCalendarExport });
             case 'invoice':
@@ -537,7 +565,14 @@ const App = () => {
                 React.createElement(ContactList, { contacts: appState.contacts, selectedContactId: selectedContactId, onSelectContact: (id) => setViewState({ type: 'detail', id }) })
             ),
             React.createElement("main", { className: `flex-grow h-full min-w-0 overflow-hidden ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' || viewState.type === 'job_detail' ? 'w-full' : ''}` }, renderMainContent())
-        )
+        ),
+        isContactSelectorOpen && selectedDateForJob && React.createElement(ContactSelectorModal, {
+            contacts: appState.contacts,
+            onSelect: handleSelectContactForJob,
+            onNewContact: handleCreateContactForJob,
+            onClose: () => setIsContactSelectorOpen(false),
+            selectedDate: selectedDateForJob
+        })
     );
 };
 
