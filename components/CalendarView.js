@@ -41,6 +41,8 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
         }
         return days;
     }, [year, month, startingDay, daysInMonth]);
+    
+    const weeksCount = Math.ceil(calendarDays.length / 7);
 
     const jobsForDate = (date) => {
         if (!date) return [];
@@ -70,9 +72,9 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     return (
-        React.createElement("div", { className: "h-full flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden" },
+        React.createElement("div", { className: "h-full flex flex-col bg-slate-50 dark:bg-slate-900 overflow-y-auto" },
             /* Calendar Header */
-            React.createElement("div", { className: "flex items-center justify-between px-4 py-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex-shrink-0" },
+            React.createElement("div", { className: "flex items-center justify-between px-4 py-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 sticky top-0 z-10" },
                 React.createElement("div", { className: "flex items-center space-x-2" },
                      React.createElement("h2", { className: "text-lg font-bold text-slate-800 dark:text-slate-100" },
                         currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })
@@ -89,9 +91,9 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                 )
             ),
 
-            React.createElement("div", { className: "flex flex-col md:flex-row flex-grow overflow-hidden h-full" },
+            React.createElement("div", { className: "flex flex-col md:flex-row" },
                 /* Calendar Grid Container */
-                React.createElement("div", { className: "flex flex-col flex-grow h-[50%] md:h-full overflow-y-auto md:w-2/3 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700" },
+                React.createElement("div", { className: "flex flex-col w-full md:w-2/3 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700" },
                     /* Weekday Headers */
                     React.createElement("div", { className: "grid grid-cols-7 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex-shrink-0" },
                         weekDays.map(day => (
@@ -100,9 +102,12 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                     ),
                     
                     /* Days Grid */
-                    React.createElement("div", { className: "grid grid-cols-7 auto-rows-fr flex-grow bg-slate-200 dark:bg-slate-700 gap-px border-b border-slate-200 dark:border-slate-700" },
+                    React.createElement("div", { 
+                        className: "grid grid-cols-7 bg-slate-200 dark:bg-slate-700 gap-px border-b border-slate-200 dark:border-slate-700",
+                        style: { gridTemplateRows: `repeat(${weeksCount}, minmax(80px, 1fr))` }
+                    },
                         calendarDays.map((day, index) => {
-                             if (!day) return React.createElement("div", { key: `empty-${index}`, className: "bg-white dark:bg-slate-800 min-h-[80px] md:min-h-[100px]" });
+                             if (!day) return React.createElement("div", { key: `empty-${index}`, className: "bg-white dark:bg-slate-800 min-h-[80px]" });
                              
                              const jobs = jobsForDate(day);
                              const isSelected = day.toDateString() === selectedDate.toDateString();
@@ -112,9 +117,9 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                                 React.createElement("div", { 
                                     key: day.toISOString(), 
                                     onClick: () => setSelectedDate(day),
-                                    className: `bg-white dark:bg-slate-800 min-h-[80px] md:min-h-[100px] p-1 sm:p-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors flex flex-col ${isSelected ? 'ring-2 ring-inset ring-sky-500 z-10' : ''}`
+                                    className: `bg-white dark:bg-slate-800 p-1 sm:p-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors flex flex-col min-h-[80px] ${isSelected ? 'ring-2 ring-inset ring-sky-500 z-0' : ''}`
                                 },
-                                    React.createElement("div", { className: "flex justify-between items-start" },
+                                    React.createElement("div", { className: "flex justify-between items-start flex-shrink-0" },
                                         React.createElement("span", { className: `text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-sky-500 text-white' : 'text-slate-700 dark:text-slate-300'}` },
                                             day.getDate()
                                         ),
@@ -123,20 +128,20 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                                         )
                                     ),
                                     
-                                    React.createElement("div", { className: "mt-1 space-y-1 flex-grow overflow-hidden" },
+                                    React.createElement("div", { className: "mt-1 space-y-1 flex-grow relative" },
                                         /* Mobile: Just dots */
-                                        React.createElement("div", { className: "flex flex-wrap gap-1 md:hidden justify-center mt-2" },
+                                        React.createElement("div", { className: "flex flex-wrap gap-1 md:hidden justify-center mt-1" },
                                             jobs.slice(0, 4).map(job => (
-                                                React.createElement("div", { key: job.id, className: `w-2 h-2 rounded-full ${jobStatusColors[job.status].base.split(' ')[0].replace('bg-', 'bg-').replace('100', '400')}` })
+                                                React.createElement("div", { key: job.id, className: `w-1.5 h-1.5 rounded-full ${jobStatusColors[job.status].base.split(' ')[0].replace('bg-', 'bg-').replace('100', '400')}` })
                                             )),
-                                             jobs.length > 4 && React.createElement("div", { className: "w-2 h-2 rounded-full bg-slate-300" })
+                                             jobs.length > 4 && React.createElement("div", { className: "w-1.5 h-1.5 rounded-full bg-slate-300" })
                                         ),
 
                                         /* Desktop: Bars */
                                         React.createElement("div", { className: "hidden md:flex flex-col gap-1" },
                                             jobs.slice(0, 4).map(job => (
                                                 React.createElement("div", { key: job.id, className: `text-[10px] px-1.5 py-0.5 rounded truncate border border-opacity-10 ${jobStatusColors[job.status].base} ${jobStatusColors[job.status].text}` },
-                                                     React.createElement("span", { className: "font-semibold mr-1" }, job.time || 'Any'),
+                                                     React.createElement("span", { className: "font-semibold mr-1" }, job.time || ''),
                                                      job.contactName
                                                 )
                                             )),
@@ -152,10 +157,10 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                 ),
 
                 /* Agenda View */
-                React.createElement("div", { className: "flex-grow h-[50%] md:h-full md:w-1/3 flex flex-col bg-white dark:bg-slate-800 overflow-hidden" },
-                    React.createElement("div", { className: "p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0 flex justify-between items-center" },
+                React.createElement("div", { className: "w-full md:w-1/3 flex flex-col bg-white dark:bg-slate-800 border-t md:border-t-0 border-slate-200 dark:border-slate-700" },
+                    React.createElement("div", { className: "p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0 flex justify-between items-center sticky top-0 z-10" },
                         React.createElement("h3", { className: "font-bold text-slate-800 dark:text-slate-100" },
-                            `Schedule for ${selectedDate.toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' })}`
+                            selectedDate.toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' })
                         ),
                         React.createElement("button", { 
                             onClick: () => onAddJob(selectedDate),
@@ -165,7 +170,7 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                             React.createElement("span", null, "Add Job")
                         )
                     ),
-                    React.createElement("div", { className: "overflow-y-auto flex-grow p-4" },
+                    React.createElement("div", { className: "p-4" },
                         selectedDateJobs.length > 0 ? (
                             React.createElement("ul", { className: "space-y-3" },
                                 selectedDateJobs.sort((a,b) => (a.time || '00:00').localeCompare(b.time || '00:00')).map(job => (
@@ -190,11 +195,13 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                                 ))
                             )
                         ) : (
-                            React.createElement(EmptyState, { 
-                                Icon: BriefcaseIcon,
-                                title: "No Jobs",
-                                message: "No jobs scheduled for this day."
-                            })
+                             React.createElement("div", { className: "py-8" },
+                                React.createElement(EmptyState, { 
+                                    Icon: BriefcaseIcon,
+                                    title: "No Jobs",
+                                    message: "No jobs scheduled for this day."
+                                })
+                            )
                         )
                     )
                 )
