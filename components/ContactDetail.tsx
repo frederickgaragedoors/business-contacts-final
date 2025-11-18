@@ -20,7 +20,7 @@ import {
   BriefcaseIcon,
   ClipboardListIcon,
 } from './icons.tsx';
-import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal } from '../utils.ts';
+import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal, formatTime } from '../utils.ts';
 import { getFiles } from '../db.ts';
 
 interface ContactDetailProps {
@@ -165,13 +165,15 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
         } else {
             const newTicket: JobTicket = { 
                 id: generateId(), 
-                date: entry.date, 
+                date: entry.date,
+                time: entry.time,
                 notes: entry.notes,
                 status: entry.status,
                 parts: entry.parts,
                 laborCost: entry.laborCost || 0,
                 salesTaxRate: entry.salesTaxRate,
                 processingFeeRate: entry.processingFeeRate,
+                createdAt: new Date().toISOString(),
             };
             updatedTickets = [newTicket, ...currentTickets];
         }
@@ -281,7 +283,10 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                             </span>
                                             <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{`$${totalCost.toFixed(2)}`}</p>
                                         </div>
-                                        <p className="font-semibold text-slate-700 dark:text-slate-200">{new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
+                                        <p className="font-semibold text-slate-700 dark:text-slate-200">
+                                            {new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
+                                            {ticket.time && <span className="text-slate-500 dark:text-slate-400 font-normal ml-1"> at {formatTime(ticket.time)}</span>}
+                                        </p>
                                         
                                         {ticket.notes && (
                                             <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-3">{ticket.notes}</p>
