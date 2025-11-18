@@ -117,15 +117,17 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                         React.createElement("button", { onClick: onClose, className: "absolute left-0 sm:static p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" },
                             React.createElement(ArrowLeftIcon, { className: "w-6 h-6 text-slate-600 dark:text-slate-300" })
                         ),
-                        React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg sm:ml-4" },
-                            React.createElement("button", {
-                                onClick: () => setDocType('estimate'),
-                                className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'estimate' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
-                            }, "Estimate"),
-                            React.createElement("button", {
-                                onClick: () => setDocType('receipt'),
-                                className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'receipt' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
-                            }, "Receipt")
+                        React.createElement("div", { className: "flex items-center justify-center w-full sm:w-auto" },
+                             React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg sm:ml-4" },
+                                React.createElement("button", {
+                                    onClick: () => setDocType('estimate'),
+                                    className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'estimate' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
+                                }, "Estimate"),
+                                React.createElement("button", {
+                                    onClick: () => setDocType('receipt'),
+                                    className: `px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'receipt' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`
+                                }, "Receipt")
+                            )
                         )
                     ),
                     React.createElement("div", { className: "w-full sm:w-auto flex items-center justify-center sm:justify-end space-x-2" },
