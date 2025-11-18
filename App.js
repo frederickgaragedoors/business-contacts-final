@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import Header from './components/Header.js';
 import ContactList from './components/ContactList.js';
@@ -10,9 +8,10 @@ import Settings from './components/Settings.js';
 import Dashboard from './components/Dashboard.js';
 import InvoiceView from './components/InvoiceView.js';
 import JobDetailView from './components/JobDetailView.js';
+import CalendarView from './components/CalendarView.js';
 import EmptyState from './components/EmptyState.js';
 import { UserCircleIcon } from './components/icons.js';
-import { generateId } from './utils.js';
+import { generateId, generateICSContent, downloadICSFile } from './utils.js';
 import { initDB, addFiles, deleteFiles, getAllFiles, clearAndAddFiles } from './db.js';
 import { ALL_JOB_STATUSES } from './types.js';
 
@@ -163,6 +162,7 @@ const App = () => {
                     theme: parsed.theme || 'system',
                     jobTemplates: sanitizedTemplates,
                     enabledStatuses: defaultEnabledStatuses,
+                    autoCalendarExportEnabled: parsed.autoCalendarExportEnabled || false,
                 };
             }
         } catch (error) {
@@ -183,6 +183,7 @@ const App = () => {
             theme: 'system',
             jobTemplates: [],
             enabledStatuses: defaultEnabledStatuses,
+            autoCalendarExportEnabled: false,
         };
     });
 
@@ -235,6 +236,7 @@ const App = () => {
                 businessInfo: appState.businessInfo,
                 jobTemplates: appState.jobTemplates,
                 enabledStatuses: appState.enabledStatuses,
+                autoCalendarExportEnabled: appState.autoCalendarExportEnabled,
             };
             const newBackup = {
                 timestamp: new Date().toISOString(),
@@ -243,7 +245,7 @@ const App = () => {
             setAppState(current => ({ ...current, lastAutoBackup: newBackup }));
             sessionStorage.setItem(RECOVERY_STORAGE_KEY, JSON.stringify(newBackup));
         }
-    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates, appState.enabledStatuses]);
+    }, [appState.contacts, appState.defaultFields, appState.businessInfo, appState.autoBackupEnabled, appState.jobTemplates, appState.enabledStatuses, appState.autoCalendarExportEnabled]);
 
     useEffect(() => {
         if (viewState.type === 'list' && window.innerWidth >= 768 && appState.contacts.length > 0) {
@@ -278,6 +280,10 @@ const App = () => {
         }));
     };
 
+    const toggleAutoCalendarExport = (enabled) => {
+        setAppState(current => ({ ...current, autoCalendarExportEnabled: enabled }));
+    };
+
     const addContact = async (contactData) => {
         const filesWithData = contactData.files.filter(f => f.dataUrl);
         if (filesWithData.length > 0) await addFiles(filesWithData);
@@ -287,8 +293,15 @@ const App = () => {
             jobTickets: [],
             files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
         };
-        setAppState(current => ({ ...current, contacts: [newContact, ...current.contacts] }));
+
+        const newContacts = [newContact, ...appState.contacts];
+        setAppState(current => ({ ...current, contacts: newContacts }));
         setViewState({ type: 'detail', id: newContact.id });
+
+        if (appState.autoCalendarExportEnabled) {
+             const icsContent = generateICSContent(newContacts);
+             downloadICSFile(icsContent);
+        }
     };
 
     const updateContact = async (id, contactData) => {
@@ -301,8 +314,15 @@ const App = () => {
         const deletedFileIds = [...originalFileIds].filter(fileId => !updatedFileIds.has(fileId));
         if (deletedFileIds.length > 0) await deleteFiles(deletedFileIds);
         const finalContactData = { ...contactData, files: contactData.files.map(({ dataUrl, ...metadata }) => metadata) };
-        setAppState(current => ({ ...current, contacts: current.contacts.map(c => c.id === id ? { ...c, ...finalContactData, id } : c) }));
+        
+        const newContacts = appState.contacts.map(c => c.id === id ? { ...c, ...finalContactData, id } : c);
+        setAppState(current => ({ ...current, contacts: newContacts }));
         setViewState({ type: 'detail', id });
+
+        if (appState.autoCalendarExportEnabled) {
+             const icsContent = generateICSContent(newContacts);
+             downloadICSFile(icsContent);
+        }
     };
   
     const addFilesToContact = async (contactId, newFiles) => {
@@ -312,7 +332,13 @@ const App = () => {
     };
   
     const updateContactJobTickets = (contactId, jobTickets) => {
-        setAppState(current => ({ ...current, contacts: current.contacts.map(c => c.id === contactId ? { ...c, jobTickets } : c) }));
+        const newContacts = appState.contacts.map(c => c.id === contactId ? { ...c, jobTickets } : c);
+        setAppState(current => ({ ...current, contacts: newContacts }));
+
+        if (appState.autoCalendarExportEnabled) {
+            const icsContent = generateICSContent(newContacts);
+            downloadICSFile(icsContent);
+        }
     };
 
     const deleteContact = async (id) => {
@@ -322,9 +348,17 @@ const App = () => {
                 const fileIds = contactToDelete.files.map(f => f.id).filter(id => id != null);
                 await deleteFiles(fileIds);
             }
-            setAppState(current => ({ ...current, contacts: current.contacts.filter(c => c.id !== id) }));
+            
+            const remainingContacts = appState.contacts.filter(c => c.id !== id);
+            setAppState(current => ({ ...current, contacts: remainingContacts }));
+            
             if ((viewState.type === 'detail' || viewState.type === 'edit_form') && viewState.id === id) {
                  setViewState({ type: 'dashboard' });
+            }
+
+            if (appState.autoCalendarExportEnabled) {
+                const icsContent = generateICSContent(remainingContacts);
+                downloadICSFile(icsContent);
             }
         }
     };
@@ -376,6 +410,7 @@ const App = () => {
                         businessInfo: stateToRestore.businessInfo || initialBusinessInfo,
                         jobTemplates: stateToRestore.jobTemplates || [],
                         enabledStatuses: restoredEnabledStatuses,
+                        autoCalendarExportEnabled: stateToRestore.autoCalendarExportEnabled || false,
                     }));
                     if (!silent) alert('Backup restored successfully!');
                     setViewState({ type: 'dashboard' });
@@ -451,11 +486,12 @@ const App = () => {
     const renderMainContent = () => {
         switch (viewState.type) {
             case 'dashboard': return React.createElement(Dashboard, { contacts: appState.contacts, onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }) });
+            case 'calendar': return React.createElement(CalendarView, { contacts: appState.contacts, onViewJob: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }) });
             case 'list': return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one.", actionText: appState.contacts.length === 0 ? "Add First Contact" : undefined, onAction: appState.contacts.length === 0 ? () => setViewState({ type: 'new_form' }) : undefined });
             case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), jobTemplates: appState.jobTemplates, enabledStatuses: appState.enabledStatuses }) : null;
             case 'new_form': return React.createElement(ContactForm, { onSave: addContact, onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}), defaultFields: appState.defaultFields });
             case 'edit_form': return selectedContact ? React.createElement(ContactForm, { initialContact: selectedContact, onSave: (data) => updateContact(selectedContact.id, data), onCancel: () => setViewState({ type: 'detail', id: selectedContact.id }) }) : null;
-            case 'settings': return React.createElement(Settings, { defaultFields: appState.defaultFields, onAddDefaultField: addDefaultField, onDeleteDefaultField: deleteDefaultField, onBack: () => setViewState({ type: 'dashboard' }), appStateForBackup: { ...appState }, autoBackupEnabled: appState.autoBackupEnabled, onToggleAutoBackup: handleToggleAutoBackup, lastAutoBackup: appState.lastAutoBackup, onRestoreBackup: (content) => restoreData(content, false), businessInfo: appState.businessInfo, onUpdateBusinessInfo: updateBusinessInfo, currentTheme: appState.theme, onUpdateTheme: updateTheme, jobTemplates: appState.jobTemplates, onAddJobTemplate: addJobTemplate, onUpdateJobTemplate: updateJobTemplate, onDeleteJobTemplate: deleteJobTemplate, enabledStatuses: appState.enabledStatuses, onToggleJobStatus: toggleJobStatus, contacts: appState.contacts });
+            case 'settings': return React.createElement(Settings, { defaultFields: appState.defaultFields, onAddDefaultField: addDefaultField, onDeleteDefaultField: deleteDefaultField, onBack: () => setViewState({ type: 'dashboard' }), appStateForBackup: { ...appState }, autoBackupEnabled: appState.autoBackupEnabled, onToggleAutoBackup: handleToggleAutoBackup, lastAutoBackup: appState.lastAutoBackup, onRestoreBackup: (content) => restoreData(content, false), businessInfo: appState.businessInfo, onUpdateBusinessInfo: updateBusinessInfo, currentTheme: appState.theme, onUpdateTheme: updateTheme, jobTemplates: appState.jobTemplates, onAddJobTemplate: addJobTemplate, onUpdateJobTemplate: updateJobTemplate, onDeleteJobTemplate: deleteJobTemplate, enabledStatuses: appState.enabledStatuses, onToggleJobStatus: toggleJobStatus, contacts: appState.contacts, autoCalendarExportEnabled: appState.autoCalendarExportEnabled, onToggleAutoCalendarExport: toggleAutoCalendarExport });
             case 'invoice':
                 if (!selectedContact) return null;
                 const ticketForInvoice = (selectedContact.jobTickets || []).find(t => t.id === (viewState.type === 'invoice' && viewState.ticketId));
@@ -480,7 +516,7 @@ const App = () => {
         }
     };
   
-    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice', 'job_detail'].includes(viewState.type);
+    const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'calendar', 'invoice', 'job_detail'].includes(viewState.type);
 
     return React.createElement("div", { className: "h-screen w-full flex flex-col antialiased text-slate-700 dark:text-slate-300 relative" },
         recoveryBackup && React.createElement("div", { className: "absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg" },
@@ -494,7 +530,7 @@ const App = () => {
             )
         ),
         React.createElement("div", { className: viewState.type === 'invoice' ? 'print:hidden' : '' },
-            React.createElement(Header, { currentView: viewState.type, onNewContact: () => setViewState({ type: 'new_form' }), onGoToSettings: () => setViewState({ type: 'settings' }), onGoToDashboard: () => setViewState({ type: 'dashboard' }), onGoToList: () => setViewState({ type: 'list' }) })
+            React.createElement(Header, { currentView: viewState.type, onNewContact: () => setViewState({ type: 'new_form' }), onGoToSettings: () => setViewState({ type: 'settings' }), onGoToDashboard: () => setViewState({ type: 'dashboard' }), onGoToList: () => setViewState({ type: 'list' }), onGoToCalendar: () => setViewState({ type: 'calendar' }) })
         ),
         React.createElement("div", { className: "flex flex-grow h-0" },
             React.createElement("div", { className: `w-full md:w-1/3 lg:w-1/4 flex-shrink-0 h-full ${isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' ? 'print:hidden' : ''}` },
