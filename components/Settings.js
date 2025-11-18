@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon } from './icons.js';
 import { saveJsonFile, fileToDataUrl } from '../utils.js';
 import { getAllFiles } from '../db.js';
 import JobTemplateModal from './JobTemplateModal.js';
+import { ALL_JOB_STATUSES } from '../types.js';
 
 const Settings = ({
     defaultFields,
@@ -22,6 +24,8 @@ const Settings = ({
     onAddJobTemplate,
     onUpdateJobTemplate,
     onDeleteJobTemplate,
+    enabledStatuses,
+    onToggleJobStatus,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState(businessInfo);
@@ -118,7 +122,26 @@ const Settings = ({
                         ))
                     )
                 ),
-                React.createElement("form", { onSubmit: handleBusinessInfoSubmit, className: "border-t dark:border-slate-700 pt-6" },
+
+                 React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6" },
+                    React.createElement("h3", { className: "text-xl font-semibold text-slate-800 dark:text-slate-100" }, "Job Status Visibility"),
+                    React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "Choose which statuses appear in the dropdown menu."),
+                    React.createElement("div", { className: "mt-6 space-y-3" },
+                         ALL_JOB_STATUSES.map((status) => (
+                            React.createElement("div", { key: status, className: "flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg" },
+                                React.createElement("span", { className: "font-medium text-slate-700 dark:text-slate-200" }, status),
+                                React.createElement("button", {
+                                    onClick: () => onToggleJobStatus(status, !enabledStatuses[status]),
+                                    className: `relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 ${enabledStatuses[status] ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`
+                                },
+                                    React.createElement("span", { className: `inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${enabledStatuses[status] ? 'translate-x-5' : 'translate-x-0'}` })
+                                )
+                            )
+                         ))
+                    )
+                ),
+
+                React.createElement("form", { onSubmit: handleBusinessInfoSubmit, className: "border-t dark:border-slate-700 pt-6 mt-8" },
                     React.createElement("h3", { className: "text-xl font-semibold text-slate-800 dark:text-slate-100" }, "Business Information"),
                     React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "This info will appear on your estimates and receipts."),
                     React.createElement("div", { className: "mt-6 space-y-4" },
