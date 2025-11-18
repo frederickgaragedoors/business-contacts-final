@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate } from '../types.ts';
+import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
 import JobTicketModal from './JobTicketModal.tsx';
 import EmptyState from './EmptyState.tsx';
@@ -34,6 +34,7 @@ interface ContactDetailProps {
     onViewInvoice: (contactId: string, ticketId: string) => void;
     onViewJobDetail: (contactId: string, ticketId: string) => void;
     jobTemplates: JobTemplate[];
+    enabledStatuses: Record<JobStatus, boolean>;
 }
 
 const VIEWABLE_MIME_TYPES = [
@@ -47,7 +48,7 @@ const VIEWABLE_MIME_TYPES = [
 
 type ActiveTab = 'details' | 'jobs' | 'files';
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -288,7 +289,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                         <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600">
                                             <button
                                                 onClick={() => onViewInvoice(contact.id, ticket.id)}
-                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500"
+                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-center"
                                                 aria-label="View PDF"
                                             >
                                                 <ClipboardListIcon className="w-4 h-4" />
@@ -296,7 +297,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                             </button>
                                             <button 
                                                 onClick={() => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); }}
-                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500"
+                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-center"
                                                 aria-label="Edit job"
                                             >
                                                 <EditIcon className="w-4 h-4" />
@@ -304,7 +305,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteJobTicket(ticket.id)}
-                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900"
+                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 text-center"
                                                 aria-label="Delete job"
                                             >
                                                 <TrashIcon className="w-4 h-4" />
@@ -312,7 +313,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                             </button>
                                             <button
                                                 onClick={() => onViewJobDetail(contact.id, ticket.id)}
-                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600"
+                                                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 text-center"
                                                 aria-label="View job"
                                             >
                                                 <EyeIcon className="w-4 h-4" />
@@ -495,6 +496,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     onSave={handleSaveJobTicket}
                     onClose={() => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); }}
                     jobTemplates={jobTemplates}
+                    enabledStatuses={enabledStatuses}
                 />
             )}
         </>
