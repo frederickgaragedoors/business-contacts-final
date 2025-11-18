@@ -112,7 +112,7 @@ const JobDetailView = ({
                 )
               ),
               React.createElement("div", { className: "flex items-center" },
-                React.createElement(MailIcon, { className: "w-4 h-4 text-slate-400 mr-3" }),
+                React.createElement("MailIcon", { className: "w-4 h-4 text-slate-400 mr-3" }),
                 React.createElement("a", { href: `mailto:${contact.email}`, className: "text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors" }, contact.email)
               ),
               React.createElement("div", { className: "flex items-start" },
@@ -132,7 +132,7 @@ const JobDetailView = ({
             React.createElement("h3", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2" }, "Cost Breakdown"),
             hasCosts ? (
                 React.createElement(React.Fragment, null,
-                    React.createElement("table", { className: "w-full text-left text-sm" },
+                    React.createElement("table", { className: "w-full text-left text-sm table-fixed" },
                         React.createElement("thead", null,
                         React.createElement("tr", { className: "border-b dark:border-slate-700" },
                             React.createElement("th", { className: "py-2 font-medium w-3/5" }, "Item/Service"),
@@ -144,7 +144,7 @@ const JobDetailView = ({
                         React.createElement("tbody", null,
                         ticket.parts.map(p => (
                             React.createElement("tr", { key: p.id, className: "border-b dark:border-slate-700/50" },
-                            React.createElement("td", { className: "py-2" }, p.name),
+                            React.createElement("td", { className: "py-2 break-words pr-2" }, p.name),
                             React.createElement("td", { className: "py-2 text-center" }, p.quantity),
                             React.createElement("td", { className: "py-2 text-right" }, `$${p.cost.toFixed(2)}`),
                             React.createElement("td", { className: "py-2 text-right" }, `$${(p.cost * p.quantity).toFixed(2)}`)
