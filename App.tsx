@@ -10,6 +10,7 @@ import Dashboard from './components/Dashboard.tsx';
 import InvoiceView from './components/InvoiceView.tsx';
 import JobDetailView from './components/JobDetailView.tsx';
 import CalendarView from './components/CalendarView.tsx';
+import ContactSelectorModal from './components/ContactSelectorModal.tsx';
 import EmptyState from './components/EmptyState.tsx';
 import { UserCircleIcon } from './components/icons.tsx';
 import { generateId, generateICSContent, downloadICSFile } from './utils.ts';
@@ -211,6 +212,8 @@ const App: React.FC = () => {
     });
 
     const [viewState, setViewState] = useState<ViewState>({ type: 'dashboard' });
+    const [isContactSelectorOpen, setIsContactSelectorOpen] = useState(false);
+    const [selectedDateForJob, setSelectedDateForJob] = useState<Date | null>(null);
 
     // Effect to initialize the database
     useEffect(() => {
@@ -354,7 +357,7 @@ const App: React.FC = () => {
         const newContact: Contact = {
             ...contactData,
             id: generateId(),
-            jobTickets: [],
+            jobTickets: contactData.jobTickets || [], // jobTickets might be pre-filled from calendar
             files: contactData.files.map(({ dataUrl, ...metadata }) => metadata),
         };
         
@@ -591,6 +594,33 @@ const App: React.FC = () => {
         }
     };
 
+    const handleCalendarAddJob = (date: Date) => {
+        setSelectedDateForJob(date);
+        setIsContactSelectorOpen(true);
+    };
+
+    const handleSelectContactForJob = (contactId: string) => {
+        setIsContactSelectorOpen(false);
+        if (selectedDateForJob) {
+            // Adjust for timezone offset to get local YYYY-MM-DD
+            const offset = selectedDateForJob.getTimezoneOffset();
+            const localDate = new Date(selectedDateForJob.getTime() - (offset*60*1000));
+            const localDateString = localDate.toISOString().split('T')[0];
+            
+            setViewState({ type: 'detail', id: contactId, initialJobDate: localDateString });
+        }
+    };
+
+    const handleCreateContactForJob = () => {
+        setIsContactSelectorOpen(false);
+        if (selectedDateForJob) {
+             const offset = selectedDateForJob.getTimezoneOffset();
+             const localDate = new Date(selectedDateForJob.getTime() - (offset*60*1000));
+             const localDateString = localDate.toISOString().split('T')[0];
+             setViewState({ type: 'new_form', initialJobDate: localDateString });
+        }
+    };
+
     const selectedContact = useMemo(() => {
         if (viewState.type === 'detail' || viewState.type === 'edit_form' || viewState.type === 'invoice' || viewState.type === 'job_detail') {
             const id = viewState.type === 'invoice' || viewState.type === 'job_detail' ? viewState.contactId : viewState.id;
@@ -617,6 +647,7 @@ const App: React.FC = () => {
                 return <CalendarView 
                     contacts={appState.contacts}
                     onViewJob={(contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId })}
+                    onAddJob={handleCalendarAddJob}
                 />;
             case 'list':
                  return (
@@ -644,6 +675,7 @@ const App: React.FC = () => {
                         onViewJobDetail={(contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId })}
                         jobTemplates={appState.jobTemplates}
                         enabledStatuses={appState.enabledStatuses}
+                        initialJobDate={viewState.initialJobDate}
                     />
                 );
             case 'new_form':
@@ -652,6 +684,7 @@ const App: React.FC = () => {
                         onSave={addContact}
                         onCancel={() => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'})}
                         defaultFields={appState.defaultFields}
+                        initialJobDate={viewState.initialJobDate}
                     />
                 );
             case 'edit_form':
@@ -784,6 +817,16 @@ const App: React.FC = () => {
                     {renderMainContent()}
                 </main>
             </div>
+
+            {isContactSelectorOpen && selectedDateForJob && (
+                <ContactSelectorModal
+                    contacts={appState.contacts}
+                    onSelect={handleSelectContactForJob}
+                    onNewContact={handleCreateContactForJob}
+                    onClose={() => setIsContactSelectorOpen(false)}
+                    selectedDate={selectedDateForJob}
+                />
+            )}
         </div>
     );
 };
