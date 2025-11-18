@@ -299,7 +299,13 @@ const App = () => {
 
         const newContacts = [newContact, ...appState.contacts];
         setAppState(current => ({ ...current, contacts: newContacts }));
-        setViewState({ type: 'detail', id: newContact.id });
+        
+        let openJobId;
+        if (viewState.type === 'new_form' && viewState.initialJobDate && newContact.jobTickets.length > 0) {
+            openJobId = newContact.jobTickets[0].id;
+        }
+        
+        setViewState({ type: 'detail', id: newContact.id, openJobId });
 
         if (appState.autoCalendarExportEnabled) {
              const icsContent = generateICSContent(newContacts);
@@ -516,7 +522,7 @@ const App = () => {
             case 'dashboard': return React.createElement(Dashboard, { contacts: appState.contacts, onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }) });
             case 'calendar': return React.createElement(CalendarView, { contacts: appState.contacts, onViewJob: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), onAddJob: handleCalendarAddJob });
             case 'list': return React.createElement(EmptyState, { Icon: UserCircleIcon, title: "Welcome", message: "Select a contact or add a new one.", actionText: appState.contacts.length === 0 ? "Add First Contact" : undefined, onAction: appState.contacts.length === 0 ? () => setViewState({ type: 'new_form' }) : undefined });
-            case 'detail': return selectedContact ? React.createElement(ContactDetail, { contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), jobTemplates: appState.jobTemplates, enabledStatuses: appState.enabledStatuses, initialJobDate: viewState.initialJobDate }) : null;
+            case 'detail': return selectedContact ? React.createElement(ContactDetail, { key: selectedContact.id, contact: selectedContact, defaultFields: appState.defaultFields, onEdit: () => setViewState({ type: 'edit_form', id: selectedContact.id }), onDelete: () => deleteContact(selectedContact.id), onClose: () => setViewState({ type: 'list' }), addFilesToContact: addFilesToContact, updateContactJobTickets: updateContactJobTickets, onViewInvoice:(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }), onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), jobTemplates: appState.jobTemplates, enabledStatuses: appState.enabledStatuses, initialJobDate: viewState.initialJobDate, openJobId: viewState.openJobId }) : null;
             case 'new_form': return React.createElement(ContactForm, { onSave: addContact, onCancel: () => appState.contacts.length > 0 ? setViewState({ type: 'list' }) : setViewState({type: 'dashboard'}), defaultFields: appState.defaultFields, initialJobDate: viewState.initialJobDate });
             case 'edit_form': return selectedContact ? React.createElement(ContactForm, { initialContact: selectedContact, onSave: (data) => updateContact(selectedContact.id, data), onCancel: () => setViewState({ type: 'detail', id: selectedContact.id }) }) : null;
             case 'settings': return React.createElement(Settings, { defaultFields: appState.defaultFields, onAddDefaultField: addDefaultField, onDeleteDefaultField: deleteDefaultField, onBack: () => setViewState({ type: 'dashboard' }), appStateForBackup: { ...appState }, autoBackupEnabled: appState.autoBackupEnabled, onToggleAutoBackup: handleToggleAutoBackup, lastAutoBackup: appState.lastAutoBackup, onRestoreBackup: (content) => restoreData(content, false), businessInfo: appState.businessInfo, onUpdateBusinessInfo: updateBusinessInfo, currentTheme: appState.theme, onUpdateTheme: updateTheme, jobTemplates: appState.jobTemplates, onAddJobTemplate: addJobTemplate, onUpdateJobTemplate: updateJobTemplate, onDeleteJobTemplate: deleteJobTemplate, enabledStatuses: appState.enabledStatuses, onToggleJobStatus: toggleJobStatus, contacts: appState.contacts, autoCalendarExportEnabled: appState.autoCalendarExportEnabled, onToggleAutoCalendarExport: toggleAutoCalendarExport });
