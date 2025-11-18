@@ -19,7 +19,7 @@ import {
   BriefcaseIcon,
   ClipboardListIcon,
 } from './icons.js';
-import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal } from '../utils.js';
+import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal, formatTime } from '../utils.js';
 import { getFiles } from '../db.js';
 import { jobStatusColors } from '../types.js';
 
@@ -152,12 +152,14 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
             const newTicket = { 
                 id: generateId(), 
                 date: entry.date, 
+                time: entry.time,
                 notes: entry.notes,
                 status: entry.status,
                 parts: entry.parts,
                 laborCost: entry.laborCost,
                 salesTaxRate: entry.salesTaxRate,
                 processingFeeRate: entry.processingFeeRate,
+                createdAt: new Date().toISOString(),
             };
             updatedTickets = [newTicket, ...currentTickets];
         }
@@ -264,7 +266,10 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                         ),
                                         React.createElement("p", { className: "font-bold text-lg text-slate-800 dark:text-slate-100" }, `$${totalCost.toFixed(2)}`)
                                     ),
-                                    React.createElement("p", { className: "font-semibold text-slate-700 dark:text-slate-200" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })),
+                                    React.createElement("p", { className: "font-semibold text-slate-700 dark:text-slate-200" }, 
+                                        new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }),
+                                        ticket.time && React.createElement("span", { className: "text-slate-500 dark:text-slate-400 font-normal ml-1" }, ` at ${formatTime(ticket.time)}`)
+                                    ),
                                     ticket.notes && (
                                         React.createElement("p", { className: "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-3" }, ticket.notes)
                                     ),
