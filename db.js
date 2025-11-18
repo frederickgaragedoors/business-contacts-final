@@ -100,14 +100,26 @@ export const clearAndAddFiles = async (files) => {
     const db = await getDB();
     const transaction = db.transaction(FILE_STORE_NAME, 'readwrite');
     const store = transaction.objectStore(FILE_STORE_NAME);
-    
-    await new Promise((resolve, reject) => {
-        const clearRequest = store.clear();
-        clearRequest.onsuccess = () => resolve();
-        clearRequest.onerror = () => reject(clearRequest.error);
-    });
 
-    if (files && files.length > 0) {
-        await addFiles(files);
-    }
+    return new Promise((resolve, reject) => {
+        const clearRequest = store.clear();
+        clearRequest.onerror = () => reject(clearRequest.error);
+        clearRequest.onsuccess = () => {
+            if (files && files.length > 0) {
+                const addPromises = files.map(file => {
+                    return new Promise((resolveFile, rejectFile) => {
+                        const addRequest = store.put(file);
+                        addRequest.onsuccess = () => resolveFile();
+                        addRequest.onerror = () => rejectFile(addRequest.error);
+                    });
+                });
+                
+                Promise.all(addPromises)
+                    .then(() => resolve())
+                    .catch(error => reject(error));
+            } else {
+                resolve();
+            }
+        };
+    });
 };
