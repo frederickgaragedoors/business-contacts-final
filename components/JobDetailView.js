@@ -40,6 +40,51 @@ const JobDetailView = ({
         ),
 
         React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow space-y-6" },
+        
+          // Job Overview Card (Combined Notes & Job Info)
+          React.createElement("div", { className: "bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6" },
+            React.createElement("div", { className: "flex justify-between items-start mb-4" },
+                 React.createElement("h3", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100" }, "Job Overview")
+            ),
+            
+            // Notes
+            React.createElement("div", { className: "mb-6" },
+               React.createElement("p", { className: "text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words text-base" },
+                  ticket.notes || 'No notes provided for this job.'
+               )
+            ),
+
+            // Meta Data
+            React.createElement("div", { className: "flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-6 border border-slate-100 dark:border-slate-700" },
+                 React.createElement("div", { className: "flex gap-6" },
+                    React.createElement("div", null,
+                        React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" }, "Date"),
+                        React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }))
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" }, "Job ID"),
+                        React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, ticket.id)
+                    )
+                 ),
+                 React.createElement("span", { className: `px-3 py-1 text-sm font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
+                    ticket.status
+                )
+            ),
+
+            // Actions
+            React.createElement("div", { className: "pt-2 flex items-center justify-end space-x-2" },
+                React.createElement("button", { onClick: () => setIsJobTicketModalOpen(true), className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500" },
+                    React.createElement(EditIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Edit")
+                ),
+                 React.createElement("button", { onClick: onDeleteTicket, className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900" },
+                    React.createElement(TrashIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Delete")
+                ),
+                 React.createElement("button", { onClick: onViewInvoice, className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600" },
+                    React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "PDF")
+                )
+            )
+          ),
+
           // Contact Info Card
           React.createElement("div", { className: "bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6" },
             React.createElement("h3", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2" }, "Customer Information"),
@@ -57,30 +102,6 @@ const JobDetailView = ({
                 React.createElement(MapPinIcon, { className: "w-4 h-4 text-slate-400 mr-3 mt-1" }),
                 React.createElement("span", { className: "text-slate-600 dark:text-slate-300 whitespace-pre-line" }, contact.address)
               )
-            )
-          ),
-
-          // Job Info & Actions Card
-          React.createElement("div", { className: "bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6" },
-            React.createElement("div", { className: "flex justify-between items-start" },
-              React.createElement("div", null,
-                React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400" }, "Job ID: ", ticket.id),
-                React.createElement("p", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100 mt-1" }, new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }))
-              ),
-              React.createElement("span", { className: `px-3 py-1 text-sm font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
-                ticket.status
-              )
-            ),
-            React.createElement("div", { className: "mt-4 pt-4 border-t dark:border-slate-700 flex items-center justify-end space-x-2" },
-                React.createElement("button", { onClick: () => setIsJobTicketModalOpen(true), className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500" },
-                    React.createElement(EditIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Edit")
-                ),
-                 React.createElement("button", { onClick: onDeleteTicket, className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900" },
-                    React.createElement(TrashIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Delete")
-                ),
-                 React.createElement("button", { onClick: onViewInvoice, className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600" },
-                    React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "PDF")
-                )
             )
           ),
 
@@ -121,14 +142,6 @@ const JobDetailView = ({
                   React.createElement("div", { className: "flex justify-between font-bold text-lg mt-2 pt-2 border-t dark:border-slate-600" }, React.createElement("span", null, "Total:"), React.createElement("span", null, `$${totalCost.toFixed(2)}`))
                 )
               )
-            )
-          ),
-
-          // Notes Card
-          React.createElement("div", { className: "bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6" },
-            React.createElement("h3", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2" }, "Notes"),
-            React.createElement("p", { className: "text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words" },
-              ticket.notes || 'No notes for this job.'
             )
           )
         )
