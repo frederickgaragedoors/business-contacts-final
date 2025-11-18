@@ -647,6 +647,7 @@ const App: React.FC = () => {
                         onDeleteJobTemplate={deleteJobTemplate}
                         enabledStatuses={appState.enabledStatuses}
                         onToggleJobStatus={toggleJobStatus}
+                        contacts={appState.contacts}
                     />
                 );
             case 'invoice':
