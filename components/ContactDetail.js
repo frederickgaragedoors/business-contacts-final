@@ -420,6 +420,13 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     ),
                     React.createElement("h1", { className: "text-3xl font-bold text-slate-800 dark:text-slate-100 text-center break-words" }, contact.name),
                     React.createElement("div", { className: "flex space-x-3 mt-4" },
+                        React.createElement("button", {
+                            onClick: () => { setEditingJobTicket(null); setIsJobTicketModalOpen(true); },
+                            className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors"
+                        },
+                            React.createElement(BriefcaseIcon, { className: "w-4 h-4" }),
+                            React.createElement("span", null, "Add Job")
+                        ),
                         React.createElement("button", { onClick: onEdit, className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors" },
                             React.createElement(EditIcon, { className: "w-4 h-4" }),
                             React.createElement("span", null, "Edit")
