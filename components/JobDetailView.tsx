@@ -146,7 +146,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2">Cost Breakdown</h3>
             {hasCosts ? (
                 <>
-                  <table className="w-full text-left text-sm">
+                  <table className="w-full text-left text-sm table-fixed">
                     <thead>
                       <tr className="border-b dark:border-slate-700">
                         <th className="py-2 font-medium w-3/5">Item/Service</th>
@@ -158,7 +158,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                     <tbody>
                       {ticket.parts.map(p => (
                         <tr key={p.id} className="border-b dark:border-slate-700/50">
-                          <td className="py-2">{p.name}</td>
+                          <td className="py-2 break-words pr-2">{p.name}</td>
                           <td className="py-2 text-center">{p.quantity}</td>
                           <td className="py-2 text-right">${p.cost.toFixed(2)}</td>
                           <td className="py-2 text-right">${(p.cost * p.quantity).toFixed(2)}</td>
