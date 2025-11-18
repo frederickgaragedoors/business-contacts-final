@@ -33,7 +33,7 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses, initialJobDate }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses, initialJobDate, openJobId }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -47,7 +47,8 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     const cameraInputRef = useRef(null);
     const fileUploadRef = useRef(null);
 
-    // Handle initialJobDate prop to open modal automatically
+    // Handle initialJobDate prop to open modal automatically for NEW job
+    // OR openJobId to open modal automatically for EXISTING job
     useEffect(() => {
         if (initialJobDate) {
             setActiveTab('jobs');
@@ -61,8 +62,15 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 createdAt: new Date().toISOString(),
             });
             setIsJobTicketModalOpen(true);
+        } else if (openJobId) {
+             const ticketToEdit = contact.jobTickets?.find(t => t.id === openJobId);
+             if (ticketToEdit) {
+                 setActiveTab('jobs');
+                 setEditingJobTicket(ticketToEdit);
+                 setIsJobTicketModalOpen(true);
+             }
         }
-    }, [initialJobDate]);
+    }, [initialJobDate, openJobId]);
     
     const handleViewFile = async (file) => {
         if (!file.dataUrl) return;
