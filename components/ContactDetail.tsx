@@ -36,6 +36,7 @@ interface ContactDetailProps {
     jobTemplates: JobTemplate[];
     enabledStatuses: Record<JobStatus, boolean>;
     initialJobDate?: string;
+    openJobId?: string;
 }
 
 const VIEWABLE_MIME_TYPES = [
@@ -49,7 +50,7 @@ const VIEWABLE_MIME_TYPES = [
 
 type ActiveTab = 'details' | 'jobs' | 'files';
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses, initialJobDate }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses, initialJobDate, openJobId }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -63,7 +64,8 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const fileUploadRef = useRef<HTMLInputElement>(null);
 
-    // Handle initialJobDate prop to open modal automatically
+    // Handle initialJobDate prop to open modal automatically for NEW job
+    // OR openJobId to open modal automatically for EXISTING job (e.g. created from calendar flow)
     useEffect(() => {
         if (initialJobDate) {
             setActiveTab('jobs');
@@ -77,8 +79,15 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 createdAt: new Date().toISOString(),
             });
             setIsJobTicketModalOpen(true);
+        } else if (openJobId) {
+             const ticketToEdit = contact.jobTickets?.find(t => t.id === openJobId);
+             if (ticketToEdit) {
+                 setActiveTab('jobs');
+                 setEditingJobTicket(ticketToEdit);
+                 setIsJobTicketModalOpen(true);
+             }
         }
-    }, [initialJobDate]);
+    }, [initialJobDate, openJobId]); // Deliberately excluding contact.jobTickets to run primarily on mount/navigation
 
     const handleViewFile = async (file: FileAttachment) => {
         if (!file.dataUrl) return;
