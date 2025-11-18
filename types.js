@@ -8,3 +8,5 @@ export const jobStatusColors = {
   Paid: { base: 'bg-indigo-100 dark:bg-indigo-900', text: 'text-indigo-800 dark:text-indigo-200' },
   Declined: { base: 'bg-red-100 dark:bg-red-900', text: 'text-red-800 dark:text-red-200' },
 };
+
+export const ALL_JOB_STATUSES = Object.keys(jobStatusColors);
