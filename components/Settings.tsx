@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact } from '../types.ts';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon } from './icons.tsx';
@@ -30,6 +31,8 @@ interface SettingsProps {
     enabledStatuses: Record<JobStatus, boolean>;
     onToggleJobStatus: (status: JobStatus, enabled: boolean) => void;
     contacts: Contact[];
+    autoCalendarExportEnabled: boolean;
+    onToggleAutoCalendarExport: (enabled: boolean) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -53,6 +56,8 @@ const Settings: React.FC<SettingsProps> = ({
     enabledStatuses,
     onToggleJobStatus,
     contacts,
+    autoCalendarExportEnabled,
+    onToggleAutoCalendarExport,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState<BusinessInfo>(businessInfo);
@@ -301,10 +306,22 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className="mt-8 border-t dark:border-slate-700 pt-6">
                      <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Calendar Integration</h3>
                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Export your jobs to an external calendar.</p>
-                      <div className="mt-6">
+                      <div className="mt-6 space-y-3">
                          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                             <div>
-                                <p className="font-medium text-slate-700 dark:text-slate-200">Export Calendar</p>
+                                <p className="font-medium text-slate-700 dark:text-slate-200">Auto-Export .ics on Change</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Automatically prompt to download an updated .ics file when you add, edit, or delete jobs.</p>
+                            </div>
+                            <button
+                                onClick={() => onToggleAutoCalendarExport(!autoCalendarExportEnabled)}
+                                className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 ${autoCalendarExportEnabled ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            >
+                                <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${autoCalendarExportEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                            </button>
+                        </div>
+                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                            <div>
+                                <p className="font-medium text-slate-700 dark:text-slate-200">Manual Export</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Download an .ics file to import into Google Calendar, Outlook, etc.</p>
                             </div>
                             <button onClick={handleExportCalendar} className="inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
