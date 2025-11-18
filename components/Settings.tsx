@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { DefaultFieldSetting, BusinessInfo, JobTemplate } from '../types.ts';
+import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES } from '../types.ts';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon } from './icons.tsx';
 import { saveJsonFile, fileToDataUrl } from '../utils.ts';
 import { getAllFiles } from '../db.ts';
@@ -21,11 +22,12 @@ interface SettingsProps {
     onUpdateBusinessInfo: (info: BusinessInfo) => void;
     currentTheme: Theme;
     onUpdateTheme: (theme: Theme) => void;
-    // FIX: Add missing props to handle job templates.
     jobTemplates: JobTemplate[];
     onAddJobTemplate: (template: Omit<JobTemplate, 'id'>) => void;
     onUpdateJobTemplate: (id: string, template: Omit<JobTemplate, 'id'>) => void;
     onDeleteJobTemplate: (id: string) => void;
+    enabledStatuses: Record<JobStatus, boolean>;
+    onToggleJobStatus: (status: JobStatus, enabled: boolean) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -46,6 +48,8 @@ const Settings: React.FC<SettingsProps> = ({
     onAddJobTemplate,
     onUpdateJobTemplate,
     onDeleteJobTemplate,
+    enabledStatuses,
+    onToggleJobStatus,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState<BusinessInfo>(businessInfo);
@@ -147,8 +151,26 @@ const Settings: React.FC<SettingsProps> = ({
                         ))}
                     </div>
                 </div>
+                
+                 <div className="mt-8 border-t dark:border-slate-700 pt-6">
+                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Job Status Visibility</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Choose which statuses appear in the dropdown menu.</p>
+                    <div className="mt-6 space-y-3">
+                         {ALL_JOB_STATUSES.map((status) => (
+                            <div key={status} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                <span className="font-medium text-slate-700 dark:text-slate-200">{status}</span>
+                                <button
+                                    onClick={() => onToggleJobStatus(status, !enabledStatuses[status])}
+                                    className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 ${enabledStatuses[status] ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                >
+                                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${enabledStatuses[status] ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                         ))}
+                    </div>
+                </div>
 
-                <form onSubmit={handleBusinessInfoSubmit} className="border-t dark:border-slate-700 pt-6">
+                <form onSubmit={handleBusinessInfoSubmit} className="border-t dark:border-slate-700 pt-6 mt-8">
                     <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Business Information</h3>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">This info will appear on your estimates and receipts.</p>
                     <div className="mt-6 space-y-4">
