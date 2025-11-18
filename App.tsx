@@ -649,7 +649,7 @@ const App: React.FC = () => {
     const isListHiddenOnMobile = ['detail', 'new_form', 'edit_form', 'settings', 'dashboard', 'invoice', 'job_detail'].includes(viewState.type);
 
     return (
-        <div className="h-screen w-screen flex flex-col antialiased text-slate-700 dark:text-slate-300 relative">
+        <div className="h-screen w-full flex flex-col antialiased text-slate-700 dark:text-slate-300 relative">
             {recoveryBackup && (
                 <div className="absolute top-0 left-0 right-0 bg-yellow-100 border-b-2 border-yellow-300 p-4 z-50 flex items-center justify-between shadow-lg">
                     <div>
@@ -693,7 +693,7 @@ const App: React.FC = () => {
                         onSelectContact={(id) => setViewState({ type: 'detail', id })}
                     />
                 </div>
-                <main className={`flex-grow h-full ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' || viewState.type === 'job_detail' ? 'w-full' : ''}`}>
+                <main className={`flex-grow h-full min-w-0 overflow-hidden ${!isListHiddenOnMobile ? 'hidden md:block' : 'block'} ${viewState.type === 'invoice' || viewState.type === 'job_detail' ? 'w-full' : ''}`}>
                     {renderMainContent()}
                 </main>
             </div>
