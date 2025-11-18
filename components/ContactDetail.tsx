@@ -35,6 +35,7 @@ interface ContactDetailProps {
     onViewJobDetail: (contactId: string, ticketId: string) => void;
     jobTemplates: JobTemplate[];
     enabledStatuses: Record<JobStatus, boolean>;
+    initialJobDate?: string;
 }
 
 const VIEWABLE_MIME_TYPES = [
@@ -48,7 +49,7 @@ const VIEWABLE_MIME_TYPES = [
 
 type ActiveTab = 'details' | 'jobs' | 'files';
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses, initialJobDate }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -61,6 +62,23 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     const imageUploadRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const fileUploadRef = useRef<HTMLInputElement>(null);
+
+    // Handle initialJobDate prop to open modal automatically
+    useEffect(() => {
+        if (initialJobDate) {
+            setActiveTab('jobs');
+            setEditingJobTicket({
+                id: generateId(),
+                date: initialJobDate,
+                status: 'Estimate Scheduled',
+                notes: '',
+                parts: [],
+                laborCost: 0,
+                createdAt: new Date().toISOString(),
+            });
+            setIsJobTicketModalOpen(true);
+        }
+    }, [initialJobDate]);
 
     const handleViewFile = async (file: FileAttachment) => {
         if (!file.dataUrl) return;
@@ -160,11 +178,11 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     const handleSaveJobTicket = (entry: Omit<JobTicket, 'id'> & { id?: string }) => {
         let updatedTickets;
         const currentTickets = contact.jobTickets || [];
-        if (entry.id) {
+        if (entry.id && currentTickets.some(t => t.id === entry.id)) {
             updatedTickets = currentTickets.map(ticket => ticket.id === entry.id ? { ...ticket, ...entry } : ticket);
         } else {
             const newTicket: JobTicket = { 
-                id: generateId(), 
+                id: entry.id || generateId(), 
                 date: entry.date,
                 time: entry.time,
                 notes: entry.notes,
