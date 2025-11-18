@@ -118,7 +118,7 @@ const Dashboard = ({ contacts, onViewJobDetail }) => {
                 allJobs.length > 0 ? (
                     React.createElement("div", { className: "max-w-4xl mx-auto w-full space-y-8" },
                         React.createElement(Section, { 
-                            title: "Today's Work & Appointments", 
+                            title: "Today's Work", 
                             jobs: todaysJobs, 
                             emptyMessage: "Nothing scheduled for today." 
                         }),
