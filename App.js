@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.js';
 import ContactList from './components/ContactList.js';
@@ -282,7 +283,7 @@ function App() {
                   onClose: () => setViewState({ type: 'list' }),
                   addFilesToContact: handleAddFilesToContact,
                   updateContactJobTickets: handleUpdateContactJobTickets,
-                  onViewInvoice: (contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId }),
+                  onViewInvoice: (contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId, from: 'contact_detail' }),
                   onViewJobDetail: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }),
                   jobTemplates: jobTemplates,
                   enabledStatuses: enabledStatuses,
@@ -337,7 +338,13 @@ function App() {
                   contact: invoiceContact, 
                   ticket: invoiceTicket, 
                   businessInfo: businessInfo, 
-                  onClose: () => setViewState({ type: 'detail', id: invoiceContact.id, openJobId: invoiceTicket.id }),
+                  onClose: () => {
+                    if (viewState.from === 'contact_detail') {
+                        setViewState({ type: 'detail', id: invoiceContact.id });
+                    } else {
+                        setViewState({ type: 'job_detail', contactId: invoiceContact.id, ticketId: invoiceTicket.id });
+                    }
+                  },
                   addFilesToContact: handleAddFilesToContact
               });
           case 'job_detail':
@@ -361,7 +368,7 @@ function App() {
                             setViewState({ type: 'detail', id: jobContact.id });
                         }
                     },
-                    onViewInvoice: () => setViewState({ type: 'invoice', contactId: jobContact.id, ticketId: jobTicket.id }),
+                    onViewInvoice: () => setViewState({ type: 'invoice', contactId: jobContact.id, ticketId: jobTicket.id, from: 'job_detail' }),
                     enabledStatuses: enabledStatuses
                 });
           default:
