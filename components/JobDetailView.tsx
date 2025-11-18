@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors } from '../types.ts';
 import JobTicketModal from './JobTicketModal.tsx';
