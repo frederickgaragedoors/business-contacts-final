@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
 import { jobStatusColors } from '../types.js';
-import { ChevronLeftIcon, ChevronRightIcon, BriefcaseIcon } from './icons.js';
+import { ChevronLeftIcon, ChevronRightIcon, BriefcaseIcon, PlusIcon } from './icons.js';
 import { formatTime } from '../utils.js';
 import EmptyState from './EmptyState.js';
 
-const CalendarView = ({ contacts, onViewJob }) => {
+const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -153,9 +153,16 @@ const CalendarView = ({ contacts, onViewJob }) => {
 
                 /* Agenda View */
                 React.createElement("div", { className: "flex-grow h-[50%] md:h-full md:w-1/3 flex flex-col bg-white dark:bg-slate-800 overflow-hidden" },
-                    React.createElement("div", { className: "p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0" },
+                    React.createElement("div", { className: "p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0 flex justify-between items-center" },
                         React.createElement("h3", { className: "font-bold text-slate-800 dark:text-slate-100" },
-                            `Schedule for ${selectedDate.toLocaleDateString('default', { weekday: 'long', month: 'short', day: 'numeric' })}`
+                            `Schedule for ${selectedDate.toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' })}`
+                        ),
+                        React.createElement("button", { 
+                            onClick: () => onAddJob(selectedDate),
+                            className: "flex items-center space-x-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" 
+                        },
+                            React.createElement(PlusIcon, { className: "w-3 h-3" }),
+                            React.createElement("span", null, "Add Job")
                         )
                     ),
                     React.createElement("div", { className: "overflow-y-auto flex-grow p-4" },
@@ -185,8 +192,8 @@ const CalendarView = ({ contacts, onViewJob }) => {
                         ) : (
                             React.createElement(EmptyState, { 
                                 Icon: BriefcaseIcon,
-                                title: "No Jobs Scheduled",
-                                message: "Select another date or add a job to a contact."
+                                title: "No Jobs",
+                                message: "No jobs scheduled for this day."
                             })
                         )
                     )
