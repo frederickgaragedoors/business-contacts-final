@@ -108,11 +108,20 @@ const App = () => {
                             salesTaxRate: ticket.salesTaxRate,
                             processingFeeRate: ticket.processingFeeRate,
                         }));
+                    
+                    const sanitizedFiles = (Array.isArray(contact.files) ? contact.files : [])
+                        .filter(file => file && typeof file === 'object')
+                        .map((file) => ({
+                            id: file.id || generateId(),
+                            name: file.name || 'Unnamed File',
+                            type: file.type || 'application/octet-stream',
+                            size: file.size || 0,
+                        }));
 
                     return {
                         id: '', name: '', email: '', phone: '', address: '', photoUrl: '',
                         ...contact,
-                        files: Array.isArray(contact.files) ? contact.files : [],
+                        files: sanitizedFiles,
                         customFields: Array.isArray(contact.customFields) ? contact.customFields : [],
                         jobTickets: jobTickets,
                     };
