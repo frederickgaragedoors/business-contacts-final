@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { jobStatusColors } from '../types.js';
 import EmptyState from './EmptyState.js';
-import { ClipboardListIcon, UsersIcon, BriefcaseIcon, BellIcon } from './icons.js';
+import { ClipboardListIcon } from './icons.js';
 
 
 const Dashboard = ({ contacts, onViewJobDetail }) => {
@@ -34,21 +34,26 @@ const Dashboard = ({ contacts, onViewJobDetail }) => {
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs]);
     
-    const todaysAppointments = useMemo(() => {
-        return allJobs.filter(job => {
-            if (!job.date) return false;
-            const jobDate = parseDateAsLocal(job.date);
-            return job.status === 'Estimate Scheduled' && jobDate.getTime() === today.getTime();
-        });
-    }, [allJobs, today]);
-
-    const todaysWork = useMemo(() => {
-        return allJobs.filter(job => {
-            if (!job.date) return false;
-            const jobDate = parseDateAsLocal(job.date);
-            return (job.status === 'Scheduled' || job.status === 'In Progress') &&
-                   jobDate.getTime() === today.getTime();
-        });
+    const todaysJobs = useMemo(() => {
+        const statusOrder = {
+          'Estimate Scheduled': 1,
+          'Scheduled': 2,
+          'In Progress': 3,
+          'Quote Sent': 4,
+          'Awaiting Parts': 5,
+          'Completed': 6,
+          'Paid': 7,
+          'Declined': 8,
+        };
+    
+        return allJobs
+            .filter(job => {
+                if (!job.date) return false;
+                const jobDate = parseDateAsLocal(job.date);
+                return (job.status === 'Estimate Scheduled' || job.status === 'Scheduled' || job.status === 'In Progress') &&
+                       jobDate.getTime() === today.getTime();
+            })
+            .sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
     }, [allJobs, today]);
 
     const quotesToFollowUp = useMemo(() => {
@@ -68,16 +73,6 @@ const Dashboard = ({ contacts, onViewJobDetail }) => {
             })
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs, today]);
-    
-    const StatCard = ({ Icon, title, value, color }) => (
-        React.createElement("div", { className: `p-5 rounded-xl shadow-sm text-white ${color} card-hover` },
-            React.createElement("div", { className: "flex justify-between items-center" },
-                React.createElement("p", { className: "text-lg font-medium opacity-90" }, title),
-                React.createElement(Icon, { className: "w-8 h-8 opacity-50" })
-            ),
-            React.createElement("p", { className: "text-4xl font-bold mt-2" }, value)
-        )
-    );
 
     const JobCard = ({ job }) => {
         const statusColor = jobStatusColors[job.status];
@@ -119,45 +114,29 @@ const Dashboard = ({ contacts, onViewJobDetail }) => {
                 React.createElement("h1", { className: "text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100" }, "Good Morning!"),
                 React.createElement("p", { className: "mt-1 text-slate-500 dark:text-slate-400" }, "Here's a summary of your business activity.")
             ),
-            React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow space-y-8" },
-                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" },
-                    React.createElement(StatCard, { Icon: UsersIcon, title: "Total Contacts", value: contacts.length, color: "bg-gradient-to-br from-sky-500 to-sky-600" }),
-                    React.createElement(StatCard, { Icon: ClipboardListIcon, title: "Jobs Today", value: todaysAppointments.length + todaysWork.length, color: "bg-gradient-to-br from-green-500 to-green-600" }),
-                    React.createElement(StatCard, { Icon: BellIcon, title: "Follow Ups", value: quotesToFollowUp.length, color: "bg-gradient-to-br from-orange-500 to-orange-600" }),
-                    React.createElement(StatCard, { Icon: BriefcaseIcon, title: "Awaiting Parts", value: jobsAwaitingParts.length, color: "bg-gradient-to-br from-purple-500 to-purple-600" })
-                ),
-                
+            React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow" },
                 allJobs.length > 0 ? (
-                    React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-8" },
-                        React.createElement("div", { className: "lg:col-span-2 space-y-8" },
-                            React.createElement(Section, { 
-                                title: "Today's Appointments", 
-                                jobs: todaysAppointments, 
-                                emptyMessage: "No estimates scheduled for today." 
-                            }),
-                            React.createElement(Section, { 
-                                title: "Today's Work", 
-                                jobs: todaysWork, 
-                                emptyMessage: "No work scheduled for today." 
-                            }),
-                            React.createElement(Section, { 
-                                title: "Upcoming Work", 
-                                jobs: upcomingWork, 
-                                emptyMessage: "No upcoming jobs scheduled." 
-                            })
-                        ),
-                        React.createElement("div", { className: "lg:col-span-1 space-y-8" },
-                            React.createElement(Section, {
-                                title: "Follow-Ups Required",
-                                jobs: quotesToFollowUp,
-                                emptyMessage: "No quotes need follow-up."
-                            }),
-                            React.createElement(Section, {
-                                title: "Awaiting Parts",
-                                jobs: jobsAwaitingParts,
-                                emptyMessage: "No jobs are awaiting parts."
-                            })
-                        )
+                    React.createElement("div", { className: "max-w-4xl mx-auto w-full space-y-8" },
+                        React.createElement(Section, { 
+                            title: "Today's Work & Appointments", 
+                            jobs: todaysJobs, 
+                            emptyMessage: "Nothing scheduled for today." 
+                        }),
+                        React.createElement(Section, { 
+                            title: "Upcoming Work", 
+                            jobs: upcomingWork, 
+                            emptyMessage: "No upcoming jobs scheduled." 
+                        }),
+                        React.createElement(Section, { 
+                            title: "Awaiting Parts", 
+                            jobs: jobsAwaitingParts, 
+                            emptyMessage: "No jobs are awaiting parts." 
+                        }),
+                        React.createElement(Section, {
+                            title: "Follow-Ups Required",
+                            jobs: quotesToFollowUp,
+                            emptyMessage: "No quotes need follow-up."
+                        })
                     )
                 ) : (
                     React.createElement(EmptyState, {
