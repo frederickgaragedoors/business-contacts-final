@@ -1,5 +1,6 @@
+
 import React, { useState, useCallback } from 'react';
-import { Contact, FileAttachment, CustomField, DefaultFieldSetting } from '../types.ts';
+import { Contact, FileAttachment, CustomField, DefaultFieldSetting, JobTicket } from '../types.ts';
 import { UserCircleIcon, XIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.tsx';
 import { fileToDataUrl, formatFileSize, generateId } from '../utils.ts';
 
@@ -8,9 +9,10 @@ interface ContactFormProps {
   onSave: (contactData: Omit<Contact, 'id'>) => void;
   onCancel: () => void;
   defaultFields?: DefaultFieldSetting[];
+  initialJobDate?: string;
 }
 
-const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCancel, defaultFields }) => {
+const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCancel, defaultFields, initialJobDate }) => {
   const [name, setName] = useState(initialContact?.name || '');
   const [email, setEmail] = useState(initialContact?.email || '');
   const [phone, setPhone] = useState(initialContact?.phone || '');
@@ -85,7 +87,24 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalFiles = [...files, ...stagedFiles];
-    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, jobTickets: initialContact?.jobTickets || [] });
+    
+    let initialJobTickets: JobTicket[] = initialContact?.jobTickets || [];
+    
+    // If we have an initialJobDate and we are creating a new contact (not editing),
+    // pre-create a job ticket for this date.
+    if (initialJobDate && !initialContact) {
+        initialJobTickets = [{
+            id: generateId(),
+            date: initialJobDate,
+            status: 'Estimate Scheduled',
+            notes: '',
+            parts: [],
+            laborCost: 0,
+            createdAt: new Date().toISOString()
+        }];
+    }
+
+    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, jobTickets: initialJobTickets });
   };
 
   return (
@@ -102,6 +121,14 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
             <button type="submit" className="px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save</button>
         </div>
       </div>
+      
+      {initialJobDate && !initialContact && (
+        <div className="px-4 sm:px-6 pt-6">
+            <div className="bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 rounded-md p-3 text-sm text-sky-800 dark:text-sky-200">
+                This new contact will be automatically scheduled for a job on <strong>{new Date(initialJobDate).toLocaleDateString()}</strong>.
+            </div>
+        </div>
+      )}
       
       <div className="px-4 sm:px-6 py-6 flex-grow">
         <div className="flex flex-col items-center mb-6">
