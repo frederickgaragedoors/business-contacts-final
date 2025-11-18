@@ -1,7 +1,9 @@
+
 import React, { useMemo } from 'react';
 import { jobStatusColors } from '../types.js';
 import EmptyState from './EmptyState.js';
 import { ClipboardListIcon } from './icons.js';
+import { formatTime } from '../utils.js';
 
 
 const Dashboard = ({ contacts, onViewJobDetail }) => {
@@ -84,7 +86,10 @@ const Dashboard = ({ contacts, onViewJobDetail }) => {
                 React.createElement("div", { className: "flex justify-between items-start space-x-2" },
                     React.createElement("div", { className: "min-w-0" },
                         React.createElement("p", { className: "font-semibold text-slate-800 dark:text-slate-100 truncate" }, job.contactName),
-                        React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400" }, new Date(job.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }))
+                        React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400" }, 
+                            new Date(job.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }),
+                            job.time && React.createElement("span", { className: "ml-1 text-slate-500 font-normal" }, `at ${formatTime(job.time)}`)
+                        )
                     ),
                      React.createElement("span", { className: `flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
                         job.status
