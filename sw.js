@@ -6,6 +6,8 @@ const urlsToCache = [
   './manifest.json',
   './icons/icon.svg',
   './utils.js',
+  './db.js',
+  './types.js',
   './App.js',
   './components/Header.js',
   './components/Dashboard.js',
@@ -18,7 +20,8 @@ const urlsToCache = [
   './components/JobTicketModal.js',
   './components/JobTemplateModal.js',
   './components/InvoiceView.js',
-  './components/JobDetailView.js', // Added JobDetailView
+  './components/JobDetailView.js',
+  './components/EmptyState.js',
   './components/icons.js',
   'https://cdn.tailwindcss.com'
 ];
