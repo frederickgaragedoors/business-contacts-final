@@ -23,6 +23,7 @@ const JobDetailView = ({
   onEditTicket,
   onDeleteTicket,
   onViewInvoice,
+  enabledStatuses,
 }) => {
   const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
 
@@ -177,7 +178,8 @@ const JobDetailView = ({
             setIsJobTicketModalOpen(false);
           },
           onClose: () => setIsJobTicketModalOpen(false),
-          jobTemplates: jobTemplates
+          jobTemplates: jobTemplates,
+          enabledStatuses: enabledStatuses
         })
       )
     )
