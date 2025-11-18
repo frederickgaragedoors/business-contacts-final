@@ -14,6 +14,7 @@ interface JobTicketModalProps {
 
 const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates, enabledStatuses }) => {
   const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
   const [status, setStatus] = useState<JobStatus>('Estimate Scheduled');
   const [notes, setNotes] = useState('');
   const [parts, setParts] = useState<Part[]>([]);
@@ -24,6 +25,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
   useEffect(() => {
     if (entry) {
       setDate(entry.date);
+      setTime(entry.time || '');
       setStatus(entry.status);
       setNotes(entry.notes);
       setParts(entry.parts.map(p => ({...p}))); // Create a copy to avoid direct mutation
@@ -32,6 +34,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       setProcessingFeeRate(entry.processingFeeRate || 0);
     } else {
       setDate(new Date().toISOString().split('T')[0]);
+      setTime('');
       setStatus('Estimate Scheduled');
       setNotes('');
       setParts([]);
@@ -72,13 +75,15 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
   const currentTicketState = useMemo((): JobTicket => ({
       id: entry?.id || '',
       date,
+      time,
       status,
       notes,
       parts,
       laborCost: Number(laborCost || 0),
       salesTaxRate: Number(salesTaxRate || 0),
       processingFeeRate: Number(processingFeeRate || 0),
-  }), [entry, date, status, notes, parts, laborCost, salesTaxRate, processingFeeRate]);
+      createdAt: entry?.createdAt, // Preserve original creation date
+  }), [entry, date, time, status, notes, parts, laborCost, salesTaxRate, processingFeeRate]);
 
   const { subtotal, taxAmount, feeAmount, totalCost: finalTotal } = calculateJobTicketTotal(currentTicketState);
 
@@ -141,16 +146,27 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                     />
                 </div>
                 <div>
-                    <label htmlFor="job-status" className={labelStyles}>Status</label>
-                    <select
-                    id="job-status"
-                    value={status}
-                    onChange={e => setStatus(e.target.value as JobStatus)}
+                    <label htmlFor="job-time" className={labelStyles}>Time <span className="text-xs text-slate-400 font-normal">(Optional)</span></label>
+                    <input
+                    type="time"
+                    id="job-time"
+                    value={time}
+                    onChange={e => setTime(e.target.value)}
                     className={`mt-1 ${inputStyles}`}
-                    >
-                    {visibleStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    />
                 </div>
+            </div>
+            
+            <div>
+                <label htmlFor="job-status" className={labelStyles}>Status</label>
+                <select
+                id="job-status"
+                value={status}
+                onChange={e => setStatus(e.target.value as JobStatus)}
+                className={`mt-1 ${inputStyles}`}
+                >
+                {visibleStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
             </div>
             
             <div>
