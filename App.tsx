@@ -26,8 +26,8 @@ const initialContacts: Contact[] = [
     files: [],
     customFields: [{id: 'cf1', label: 'Company', value: 'CorpNet Inc.'}],
     jobTickets: [
-        { id: 'jt1', date: new Date().toISOString().split('T')[0], notes: 'Customer reported grinding noise when opening door. Needs inspection.', status: 'Estimate Scheduled', parts: [], laborCost: 0 },
-        { id: 'jt2', date: '2023-10-22', notes: 'Replaced both torsion springs and lubricated all moving parts. Door is now operating smoothly.', status: 'Paid', parts: [{id: 'p1', name: 'Torsion Spring', cost: 60, quantity: 2}], laborCost: 200 },
+        { id: 'jt1', date: new Date().toISOString().split('T')[0], time: '09:00', notes: 'Customer reported grinding noise when opening door. Needs inspection.', status: 'Estimate Scheduled', parts: [], laborCost: 0 },
+        { id: 'jt2', date: '2023-10-22', time: '14:00', notes: 'Replaced both torsion springs and lubricated all moving parts. Door is now operating smoothly.', status: 'Paid', parts: [{id: 'p1', name: 'Torsion Spring', cost: 60, quantity: 2}], laborCost: 200 },
         { id: 'jt3', date: '2024-06-01', notes: 'Needs new logic board for opener. Part ordered.', status: 'Awaiting Parts', parts: [], laborCost: 75 },
     ],
   },
@@ -41,7 +41,7 @@ const initialContacts: Contact[] = [
     files: [],
     customFields: [{id: 'cf2', label: 'Company', value: 'Synergy Systems'}],
     jobTickets: [
-        { id: 'jt4', date: '2024-07-10', notes: 'Quote sent for new insulated garage door model #55A.', status: 'Quote Sent', parts: [{id: 'p3', name: 'Insulated Door', cost: 1200, quantity: 1}], laborCost: 450 }
+        { id: 'jt4', date: '2024-07-10', time: '10:30', notes: 'Quote sent for new insulated garage door model #55A.', status: 'Quote Sent', parts: [{id: 'p3', name: 'Insulated Door', cost: 1200, quantity: 1}], laborCost: 450 }
     ],
   },
    {
@@ -54,7 +54,7 @@ const initialContacts: Contact[] = [
     files: [],
     customFields: [{id: 'cf3', label: 'Company', value: 'Quantum Dynamics'}],
     jobTickets: [
-        { id: 'jt5', date: new Date().toISOString().split('T')[0], notes: 'Install new smart garage opener.', status: 'In Progress', parts: [{id: 'p2', name: 'Smart Opener', cost: 350, quantity: 1}], laborCost: 150}
+        { id: 'jt5', date: new Date().toISOString().split('T')[0], time: '13:00', notes: 'Install new smart garage opener.', status: 'In Progress', parts: [{id: 'p2', name: 'Smart Opener', cost: 350, quantity: 1}], laborCost: 150}
     ],
   },
 ];
@@ -118,6 +118,8 @@ const App: React.FC = () => {
                         .map((ticket: any): JobTicket => ({
                             id: ticket.id || generateId(),
                             date: ticket.date || new Date().toISOString().split('T')[0],
+                            time: ticket.time || '', // Sanitize time
+                            createdAt: ticket.createdAt || undefined,
                             status: ticket.status || 'Scheduled',
                             notes: ticket.notes || '',
                             parts: Array.isArray(ticket.parts) ? ticket.parts.map((p: any): Part => ({
