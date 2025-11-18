@@ -1,3 +1,4 @@
+
 import { JobTicket } from './types.ts';
 
 /**
@@ -67,6 +68,17 @@ export const calculateJobTicketTotal = (ticket: JobTicket | null) => {
     };
 };
 
+/**
+ * Formats a 24h time string (HH:MM) to 12h format with AM/PM.
+ */
+export const formatTime = (time: string): string => {
+    if (!time) return '';
+    const [hours24, minutes] = time.split(':');
+    const hours = parseInt(hours24, 10);
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${minutes} ${suffix}`;
+};
 
 /**
  * Triggers a browser download for a JSON file.
