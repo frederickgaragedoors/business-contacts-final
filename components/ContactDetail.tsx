@@ -1,6 +1,7 @@
 
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus } from '../types.ts';
+import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus, CatalogItem } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
 import JobTicketModal from './JobTicketModal.tsx';
 import EmptyState from './EmptyState.tsx';
@@ -34,6 +35,7 @@ interface ContactDetailProps {
     onViewInvoice: (contactId: string, ticketId: string) => void;
     onViewJobDetail: (contactId: string, ticketId: string) => void;
     jobTemplates: JobTemplate[];
+    partsCatalog: CatalogItem[];
     enabledStatuses: Record<JobStatus, boolean>;
     initialJobDate?: string;
     openJobId?: string;
@@ -50,7 +52,7 @@ const VIEWABLE_MIME_TYPES = [
 
 type ActiveTab = 'details' | 'jobs' | 'files';
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses, initialJobDate, openJobId }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -200,6 +202,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 laborCost: entry.laborCost || 0,
                 salesTaxRate: entry.salesTaxRate,
                 processingFeeRate: entry.processingFeeRate,
+                deposit: entry.deposit || 0,
                 createdAt: new Date().toISOString(),
             };
             updatedTickets = [newTicket, ...currentTickets];
@@ -535,6 +538,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     onSave={handleSaveJobTicket}
                     onClose={() => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); }}
                     jobTemplates={jobTemplates}
+                    partsCatalog={partsCatalog}
                     enabledStatuses={enabledStatuses}
                 />
             )}

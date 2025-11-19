@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 import React, { useState } from 'react';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon } from './icons.js';
 import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.js';
@@ -20,12 +24,17 @@ const Settings = ({
     onRestoreBackup,
     businessInfo,
     onUpdateBusinessInfo,
+    emailSettings,
+    onUpdateEmailSettings,
     currentTheme,
     onUpdateTheme,
     jobTemplates,
     onAddJobTemplate,
     onUpdateJobTemplate,
     onDeleteJobTemplate,
+    partsCatalog,
+    onAddCatalogItem,
+    onDeleteCatalogItem,
     enabledStatuses,
     onToggleJobStatus,
     contacts,
@@ -34,8 +43,11 @@ const Settings = ({
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState(businessInfo);
+    const [currentEmailSettings, setCurrentEmailSettings] = useState(emailSettings);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState(null);
+    const [newCatalogItemName, setNewCatalogItemName] = useState('');
+    const [newCatalogItemCost, setNewCatalogItemCost] = useState('');
 
     const handleDefaultFieldSubmit = (e) => {
         e.preventDefault();
@@ -49,6 +61,16 @@ const Settings = ({
         setCurrentBusinessInfo(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleEmailSettingsChange = (type, field, value) => {
+        setCurrentEmailSettings(prev => ({
+            ...prev,
+            [type]: {
+                ...prev[type],
+                [field]: value
+            }
+        }));
+    };
+
     const handleLogoUpload = async (e) => {
         if (e.target.files && e.target.files[0]) {
             const dataUrl = await fileToDataUrl(e.target.files[0]);
@@ -59,6 +81,12 @@ const Settings = ({
     const handleBusinessInfoSubmit = (e) => {
         e.preventDefault();
         onUpdateBusinessInfo(currentBusinessInfo);
+    };
+
+    const handleEmailSettingsSubmit = (e) => {
+        e.preventDefault();
+        onUpdateEmailSettings(currentEmailSettings);
+        alert('Email settings saved.');
     };
     
     const handleManualBackup = async () => {
@@ -104,10 +132,22 @@ const Settings = ({
         setEditingTemplate(null);
     };
 
+    const handleAddCatalogItem = (e) => {
+        e.preventDefault();
+        if (newCatalogItemName.trim()) {
+            onAddCatalogItem({ name: newCatalogItemName.trim(), defaultCost: Number(newCatalogItemCost || 0) });
+            setNewCatalogItemName('');
+            setNewCatalogItemCost('');
+        }
+    };
+
     const handleExportCalendar = () => {
         const icsContent = generateICSContent(contacts);
         downloadICSFile(icsContent);
     };
+
+    const inputStyles = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white";
+    const labelStyles = "block text-sm font-medium text-slate-600 dark:text-slate-300";
 
     return (
         React.createElement("div", { className: "h-full flex flex-col bg-white dark:bg-slate-800 overflow-y-auto" },
@@ -169,23 +209,59 @@ const Settings = ({
                             )
                         ),
                         React.createElement("div", null,
-                            React.createElement("label", { htmlFor: "business-name", className: "block text-sm font-medium text-slate-600 dark:text-slate-300" }, "Company Name"),
-                            React.createElement("input", { type: "text", id: "business-name", value: currentBusinessInfo.name, onChange: e => handleBusinessInfoChange('name', e.target.value), className: "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm sm:text-sm" })
+                            React.createElement("label", { htmlFor: "business-name", className: labelStyles }, "Company Name"),
+                            React.createElement("input", { type: "text", id: "business-name", value: currentBusinessInfo.name, onChange: e => handleBusinessInfoChange('name', e.target.value), className: inputStyles })
                         ),
                         React.createElement("div", null,
-                            React.createElement("label", { htmlFor: "business-phone", className: "block text-sm font-medium text-slate-600 dark:text-slate-300" }, "Phone"),
-                            React.createElement("input", { type: "tel", id: "business-phone", value: currentBusinessInfo.phone, onChange: e => handleBusinessInfoChange('phone', e.target.value), className: "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm sm:text-sm" })
+                            React.createElement("label", { htmlFor: "business-phone", className: labelStyles }, "Phone"),
+                            React.createElement("input", { type: "tel", id: "business-phone", value: currentBusinessInfo.phone, onChange: e => handleBusinessInfoChange('phone', e.target.value), className: inputStyles })
                         ),
                         React.createElement("div", null,
-                            React.createElement("label", { htmlFor: "business-email", className: "block text-sm font-medium text-slate-600 dark:text-slate-300" }, "Email"),
-                            React.createElement("input", { type: "email", id: "business-email", value: currentBusinessInfo.email, onChange: e => handleBusinessInfoChange('email', e.target.value), className: "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm sm:text-sm" })
+                            React.createElement("label", { htmlFor: "business-email", className: labelStyles }, "Email"),
+                            React.createElement("input", { type: "email", id: "business-email", value: currentBusinessInfo.email, onChange: e => handleBusinessInfoChange('email', e.target.value), className: inputStyles })
                         ),
                         React.createElement("div", null,
-                            React.createElement("label", { htmlFor: "business-address", className: "block text-sm font-medium text-slate-600 dark:text-slate-300" }, "Address"),
-                            React.createElement("textarea", { id: "business-address", value: currentBusinessInfo.address, onChange: e => handleBusinessInfoChange('address', e.target.value), rows: 3, className: "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm sm:text-sm" })
+                            React.createElement("label", { htmlFor: "business-address", className: labelStyles }, "Address"),
+                            React.createElement("textarea", { id: "business-address", value: currentBusinessInfo.address, onChange: e => handleBusinessInfoChange('address', e.target.value), rows: 3, className: inputStyles })
                         )
                     ),
                     React.createElement("button", { type: "submit", className: "mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" }, "Save Business Info")
+                ),
+
+                React.createElement("form", { onSubmit: handleEmailSettingsSubmit, className: "border-t dark:border-slate-700 pt-6 mt-8" },
+                    React.createElement("h3", { className: "text-xl font-semibold text-slate-800 dark:text-slate-100" }, "Email Templates"),
+                    React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "Configure the default subject and body for your emails. Use placeholders like {{customerName}}, {{jobId}}, {{businessName}}."),
+                    
+                    React.createElement("div", { className: "mt-6 space-y-6" },
+                        React.createElement("div", null,
+                            React.createElement("h4", { className: "font-medium text-slate-700 dark:text-slate-200 mb-3" }, "Estimate Email"),
+                            React.createElement("div", { className: "space-y-3" },
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: labelStyles }, "Subject"),
+                                    React.createElement("input", { type: "text", value: currentEmailSettings.estimate.subject, onChange: e => handleEmailSettingsChange('estimate', 'subject', e.target.value), className: inputStyles })
+                                ),
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: labelStyles }, "Body"),
+                                    React.createElement("textarea", { value: currentEmailSettings.estimate.body, onChange: e => handleEmailSettingsChange('estimate', 'body', e.target.value), rows: 4, className: inputStyles })
+                                )
+                            )
+                        ),
+
+                        React.createElement("div", null,
+                            React.createElement("h4", { className: "font-medium text-slate-700 dark:text-slate-200 mb-3" }, "Receipt Email"),
+                            React.createElement("div", { className: "space-y-3" },
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: labelStyles }, "Subject"),
+                                    React.createElement("input", { type: "text", value: currentEmailSettings.receipt.subject, onChange: e => handleEmailSettingsChange('receipt', 'subject', e.target.value), className: inputStyles })
+                                ),
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: labelStyles }, "Body"),
+                                    React.createElement("textarea", { value: currentEmailSettings.receipt.body, onChange: e => handleEmailSettingsChange('receipt', 'body', e.target.value), rows: 4, className: inputStyles })
+                                )
+                            )
+                        )
+                    ),
+                    React.createElement("button", { type: "submit", className: "mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" }, "Save Templates")
                 ),
 
                 React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6" },
@@ -222,6 +298,61 @@ const Settings = ({
                                 )
                             ))
                         ) : React.createElement("p", { className: "text-center text-slate-500 dark:text-slate-400 p-4" }, "No job templates have been created.")
+                    )
+                ),
+
+                React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6" },
+                    React.createElement("h3", { className: "text-xl font-semibold text-slate-800 dark:text-slate-100" }, "Parts Catalog"),
+                    React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "Manage common parts and services for quick addition to job tickets."),
+                    React.createElement("form", { onSubmit: handleAddCatalogItem, className: "mt-6 flex gap-2 items-end" },
+                        React.createElement("div", { className: "flex-grow" },
+                            React.createElement("label", { className: "block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1" }, "Item Name"),
+                            React.createElement("input", {
+                                type: "text",
+                                value: newCatalogItemName,
+                                onChange: (e) => setNewCatalogItemName(e.target.value),
+                                placeholder: "e.g. Torsion Spring",
+                                className: inputStyles
+                            })
+                        ),
+                        React.createElement("div", { className: "w-32" },
+                            React.createElement("label", { className: "block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1" }, "Default Cost"),
+                            React.createElement("div", { className: "relative" },
+                                React.createElement("div", { className: "pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3" }, React.createElement("span", { className: "text-slate-500 sm:text-sm" }, "$")),
+                                React.createElement("input", {
+                                    type: "number",
+                                    value: newCatalogItemCost,
+                                    onChange: (e) => setNewCatalogItemCost(e.target.value === '' ? '' : parseFloat(e.target.value)),
+                                    placeholder: "0.00",
+                                    className: `${inputStyles} pl-7`
+                                })
+                            )
+                        ),
+                        React.createElement("button", { type: "submit", className: "mb-[2px] inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" },
+                            React.createElement(PlusIcon, { className: "w-5 h-5" })
+                        )
+                    ),
+                    React.createElement("div", { className: "mt-6 border-t dark:border-slate-700 pt-4" },
+                        partsCatalog && partsCatalog.length > 0 ? (
+                            React.createElement("ul", { className: "space-y-2" },
+                                partsCatalog.map(item => (
+                                    React.createElement("li", { key: item.id, className: "flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg" },
+                                        React.createElement("div", null,
+                                            React.createElement("span", { className: "font-medium text-slate-700 dark:text-slate-200" }, item.name),
+                                            React.createElement("span", { className: "ml-2 text-sm text-slate-500 dark:text-slate-400" }, `$${item.defaultCost.toFixed(2)}`)
+                                        ),
+                                        React.createElement("button", {
+                                            onClick: () => onDeleteCatalogItem(item.id),
+                                            className: "p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full transition-colors"
+                                        },
+                                            React.createElement(TrashIcon, { className: "w-5 h-5" })
+                                        )
+                                    )
+                                ))
+                            )
+                        ) : (
+                            React.createElement("p", { className: "text-center text-slate-500 dark:text-slate-400 p-4" }, "No items in catalog.")
+                        )
                     )
                 ),
 

@@ -1,6 +1,7 @@
 
+
 import React, { useState } from 'react';
-import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors, JobStatus } from '../types.ts';
+import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors, JobStatus, CatalogItem } from '../types.ts';
 import JobTicketModal from './JobTicketModal.tsx';
 import {
   ArrowLeftIcon,
@@ -19,6 +20,7 @@ interface JobDetailViewProps {
   ticket: JobTicket;
   businessInfo: BusinessInfo;
   jobTemplates: JobTemplate[];
+  partsCatalog: CatalogItem[];
   onBack: () => void;
   onEditTicket: (ticketData: Omit<JobTicket, 'id'> & { id?: string }) => void;
   onDeleteTicket: () => void;
@@ -31,6 +33,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
   ticket,
   businessInfo,
   jobTemplates,
+  partsCatalog,
   onBack,
   onEditTicket,
   onDeleteTicket,
@@ -39,7 +42,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
 }) => {
   const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
 
-  const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
+  const { subtotal, taxAmount, feeAmount, totalCost, deposit, balanceDue } = calculateJobTicketTotal(ticket);
   const statusColor = jobStatusColors[ticket.status];
   const hasCosts = ticket.parts.length > 0 || (ticket.laborCost && ticket.laborCost > 0);
 
@@ -146,37 +149,43 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2">Cost Breakdown</h3>
             {hasCosts ? (
                 <>
-                  <table className="w-full text-left text-sm table-fixed">
-                    <thead>
-                      <tr className="border-b dark:border-slate-700">
-                        <th className="py-2 font-medium w-3/5">Item/Service</th>
-                        <th className="py-2 font-medium text-center">Qty</th>
-                        <th className="py-2 font-medium text-right">Unit</th>
-                        <th className="py-2 font-medium text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ticket.parts.map(p => (
-                        <tr key={p.id} className="border-b dark:border-slate-700/50">
-                          <td className="py-2 break-words pr-2">{p.name}</td>
-                          <td className="py-2 text-center">{p.quantity}</td>
-                          <td className="py-2 text-right">${p.cost.toFixed(2)}</td>
-                          <td className="py-2 text-right">${(p.cost * p.quantity).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                      <tr className="border-b dark:border-slate-700/50">
-                        <td className="py-2">Labor</td>
-                        <td colSpan={2}></td>
-                        <td className="py-2 text-right">${ticket.laborCost.toFixed(2)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div className="">
+                      <table className="w-full text-left text-xs sm:text-sm table-fixed">
+                        <thead>
+                          <tr className="border-b dark:border-slate-700">
+                            <th className="py-2 px-1 sm:px-2 font-medium w-[40%]">Item/Service</th>
+                            <th className="py-2 px-1 sm:px-2 font-medium text-center w-[12%]">Qty</th>
+                            <th className="py-2 px-1 sm:px-2 font-medium text-right w-[24%]">Unit</th>
+                            <th className="py-2 px-1 sm:px-2 font-medium text-right w-[24%]">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ticket.parts.map(p => (
+                            <tr key={p.id} className="border-b dark:border-slate-700/50">
+                              <td className="py-2 px-1 sm:px-2 break-words align-top">{p.name}</td>
+                              <td className="py-2 px-1 sm:px-2 text-center align-top whitespace-nowrap">{p.quantity}</td>
+                              <td className="py-2 px-1 sm:px-2 text-right align-top whitespace-nowrap">${p.cost.toFixed(2)}</td>
+                              <td className="py-2 px-1 sm:px-2 text-right align-top whitespace-nowrap">${(p.cost * p.quantity).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                          <tr className="border-b dark:border-slate-700/50">
+                            <td className="py-2 px-1 sm:px-2">Labor</td>
+                            <td colSpan={2}></td>
+                            <td className="py-2 px-1 sm:px-2 text-right whitespace-nowrap">${ticket.laborCost.toFixed(2)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                  </div>
                   <div className="mt-4 flex justify-end">
                     <div className="w-full max-w-xs space-y-1">
                       <div className="flex justify-between"><span>Subtotal:</span><span>${subtotal.toFixed(2)}</span></div>
                       <div className="flex justify-between"><span>Tax ({ticket.salesTaxRate || 0}%):</span><span>${taxAmount.toFixed(2)}</span></div>
                       <div className="flex justify-between"><span>Fee ({ticket.processingFeeRate || 0}%):</span><span>${feeAmount.toFixed(2)}</span></div>
                       <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t dark:border-slate-600"><span>Total:</span><span>${totalCost.toFixed(2)}</span></div>
+                      {deposit > 0 && (
+                        <div className="flex justify-between text-green-600 dark:text-green-400 font-medium"><span>Less Deposit:</span><span>-(${deposit.toFixed(2)})</span></div>
+                      )}
+                      <div className="flex justify-between font-bold text-slate-800 dark:text-slate-100 mt-1 pt-1 border-t border-slate-200 dark:border-slate-700"><span>Balance Due:</span><span>${balanceDue.toFixed(2)}</span></div>
                     </div>
                   </div>
                 </>
@@ -197,6 +206,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
           }}
           onClose={() => setIsJobTicketModalOpen(false)}
           jobTemplates={jobTemplates}
+          partsCatalog={partsCatalog}
           enabledStatuses={enabledStatuses}
         />
       )}

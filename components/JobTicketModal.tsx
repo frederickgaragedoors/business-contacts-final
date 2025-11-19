@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { JobTicket, JobStatus, Part, JobTemplate, ALL_JOB_STATUSES } from '../types.ts';
+import { JobTicket, JobStatus, Part, JobTemplate, ALL_JOB_STATUSES, CatalogItem } from '../types.ts';
 import { XIcon, PlusIcon, TrashIcon } from './icons.tsx';
 import { generateId, calculateJobTicketTotal } from '../utils.ts';
 
@@ -9,10 +10,11 @@ interface JobTicketModalProps {
   onSave: (entry: Omit<JobTicket, 'id'> & { id?: string }) => void;
   onClose: () => void;
   jobTemplates?: JobTemplate[];
+  partsCatalog?: CatalogItem[];
   enabledStatuses?: Record<JobStatus, boolean>;
 }
 
-const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates, enabledStatuses }) => {
+const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses }) => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [status, setStatus] = useState<JobStatus>('Estimate Scheduled');
@@ -21,6 +23,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
   const [laborCost, setLaborCost] = useState<number | ''>(0);
   const [salesTaxRate, setSalesTaxRate] = useState<number | ''>(0);
   const [processingFeeRate, setProcessingFeeRate] = useState<number | ''>(0);
+  const [deposit, setDeposit] = useState<number | ''>(0);
 
   useEffect(() => {
     if (entry) {
@@ -32,6 +35,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       setLaborCost(entry.laborCost);
       setSalesTaxRate(entry.salesTaxRate || 0);
       setProcessingFeeRate(entry.processingFeeRate || 0);
+      setDeposit(entry.deposit || 0);
     } else {
       setDate(new Date().toISOString().split('T')[0]);
       setTime('');
@@ -41,6 +45,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       setLaborCost(0);
       setSalesTaxRate(0);
       setProcessingFeeRate(0);
+      setDeposit(0);
     }
   }, [entry]);
 
@@ -71,6 +76,13 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
         setProcessingFeeRate(selectedTemplate.processingFeeRate || 0);
     }
   };
+  
+  const handleQuickAddPart = (catalogItemId: string) => {
+      const item = partsCatalog?.find(i => i.id === catalogItemId);
+      if (item) {
+          setParts([...parts, { id: generateId(), name: item.name, cost: item.defaultCost, quantity: 1 }]);
+      }
+  };
 
   const currentTicketState = useMemo((): JobTicket => ({
       id: entry?.id || '',
@@ -82,10 +94,16 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       laborCost: Number(laborCost || 0),
       salesTaxRate: Number(salesTaxRate || 0),
       processingFeeRate: Number(processingFeeRate || 0),
+      deposit: Number(deposit || 0),
       createdAt: entry?.createdAt, // Preserve original creation date
-  }), [entry, date, time, status, notes, parts, laborCost, salesTaxRate, processingFeeRate]);
+  }), [entry, date, time, status, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
 
-  const { subtotal, taxAmount, feeAmount, totalCost: finalTotal } = calculateJobTicketTotal(currentTicketState);
+  const { subtotal, taxAmount, feeAmount, totalCost: finalTotal, balanceDue } = calculateJobTicketTotal(currentTicketState);
+
+  const calculate30PercentDeposit = () => {
+      const thirtyPercent = finalTotal * 0.30;
+      setDeposit(parseFloat(thirtyPercent.toFixed(2)));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,10 +201,22 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
             
             {status !== 'Estimate Scheduled' && (
               <div>
-                  <h3 className="text-md font-medium text-slate-700 dark:text-slate-200">Costs</h3>
+                  <h3 className="text-md font-medium text-slate-700 dark:text-slate-200">Costs & Payments</h3>
                   <div className="mt-2 p-4 border border-slate-200 dark:border-slate-700 rounded-lg space-y-3">
                       <div>
-                          <h4 className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Parts Used</h4>
+                          <div className="flex justify-between items-center mb-2">
+                              <h4 className="text-sm font-medium text-slate-600 dark:text-slate-300">Parts Used</h4>
+                              {partsCatalog && partsCatalog.length > 0 && (
+                                  <select
+                                      onChange={(e) => { handleQuickAddPart(e.target.value); e.target.value = ""; }}
+                                      className="text-xs border-slate-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
+                                      defaultValue=""
+                                  >
+                                      <option value="" disabled>+ Quick Add</option>
+                                      {partsCatalog.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                  </select>
+                              )}
+                          </div>
                            {parts.length > 0 && (
                               <div className="hidden sm:grid sm:grid-cols-[1fr_80px_120px_40px] sm:gap-x-2 mb-1">
                                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Part or Service</label>
@@ -299,6 +329,33 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                               </div>
                           </div>
                       </div>
+
+                      <div className="!mt-4">
+                          <label htmlFor="deposit-amount" className={labelStyles}>Deposit / Payment</label>
+                          <div className="flex space-x-2">
+                              <div className="relative mt-1 flex-grow">
+                                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                      <span className="text-slate-500 sm:text-sm">$</span>
+                                  </div>
+                                  <input
+                                      type="number"
+                                      id="deposit-amount"
+                                      value={deposit}
+                                      onChange={(e) => setDeposit(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                      className={`${inputStyles} pl-7`}
+                                      placeholder="0.00"
+                                  />
+                              </div>
+                              <button 
+                                  type="button" 
+                                  onClick={calculate30PercentDeposit}
+                                  className="mt-1 px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors"
+                                  title="Calculate 30% Deposit"
+                              >
+                                  30%
+                              </button>
+                          </div>
+                      </div>
                   </div>
               </div>
             )}
@@ -311,6 +368,10 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                     <p>Tax ({Number(salesTaxRate || 0)}%): <span className="font-medium">${taxAmount.toFixed(2)}</span></p>
                     <p>Card Fee ({Number(processingFeeRate || 0)}%): <span className="font-medium">${feeAmount.toFixed(2)}</span></p>
                     <p className="font-bold text-lg text-slate-800 dark:text-slate-100 mt-1">Total: <span className="font-bold text-xl">${finalTotal.toFixed(2)}</span></p>
+                    {Number(deposit || 0) > 0 && (
+                        <p className="text-green-600 dark:text-green-400 font-medium mt-1">Paid/Deposit: -${Number(deposit).toFixed(2)}</p>
+                    )}
+                     <p className="font-bold text-slate-800 dark:text-slate-100 mt-1">Balance: <span className="font-bold">${balanceDue.toFixed(2)}</span></p>
                 </div>
             ) : (
                 <div></div> // Placeholder to keep layout consistent

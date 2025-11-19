@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
@@ -33,7 +37,7 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, enabledStatuses, initialJobDate, openJobId }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -184,6 +188,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 laborCost: entry.laborCost,
                 salesTaxRate: entry.salesTaxRate,
                 processingFeeRate: entry.processingFeeRate,
+                deposit: entry.deposit || 0,
                 createdAt: new Date().toISOString(),
             };
             updatedTickets = [newTicket, ...currentTickets];
@@ -498,6 +503,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     onSave: handleSaveJobTicket,
                     onClose: () => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); },
                     jobTemplates: jobTemplates,
+                    partsCatalog: partsCatalog,
                     enabledStatuses: enabledStatuses
                 })
             )

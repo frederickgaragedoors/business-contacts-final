@@ -1,8 +1,7 @@
 
 
-
 import React, { useState } from 'react';
-import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact } from '../types.ts';
+import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact, EmailSettings, CatalogItem } from '../types.ts';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon } from './icons.tsx';
 import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.ts';
 import { getAllFiles } from '../db.ts';
@@ -22,12 +21,17 @@ interface SettingsProps {
     onRestoreBackup: (fileContent: string) => void;
     businessInfo: BusinessInfo;
     onUpdateBusinessInfo: (info: BusinessInfo) => void;
+    emailSettings: EmailSettings;
+    onUpdateEmailSettings: (settings: EmailSettings) => void;
     currentTheme: Theme;
     onUpdateTheme: (theme: Theme) => void;
     jobTemplates: JobTemplate[];
     onAddJobTemplate: (template: Omit<JobTemplate, 'id'>) => void;
     onUpdateJobTemplate: (id: string, template: Omit<JobTemplate, 'id'>) => void;
     onDeleteJobTemplate: (id: string) => void;
+    partsCatalog: CatalogItem[];
+    onAddCatalogItem: (item: Omit<CatalogItem, 'id'>) => void;
+    onDeleteCatalogItem: (id: string) => void;
     enabledStatuses: Record<JobStatus, boolean>;
     onToggleJobStatus: (status: JobStatus, enabled: boolean) => void;
     contacts: Contact[];
@@ -47,12 +51,17 @@ const Settings: React.FC<SettingsProps> = ({
     onRestoreBackup,
     businessInfo,
     onUpdateBusinessInfo,
+    emailSettings,
+    onUpdateEmailSettings,
     currentTheme,
     onUpdateTheme,
     jobTemplates,
     onAddJobTemplate,
     onUpdateJobTemplate,
     onDeleteJobTemplate,
+    partsCatalog,
+    onAddCatalogItem,
+    onDeleteCatalogItem,
     enabledStatuses,
     onToggleJobStatus,
     contacts,
@@ -61,8 +70,11 @@ const Settings: React.FC<SettingsProps> = ({
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState<BusinessInfo>(businessInfo);
+    const [currentEmailSettings, setCurrentEmailSettings] = useState<EmailSettings>(emailSettings);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<JobTemplate | null>(null);
+    const [newCatalogItemName, setNewCatalogItemName] = useState('');
+    const [newCatalogItemCost, setNewCatalogItemCost] = useState<number | ''>('');
 
     const handleDefaultFieldSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -75,6 +87,16 @@ const Settings: React.FC<SettingsProps> = ({
     const handleBusinessInfoChange = (field: keyof BusinessInfo, value: string) => {
         setCurrentBusinessInfo(prev => ({ ...prev, [field]: value }));
     };
+    
+    const handleEmailSettingsChange = (type: 'estimate' | 'receipt', field: 'subject' | 'body', value: string) => {
+        setCurrentEmailSettings(prev => ({
+            ...prev,
+            [type]: {
+                ...prev[type],
+                [field]: value
+            }
+        }));
+    };
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -86,6 +108,12 @@ const Settings: React.FC<SettingsProps> = ({
     const handleBusinessInfoSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onUpdateBusinessInfo(currentBusinessInfo);
+    };
+
+    const handleEmailSettingsSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onUpdateEmailSettings(currentEmailSettings);
+        alert('Email settings saved.');
     };
 
     const handleManualBackup = async () => {
@@ -130,11 +158,24 @@ const Settings: React.FC<SettingsProps> = ({
         setIsTemplateModalOpen(false);
         setEditingTemplate(null);
     };
+
+    const handleAddCatalogItem = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newCatalogItemName.trim()) {
+            onAddCatalogItem({ name: newCatalogItemName.trim(), defaultCost: Number(newCatalogItemCost || 0) });
+            setNewCatalogItemName('');
+            setNewCatalogItemCost('');
+        }
+    };
     
     const handleExportCalendar = () => {
         const icsContent = generateICSContent(contacts);
         downloadICSFile(icsContent);
     };
+
+    const inputStyles = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white";
+    const labelStyles = "block text-sm font-medium text-slate-600 dark:text-slate-300";
+
 
     return (
         <div className="h-full flex flex-col bg-white dark:bg-slate-800 overflow-y-auto">
@@ -201,23 +242,59 @@ const Settings: React.FC<SettingsProps> = ({
                             </label>
                         </div>
                         <div>
-                            <label htmlFor="business-name" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Company Name</label>
-                            <input type="text" id="business-name" value={currentBusinessInfo.name} onChange={e => handleBusinessInfoChange('name', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm sm:text-sm" />
+                            <label htmlFor="business-name" className={labelStyles}>Company Name</label>
+                            <input type="text" id="business-name" value={currentBusinessInfo.name} onChange={e => handleBusinessInfoChange('name', e.target.value)} className={inputStyles} />
                         </div>
                          <div>
-                            <label htmlFor="business-phone" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Phone</label>
-                            <input type="tel" id="business-phone" value={currentBusinessInfo.phone} onChange={e => handleBusinessInfoChange('phone', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm sm:text-sm" />
+                            <label htmlFor="business-phone" className={labelStyles}>Phone</label>
+                            <input type="tel" id="business-phone" value={currentBusinessInfo.phone} onChange={e => handleBusinessInfoChange('phone', e.target.value)} className={inputStyles} />
                         </div>
                          <div>
-                            <label htmlFor="business-email" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Email</label>
-                            <input type="email" id="business-email" value={currentBusinessInfo.email} onChange={e => handleBusinessInfoChange('email', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm sm:text-sm" />
+                            <label htmlFor="business-email" className={labelStyles}>Email</label>
+                            <input type="email" id="business-email" value={currentBusinessInfo.email} onChange={e => handleBusinessInfoChange('email', e.target.value)} className={inputStyles} />
                         </div>
                         <div>
-                            <label htmlFor="business-address" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Address</label>
-                            <textarea id="business-address" value={currentBusinessInfo.address} onChange={e => handleBusinessInfoChange('address', e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm sm:text-sm"></textarea>
+                            <label htmlFor="business-address" className={labelStyles}>Address</label>
+                            <textarea id="business-address" value={currentBusinessInfo.address} onChange={e => handleBusinessInfoChange('address', e.target.value)} rows={3} className={inputStyles}></textarea>
                         </div>
                     </div>
                      <button type="submit" className="mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save Business Info</button>
+                </form>
+
+                <form onSubmit={handleEmailSettingsSubmit} className="border-t dark:border-slate-700 pt-6 mt-8">
+                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Email Templates</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Configure the default subject and body for your emails. Use placeholders like {'{{customerName}}'}, {'{{jobId}}'}, {'{{businessName}}'}.</p>
+                    
+                    <div className="mt-6 space-y-6">
+                        <div>
+                            <h4 className="font-medium text-slate-700 dark:text-slate-200 mb-3">Estimate Email</h4>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className={labelStyles}>Subject</label>
+                                    <input type="text" value={currentEmailSettings.estimate.subject} onChange={e => handleEmailSettingsChange('estimate', 'subject', e.target.value)} className={inputStyles} />
+                                </div>
+                                <div>
+                                    <label className={labelStyles}>Body</label>
+                                    <textarea value={currentEmailSettings.estimate.body} onChange={e => handleEmailSettingsChange('estimate', 'body', e.target.value)} rows={4} className={inputStyles}></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 className="font-medium text-slate-700 dark:text-slate-200 mb-3">Receipt Email</h4>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className={labelStyles}>Subject</label>
+                                    <input type="text" value={currentEmailSettings.receipt.subject} onChange={e => handleEmailSettingsChange('receipt', 'subject', e.target.value)} className={inputStyles} />
+                                </div>
+                                <div>
+                                    <label className={labelStyles}>Body</label>
+                                    <textarea value={currentEmailSettings.receipt.body} onChange={e => handleEmailSettingsChange('receipt', 'body', e.target.value)} rows={4} className={inputStyles}></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" className="mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save Templates</button>
                 </form>
 
                 <div className="mt-8 border-t dark:border-slate-700 pt-6">
@@ -299,6 +376,63 @@ const Settings: React.FC<SettingsProps> = ({
                             </ul>
                         ) : (
                             <p className="text-center text-slate-500 dark:text-slate-400 p-4">No job templates have been created.</p>
+                        )}
+                    </div>
+                </div>
+                
+                <div className="mt-8 border-t dark:border-slate-700 pt-6">
+                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Parts Catalog</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage common parts and services for quick addition to job tickets.</p>
+
+                    <form onSubmit={handleAddCatalogItem} className="mt-6 flex gap-2 items-end">
+                        <div className="flex-grow">
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Item Name</label>
+                            <input
+                                type="text"
+                                value={newCatalogItemName}
+                                onChange={(e) => setNewCatalogItemName(e.target.value)}
+                                placeholder="e.g. Torsion Spring"
+                                className={inputStyles}
+                            />
+                        </div>
+                        <div className="w-32">
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Default Cost</label>
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><span className="text-slate-500 sm:text-sm">$</span></div>
+                                <input
+                                    type="number"
+                                    value={newCatalogItemCost}
+                                    onChange={(e) => setNewCatalogItemCost(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                    placeholder="0.00"
+                                    className={`${inputStyles} pl-7`}
+                                />
+                            </div>
+                        </div>
+                        <button type="submit" className="mb-[2px] inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">
+                            <PlusIcon className="w-5 h-5" />
+                        </button>
+                    </form>
+
+                    <div className="mt-6 border-t dark:border-slate-700 pt-4">
+                        {partsCatalog.length > 0 ? (
+                            <ul className="space-y-2">
+                                {partsCatalog.map(item => (
+                                    <li key={item.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                        <div>
+                                            <span className="font-medium text-slate-700 dark:text-slate-200">{item.name}</span>
+                                            <span className="ml-2 text-sm text-slate-500 dark:text-slate-400">${item.defaultCost.toFixed(2)}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => onDeleteCatalogItem(item.id)}
+                                            className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full transition-colors"
+                                        >
+                                            <TrashIcon className="w-5 h-5" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-center text-slate-500 dark:text-slate-400 p-4">No items in catalog.</p>
                         )}
                     </div>
                 </div>

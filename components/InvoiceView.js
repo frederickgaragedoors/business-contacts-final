@@ -2,10 +2,10 @@
 import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { ArrowLeftIcon } from './icons.js';
+import { ArrowLeftIcon, MailIcon } from './icons.js';
 import { generateId, fileToDataUrl, calculateJobTicketTotal } from '../utils.js';
 
-const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact }) => {
+const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, addFilesToContact }) => {
     const [docType, setDocType] = useState('receipt');
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef(null);
@@ -105,8 +105,77 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
         }
         setIsSaving(false);
     };
+    
+    const replacePlaceholders = (text) => {
+        return text
+            .replace(/{{customerName}}/g, contact.name)
+            .replace(/{{jobId}}/g, ticket.id)
+            .replace(/{{businessName}}/g, businessInfo.name || 'Our Company')
+            .replace(/{{date}}/g, new Date().toLocaleDateString());
+    };
 
-    const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
+    const handleShare = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+
+        const template = docType === 'estimate' ? emailSettings.estimate : emailSettings.receipt;
+        const subject = replacePlaceholders(template.subject);
+        const body = replacePlaceholders(template.body);
+
+        try {
+            if (navigator.share && navigator.canShare) {
+                 const pdfData = await generatePdf();
+                 if (!pdfData) {
+                     setIsSaving(false);
+                     return;
+                 }
+                 
+                 const { pdf, fileName } = pdfData;
+                 const pdfBlob = pdf.output('blob');
+                 const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+                 
+                 if (navigator.canShare({ files: [file] })) {
+                     await navigator.share({
+                         files: [file],
+                         title: subject,
+                         text: body,
+                     });
+                 } else {
+                      throw new Error("File sharing not supported");
+                 }
+            } else {
+                 throw new Error("Navigator.share not supported");
+            }
+        } catch (error) {
+            // Fallback to mailto link for Desktop or incompatible browsers
+            const mailtoLink = `mailto:${contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+            
+            // Also prompt download so they have the file to attach
+            alert("Opening your email client. Please attach the PDF that will be downloaded.");
+            const pdfData = await generatePdf();
+            if (pdfData) {
+                pdfData.pdf.save(pdfData.fileName);
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const { subtotal, taxAmount, feeAmount, totalCost, deposit, balanceDue } = calculateJobTicketTotal(ticket);
+
+    // Calculations for dual-estimate view
+    const cashTotal = subtotal + taxAmount;
+    const cardTotal = totalCost; // includes fee
+
+    // Calculate the deposit ratio based on the saved ticket state (which includes the fee if present)
+    const depositRatio = totalCost > 0 ? deposit / totalCost : 0;
+
+    const cardDeposit = deposit;
+    const cardBalance = cardTotal - cardDeposit;
+
+    const cashDeposit = cashTotal * depositRatio;
+    const cashBalance = cashTotal - cashDeposit;
 
     return (
         React.createElement("div", { className: "h-full flex flex-col bg-slate-200 dark:bg-slate-900 overflow-y-auto print:bg-white print:overflow-visible print:h-auto" },
@@ -132,6 +201,14 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                     ),
                     React.createElement("div", { className: "w-full sm:w-auto flex items-center justify-center sm:justify-end space-x-2" },
                         React.createElement("button", {
+                             onClick: handleShare,
+                             disabled: isSaving,
+                             className: "px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait flex items-center space-x-2"
+                        },
+                             React.createElement(MailIcon, { className: "w-4 h-4" }),
+                             React.createElement("span", null, isSaving ? '...' : 'Share')
+                        ),
+                        React.createElement("button", {
                             onClick: () => window.print(),
                             className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
                         }, "Print"),
@@ -139,12 +216,12 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                             onClick: handleDownload,
                             disabled: isSaving,
                             className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
-                        }, isSaving ? 'Working...' : 'Download'),
+                        }, isSaving ? '...' : 'Download'),
                         React.createElement("button", {
                             onClick: handleAttach,
                             disabled: isSaving,
-                            className: "px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait"
-                        }, isSaving ? 'Working...' : 'Attach PDF')
+                            className: "px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
+                        }, isSaving ? '...' : 'Attach')
                     )
                 )
             ),
@@ -209,29 +286,102 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                         )
                     ),
 
-                    React.createElement("section", { className: "mt-6 flex justify-end" },
+                    React.createElement("section", { className: "mt-6 flex flex-col items-end" },
                         docType === 'estimate' && (ticket.processingFeeRate || 0) > 0 ? (
-                            React.createElement("div", { className: "w-full max-w-sm space-y-3 text-slate-700 border-t-2 border-slate-200 pt-4" },
-                                React.createElement("div", { className: "flex justify-between pb-2" },
-                                    React.createElement("span", { className: "text-sm font-medium text-slate-600" }, "Subtotal"),
-                                    React.createElement("span", { className: "text-sm font-medium" }, `$${subtotal.toFixed(2)}`)
-                                ),
-                                (ticket.salesTaxRate || 0) > 0 && (
+                            React.createElement("div", { className: "w-full mt-4" },
+                                React.createElement("div", { className: "w-full max-w-sm ml-auto space-y-2 text-slate-700 border-b border-slate-200 pb-4 mb-6" },
                                     React.createElement("div", { className: "flex justify-between pb-2" },
-                                        React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Sales Tax (${ticket.salesTaxRate}%)`),
-                                        React.createElement("span", { className: "text-sm font-medium" }, `$${taxAmount.toFixed(2)}`)
+                                        React.createElement("span", { className: "text-sm font-medium text-slate-600" }, "Subtotal"),
+                                        React.createElement("span", { className: "text-sm font-medium" }, `$${subtotal.toFixed(2)}`)
+                                    ),
+                                    (ticket.salesTaxRate || 0) > 0 && (
+                                        React.createElement("div", { className: "flex justify-between pb-2" },
+                                            React.createElement("span", { className: "text-sm font-medium text-slate-600" }, `Sales Tax (${ticket.salesTaxRate}%)`),
+                                            React.createElement("span", { className: "text-sm font-medium" }, `$${taxAmount.toFixed(2)}`)
+                                        )
                                     )
                                 ),
-                                React.createElement("h4", { className: "font-bold text-lg text-slate-800 text-center pt-2" }, "Payment Options"),
-                                React.createElement("div", { className: "flex justify-between py-2 border-t" },
-                                    React.createElement("span", { className: "text-base font-semibold" }, "Pay by Check/Cash"),
-                                    React.createElement("span", { className: "text-base font-semibold" }, `$${(subtotal + taxAmount).toFixed(2)}`)
-                                ),
-                                React.createElement("div", { className: "flex justify-between py-2 border-t text-green-700 dark:text-green-400" },
-                                    React.createElement("span", { className: "text-base font-semibold" }, "Pay by Card"),
-                                    React.createElement("span", { className: "text-base font-semibold" }, `$${totalCost.toFixed(2)}`)
-                                ),
-                                React.createElement("p", { className: "text-xs text-slate-500 text-center pt-2" }, `A ${ticket.processingFeeRate}% card processing fee is included in the card payment total.`)
+
+                                React.createElement("h4", { className: "text-center font-bold text-lg text-slate-800 mb-4 uppercase tracking-wide" }, "Payment Options"),
+                                
+                                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-6" },
+                                    /* Cash/Check Option */
+                                    React.createElement("div", { className: "border-2 border-slate-200 rounded-lg p-4 bg-slate-50" },
+                                        React.createElement("h5", { className: "font-bold text-slate-700 text-center border-b border-slate-200 pb-2 mb-3" }, "Cash / Check"),
+                                        React.createElement("div", { className: "space-y-2 text-sm" },
+                                            deposit > 0 ? (
+                                                React.createElement(React.Fragment, null,
+                                                    React.createElement("div", { className: "flex justify-between text-slate-700" },
+                                                        React.createElement("span", { className: "font-medium" }, "Required Deposit (30%)"),
+                                                        React.createElement("span", { className: "font-medium" }, `$${cashDeposit.toFixed(2)}`)
+                                                    ),
+                                                    React.createElement("div", { className: "text-xs text-slate-500 text-right -mt-1 mb-2 italic" }, "Due Now to Schedule"),
+                                                    
+                                                    React.createElement("div", { className: "flex justify-between text-slate-500" },
+                                                        React.createElement("span", null, "Balance Due (70%)"),
+                                                        React.createElement("span", null, `$${cashBalance.toFixed(2)}`)
+                                                    ),
+                                                    React.createElement("div", { className: "text-xs text-slate-400 text-right -mt-1 italic" }, "Due Upon Completion"),
+
+                                                    React.createElement("div", { className: "flex justify-between items-end border-t border-slate-200 pt-2 mt-2" },
+                                                        React.createElement("span", { className: "text-slate-600 font-bold" }, "Total"),
+                                                        React.createElement("span", { className: "font-bold text-lg text-slate-800" }, `$${cashTotal.toFixed(2)}`)
+                                                    )
+                                                )
+                                            ) : (
+                                                React.createElement("div", { className: "flex justify-between items-end" },
+                                                    React.createElement("span", { className: "text-slate-600" }, "Total"),
+                                                    React.createElement("span", { className: "font-bold text-lg text-slate-800" }, `$${cashTotal.toFixed(2)}`)
+                                                )
+                                            )
+                                        )
+                                    ),
+
+                                    /* Card Option */
+                                    React.createElement("div", { className: "border-2 border-sky-100 rounded-lg p-4 bg-sky-50" },
+                                        React.createElement("h5", { className: "font-bold text-slate-700 text-center border-b border-sky-200 pb-2 mb-3" }, "Card Payment"),
+                                        React.createElement("div", { className: "space-y-2 text-sm" },
+                                            React.createElement("div", { className: "flex justify-between text-slate-500" },
+                                                React.createElement("span", null, `Processing Fee (${ticket.processingFeeRate}%)`),
+                                                React.createElement("span", null, `$${feeAmount.toFixed(2)}`)
+                                            ),
+
+                                            deposit > 0 ? (
+                                                React.createElement(React.Fragment, null,
+                                                    React.createElement("div", { className: "border-b border-sky-200 my-2" }),
+
+                                                    React.createElement("div", { className: "flex justify-between text-slate-700" },
+                                                        React.createElement("span", { className: "font-medium" }, "Required Deposit (30%)"),
+                                                        React.createElement("span", { className: "font-medium" }, `$${cardDeposit.toFixed(2)}`)
+                                                    ),
+                                                    React.createElement("div", { className: "text-xs text-slate-500 text-right -mt-1 mb-2 italic" }, "Due Now to Schedule"),
+
+                                                    React.createElement("div", { className: "flex justify-between text-slate-500" },
+                                                        React.createElement("span", null, "Balance Due (70%)"),
+                                                        React.createElement("span", null, `$${cardBalance.toFixed(2)}`)
+                                                    ),
+                                                    React.createElement("div", { className: "text-xs text-slate-400 text-right -mt-1 italic" }, "Due Upon Completion"),
+
+                                                    React.createElement("div", { className: "flex justify-between items-end border-t border-sky-200 pt-2 mt-2" },
+                                                        React.createElement("span", { className: "text-slate-700 font-bold" }, "Total Charge"),
+                                                        React.createElement("span", { className: "font-bold text-lg text-slate-800" }, `$${cardTotal.toFixed(2)}`)
+                                                    )
+                                                )
+                                            ) : (
+                                                React.createElement(React.Fragment, null,
+                                                    React.createElement("div", { className: "flex justify-between" },
+                                                        React.createElement("span", { className: "text-slate-600" }, "Job Total"),
+                                                        React.createElement("span", { className: "text-slate-800" }, `$${cashTotal.toFixed(2)}`)
+                                                    ),
+                                                    React.createElement("div", { className: "flex justify-between items-end border-t border-sky-200 pt-1 mt-1" },
+                                                        React.createElement("span", { className: "text-slate-700 font-medium" }, "Total Charge"),
+                                                        React.createElement("span", { className: "font-bold text-lg text-slate-800" }, `$${cardTotal.toFixed(2)}`)
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
                             )
                         ) : (
                             React.createElement("div", { className: "w-full max-w-xs space-y-2 text-slate-700" },
@@ -254,6 +404,27 @@ const InvoiceView = ({ contact, ticket, businessInfo, onClose, addFilesToContact
                                 React.createElement("div", { className: "flex justify-between py-3 mt-2 border-t-2 border-slate-300" },
                                     React.createElement("span", { className: "text-base font-bold text-slate-800" }, "Total"),
                                     React.createElement("span", { className: "text-base font-bold text-slate-800" }, `$${totalCost.toFixed(2)}`)
+                                ),
+                                docType === 'estimate' ? (
+                                    deposit > 0 && (
+                                        React.createElement("div", { className: "flex justify-between py-2 border-t text-slate-800 font-semibold bg-slate-50 px-2 -mx-2 rounded" },
+                                            React.createElement("span", null, "Required Deposit (30%)"),
+                                            React.createElement("span", null, `$${deposit.toFixed(2)}`)
+                                        )
+                                    )
+                                ) : (
+                                    React.createElement(React.Fragment, null,
+                                        deposit > 0 && (
+                                            React.createElement("div", { className: "flex justify-between py-2 border-b border-slate-100 text-green-600" },
+                                                React.createElement("span", { className: "text-sm font-medium" }, "Deposit / Paid"),
+                                                React.createElement("span", { className: "text-sm font-medium" }, `-$${deposit.toFixed(2)}`)
+                                            )
+                                        ),
+                                        React.createElement("div", { className: "flex justify-between py-3 border-t border-slate-300" },
+                                            React.createElement("span", { className: "text-base font-bold text-slate-800" }, "Balance Due"),
+                                            React.createElement("span", { className: "text-base font-bold text-slate-800" }, `$${balanceDue.toFixed(2)}`)
+                                        )
+                                    )
                                 )
                             )
                         )

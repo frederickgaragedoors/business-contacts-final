@@ -1,4 +1,7 @@
 
+
+
+
 import React, { useState } from 'react';
 import { jobStatusColors } from '../types.js';
 import JobTicketModal from './JobTicketModal.js';
@@ -19,6 +22,7 @@ const JobDetailView = ({
   ticket,
   businessInfo,
   jobTemplates,
+  partsCatalog,
   onBack,
   onEditTicket,
   onDeleteTicket,
@@ -27,7 +31,7 @@ const JobDetailView = ({
 }) => {
   const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
 
-  const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
+  const { subtotal, taxAmount, feeAmount, totalCost, deposit, balanceDue } = calculateJobTicketTotal(ticket);
   const statusColor = jobStatusColors[ticket.status];
   const hasCosts = ticket.parts.length > 0 || (ticket.laborCost && ticket.laborCost > 0);
 
@@ -112,11 +116,13 @@ const JobDetailView = ({
                 )
               ),
               React.createElement("div", { className: "flex items-center" },
-                React.createElement("MailIcon", { className: "w-4 h-4 text-slate-400 mr-3" }),
-                React.createElement("a", { href: `mailto:${contact.email}`, className: "text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors" }, contact.email)
+                React.createElement("div", { className: "flex items-center" },
+                  React.createElement(MailIcon, { className: "w-4 h-4 text-slate-400 mr-3" }),
+                  React.createElement("a", { href: `mailto:${contact.email}`, className: "text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors" }, contact.email)
+                )
               ),
               React.createElement("div", { className: "flex items-start" },
-                React.createElement(MapPinIcon, { className: "w-4 h-4 text-slate-400 mr-3 mt-1" }),
+                React.createElement("MapPinIcon", { className: "w-4 h-4 text-slate-400 mr-3 mt-1" }),
                 React.createElement("a", { 
                     href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`,
                     target: "_blank",
@@ -132,29 +138,31 @@ const JobDetailView = ({
             React.createElement("h3", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2" }, "Cost Breakdown"),
             hasCosts ? (
                 React.createElement(React.Fragment, null,
-                    React.createElement("table", { className: "w-full text-left text-sm table-fixed" },
-                        React.createElement("thead", null,
-                        React.createElement("tr", { className: "border-b dark:border-slate-700" },
-                            React.createElement("th", { className: "py-2 font-medium w-3/5" }, "Item/Service"),
-                            React.createElement("th", { className: "py-2 font-medium text-center" }, "Qty"),
-                            React.createElement("th", { className: "py-2 font-medium text-right" }, "Unit"),
-                            React.createElement("th", { className: "py-2 font-medium text-right" }, "Total")
-                        )
-                        ),
-                        React.createElement("tbody", null,
-                        ticket.parts.map(p => (
-                            React.createElement("tr", { key: p.id, className: "border-b dark:border-slate-700/50" },
-                            React.createElement("td", { className: "py-2 break-words pr-2" }, p.name),
-                            React.createElement("td", { className: "py-2 text-center" }, p.quantity),
-                            React.createElement("td", { className: "py-2 text-right" }, `$${p.cost.toFixed(2)}`),
-                            React.createElement("td", { className: "py-2 text-right" }, `$${(p.cost * p.quantity).toFixed(2)}`)
+                    React.createElement("div", { className: "" },
+                        React.createElement("table", { className: "w-full text-left text-xs sm:text-sm table-fixed" },
+                            React.createElement("thead", null,
+                            React.createElement("tr", { className: "border-b dark:border-slate-700" },
+                                React.createElement("th", { className: "py-2 px-1 sm:px-2 font-medium w-[40%]" }, "Item/Service"),
+                                React.createElement("th", { className: "py-2 px-1 sm:px-2 font-medium text-center w-[12%]" }, "Qty"),
+                                React.createElement("th", { className: "py-2 px-1 sm:px-2 font-medium text-right w-[24%]" }, "Unit"),
+                                React.createElement("th", { className: "py-2 px-1 sm:px-2 font-medium text-right w-[24%]" }, "Total")
                             )
-                        )),
-                        React.createElement("tr", { className: "border-b dark:border-slate-700/50" },
-                            React.createElement("td", { className: "py-2" }, "Labor"),
-                            React.createElement("td", { colSpan: 2 }),
-                            React.createElement("td", { className: "py-2 text-right" }, `$${ticket.laborCost.toFixed(2)}`)
-                        )
+                            ),
+                            React.createElement("tbody", null,
+                            ticket.parts.map(p => (
+                                React.createElement("tr", { key: p.id, className: "border-b dark:border-slate-700/50" },
+                                React.createElement("td", { className: "py-2 px-1 sm:px-2 break-words align-top" }, p.name),
+                                React.createElement("td", { className: "py-2 px-1 sm:px-2 text-center align-top whitespace-nowrap" }, p.quantity),
+                                React.createElement("td", { className: "py-2 px-1 sm:px-2 text-right align-top whitespace-nowrap" }, `$${p.cost.toFixed(2)}`),
+                                React.createElement("td", { className: "py-2 px-1 sm:px-2 text-right align-top whitespace-nowrap" }, `$${(p.cost * p.quantity).toFixed(2)}`)
+                                )
+                            )),
+                            React.createElement("tr", { className: "border-b dark:border-slate-700/50" },
+                                React.createElement("td", { className: "py-2 px-1 sm:px-2" }, "Labor"),
+                                React.createElement("td", { colSpan: 2 }),
+                                React.createElement("td", { className: "py-2 px-1 sm:px-2 text-right whitespace-nowrap" }, `$${ticket.laborCost.toFixed(2)}`)
+                            )
+                            )
                         )
                     ),
                     React.createElement("div", { className: "mt-4 flex justify-end" },
@@ -162,7 +170,9 @@ const JobDetailView = ({
                         React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, "Subtotal:"), React.createElement("span", null, `$${subtotal.toFixed(2)}`)),
                         React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, `Tax (${ticket.salesTaxRate || 0}%):`), React.createElement("span", null, `$${taxAmount.toFixed(2)}`)),
                         React.createElement("div", { className: "flex justify-between" }, React.createElement("span", null, `Fee (${ticket.processingFeeRate || 0}%):`), React.createElement("span", null, `$${feeAmount.toFixed(2)}`)),
-                        React.createElement("div", { className: "flex justify-between font-bold text-lg mt-2 pt-2 border-t dark:border-slate-600" }, React.createElement("span", null, "Total:"), React.createElement("span", null, `$${totalCost.toFixed(2)}`))
+                        React.createElement("div", { className: "flex justify-between font-bold text-lg mt-2 pt-2 border-t dark:border-slate-600" }, React.createElement("span", null, "Total:"), React.createElement("span", null, `$${totalCost.toFixed(2)}`)),
+                        deposit > 0 && React.createElement("div", { className: "flex justify-between text-green-600 dark:text-green-400 font-medium" }, React.createElement("span", null, "Less Deposit:"), React.createElement("span", null, `-($${deposit.toFixed(2)})`)),
+                        React.createElement("div", { className: "flex justify-between font-bold text-slate-800 dark:text-slate-100 mt-1 pt-1 border-t border-slate-200 dark:border-slate-700" }, React.createElement("span", null, "Balance Due:"), React.createElement("span", null, `$${balanceDue.toFixed(2)}`))
                         )
                     )
                 )
@@ -182,6 +192,7 @@ const JobDetailView = ({
           },
           onClose: () => setIsJobTicketModalOpen(false),
           jobTemplates: jobTemplates,
+          partsCatalog: partsCatalog,
           enabledStatuses: enabledStatuses
         })
       )

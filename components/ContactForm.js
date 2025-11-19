@@ -1,8 +1,9 @@
+
 import React, { useState, useCallback } from 'react';
 import { UserCircleIcon, XIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
 import { fileToDataUrl, formatFileSize, generateId } from '../utils.js';
 
-const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
+const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJobDate }) => {
   const [name, setName] = useState(initialContact?.name || '');
   const [email, setEmail] = useState(initialContact?.email || '');
   const [phone, setPhone] = useState(initialContact?.phone || '');
@@ -77,7 +78,22 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const finalFiles = [...files, ...stagedFiles];
-    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, jobTickets: initialContact?.jobTickets || [] });
+    
+    let initialJobTickets = initialContact?.jobTickets || [];
+    
+    if (initialJobDate && !initialContact) {
+        initialJobTickets = [{
+            id: generateId(),
+            date: initialJobDate,
+            status: 'Estimate Scheduled',
+            notes: '',
+            parts: [],
+            laborCost: 0,
+            createdAt: new Date().toISOString()
+        }];
+    }
+
+    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, jobTickets: initialJobTickets });
   };
   
   const inputStyles = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm";
@@ -96,6 +112,16 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
         React.createElement("div", { className: "flex space-x-2" },
             React.createElement("button", { type: "button", onClick: onCancel, className: "hidden md:inline px-4 py-2 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" }, "Cancel"),
             React.createElement("button", { type: "submit", className: "px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" }, "Save")
+        )
+      ),
+      
+      initialJobDate && !initialContact && (
+        React.createElement("div", { className: "px-4 sm:px-6 pt-6" },
+            React.createElement("div", { className: "bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 rounded-md p-3 text-sm text-sky-800 dark:text-sky-200" },
+                "This new contact will be automatically scheduled for a job on ",
+                React.createElement("strong", null, new Date(initialJobDate).toLocaleDateString()),
+                "."
+            )
         )
       ),
       
@@ -180,7 +206,7 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields }) => {
              React.createElement("ul", { className: "mt-2 space-y-2" },
                 files.map(file => (
                   React.createElement("li", { key: file.id, className: "grid grid-cols-[auto_1fr_auto] items-center gap-x-3 p-2 bg-slate-100 dark:bg-slate-700 rounded-md shadow-sm" },
-                    React.createElement(FileIcon, { className: "w-5 h-5 text-slate-500 dark:text-slate-400" }),
+                    React.createElement(FileIcon, { className: "w-5 h-5 text-slate-500 dark:text-slate-400" },),
                     React.createElement("div", { className: "min-w-0" },
                         React.createElement("p", { className: "text-sm font-medium text-slate-800 dark:text-slate-200 truncate" }, file.name),
                         React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, formatFileSize(file.size))

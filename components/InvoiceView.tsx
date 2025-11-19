@@ -2,8 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Contact, JobTicket, BusinessInfo, FileAttachment } from '../types.ts';
-import { ArrowLeftIcon } from './icons.tsx';
+import { Contact, JobTicket, BusinessInfo, FileAttachment, EmailSettings } from '../types.ts';
+import { ArrowLeftIcon, MailIcon } from './icons.tsx';
 import { generateId, fileToDataUrl, calculateJobTicketTotal } from '../utils.ts';
 
 
@@ -11,11 +11,12 @@ interface InvoiceViewProps {
     contact: Contact;
     ticket: JobTicket;
     businessInfo: BusinessInfo;
+    emailSettings: EmailSettings;
     onClose: () => void;
     addFilesToContact: (contactId: string, files: FileAttachment[]) => void;
 }
 
-const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo, onClose, addFilesToContact }) => {
+const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo, emailSettings, onClose, addFilesToContact }) => {
     const [docType, setDocType] = useState<'receipt' | 'estimate'>('receipt');
     const [isSaving, setIsSaving] = useState(false);
     const invoiceContentRef = useRef<HTMLDivElement>(null);
@@ -115,8 +116,85 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
         }
         setIsSaving(false);
     };
+    
+    const replacePlaceholders = (text: string) => {
+        return text
+            .replace(/{{customerName}}/g, contact.name)
+            .replace(/{{jobId}}/g, ticket.id)
+            .replace(/{{businessName}}/g, businessInfo.name || 'Our Company')
+            .replace(/{{date}}/g, new Date().toLocaleDateString());
+    };
 
-    const { subtotal, taxAmount, feeAmount, totalCost } = calculateJobTicketTotal(ticket);
+    const handleShare = async () => {
+        if (isSaving) return;
+        setIsSaving(true);
+
+        const template = docType === 'estimate' ? emailSettings.estimate : emailSettings.receipt;
+        const subject = replacePlaceholders(template.subject);
+        const body = replacePlaceholders(template.body);
+
+        try {
+            // Check if the browser supports sharing files
+            // Note: This API often requires HTTPS
+            if (navigator.share && navigator.canShare) {
+                 const pdfData = await generatePdf();
+                 if (!pdfData) {
+                     setIsSaving(false);
+                     return;
+                 }
+                 
+                 const { pdf, fileName } = pdfData;
+                 const pdfBlob = pdf.output('blob');
+                 const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+                 
+                 if (navigator.canShare({ files: [file] })) {
+                     await navigator.share({
+                         files: [file],
+                         title: subject,
+                         text: body,
+                     });
+                 } else {
+                     // Fallback if sharing files specifically isn't supported but navigator.share is
+                     // Usually just share text/url or fallback to mailto
+                      throw new Error("File sharing not supported");
+                 }
+            } else {
+                 throw new Error("Navigator.share not supported");
+            }
+        } catch (error) {
+            // Fallback to mailto link for Desktop or incompatible browsers
+            // Note: We cannot attach the file via mailto, user must attach manually.
+            const mailtoLink = `mailto:${contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+            
+            // Also prompt download so they have the file to attach
+            alert("Opening your email client. Please attach the PDF that will be downloaded.");
+            const pdfData = await generatePdf();
+            if (pdfData) {
+                pdfData.pdf.save(pdfData.fileName);
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const { subtotal, taxAmount, feeAmount, totalCost, deposit, balanceDue } = calculateJobTicketTotal(ticket);
+
+    // Calculations for dual-estimate view
+    const cashTotal = subtotal + taxAmount;
+    const cardTotal = totalCost; // includes fee
+    
+    // Calculate the deposit ratio based on the saved ticket state (which includes the fee if present)
+    // This allows us to scale the deposit for the cash price accurately.
+    const depositRatio = totalCost > 0 ? deposit / totalCost : 0;
+
+    // Card Deposit is the saved deposit (as that matches the saved total which includes fees)
+    const cardDeposit = deposit; 
+    const cardBalance = cardTotal - cardDeposit;
+
+    // Cash Deposit is scaled by the ratio
+    const cashDeposit = cashTotal * depositRatio;
+    const cashBalance = cashTotal - cashDeposit;
 
     return (
         <div className="h-full flex flex-col bg-slate-200 dark:bg-slate-900 overflow-y-auto print:bg-white print:overflow-visible print:h-auto">
@@ -146,6 +224,14 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                     </div>
                     <div className="w-full sm:w-auto flex items-center justify-center sm:justify-end space-x-2">
                         <button 
+                             onClick={handleShare}
+                             disabled={isSaving}
+                             className="px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait flex items-center space-x-2"
+                        >
+                             <MailIcon className="w-4 h-4" />
+                             <span>{isSaving ? '...' : 'Share'}</span>
+                        </button>
+                        <button 
                             onClick={() => window.print()}
                             className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
                         >
@@ -156,14 +242,14 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                             disabled={isSaving}
                             className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
                         >
-                            {isSaving ? 'Working...' : 'Download'}
+                            {isSaving ? '...' : 'Download'}
                         </button>
                         <button 
                             onClick={handleAttach}
                             disabled={isSaving}
-                            className="px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait"
+                            className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
                         >
-                            {isSaving ? 'Working...' : 'Attach PDF'}
+                            {isSaving ? '...' : 'Attach'}
                         </button>
                     </div>
                 </div>
@@ -230,30 +316,103 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         </table>
                     </section>
 
-                    <section className="mt-6 flex justify-end">
+                    <section className="mt-6 flex flex-col items-end">
                        {docType === 'estimate' && (ticket.processingFeeRate || 0) > 0 ? (
-                            <div className="w-full max-w-sm space-y-3 text-slate-700 border-t-2 border-slate-200 pt-4">
-                                <div className="flex justify-between pb-2">
-                                    <span className="text-sm font-medium text-slate-600">Subtotal</span>
-                                    <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
-                                </div>
-                                {(ticket.salesTaxRate || 0) > 0 && (
+                           <div className="w-full mt-4">
+                                <div className="w-full max-w-sm ml-auto space-y-2 text-slate-700 border-b border-slate-200 pb-4 mb-6">
                                     <div className="flex justify-between pb-2">
-                                        <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
-                                        <span className="text-sm font-medium">${taxAmount.toFixed(2)}</span>
+                                        <span className="text-sm font-medium text-slate-600">Subtotal</span>
+                                        <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
                                     </div>
-                                )}
-                                <h4 className="font-bold text-lg text-slate-800 text-center pt-2">Payment Options</h4>
-                                <div className="flex justify-between py-2 border-t">
-                                    <span className="text-base font-semibold">Pay by Check/Cash</span>
-                                    <span className="text-base font-semibold">${(subtotal + taxAmount).toFixed(2)}</span>
+                                    {(ticket.salesTaxRate || 0) > 0 && (
+                                        <div className="flex justify-between pb-2">
+                                            <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
+                                            <span className="text-sm font-medium">${taxAmount.toFixed(2)}</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex justify-between py-2 border-t text-green-700 dark:text-green-400">
-                                    <span className="text-base font-semibold">Pay by Card</span>
-                                    <span className="text-base font-semibold">${totalCost.toFixed(2)}</span>
+
+                                <h4 className="text-center font-bold text-lg text-slate-800 mb-4 uppercase tracking-wide">Payment Options</h4>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    {/* Cash/Check Option */}
+                                    <div className="border-2 border-slate-200 rounded-lg p-4 bg-slate-50">
+                                        <h5 className="font-bold text-slate-700 text-center border-b border-slate-200 pb-2 mb-3">Cash / Check</h5>
+                                        <div className="space-y-2 text-sm">
+                                            {deposit > 0 ? (
+                                                <>
+                                                    <div className="flex justify-between text-slate-700">
+                                                        <span className="font-medium">Required Deposit (30%)</span>
+                                                        <span className="font-medium">${cashDeposit.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 text-right -mt-1 mb-2 italic">Due Now to Schedule</div>
+                                                    
+                                                    <div className="flex justify-between text-slate-500">
+                                                        <span>Balance Due (70%)</span>
+                                                        <span>${cashBalance.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-400 text-right -mt-1 mb-2 italic">Due Upon Completion</div>
+
+                                                    <div className="flex justify-between items-end border-t border-slate-200 pt-2 mt-2">
+                                                        <span className="text-slate-600 font-bold">Total</span>
+                                                        <span className="font-bold text-lg text-slate-800">${cashTotal.toFixed(2)}</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex justify-between items-end">
+                                                    <span className="text-slate-600">Total</span>
+                                                    <span className="font-bold text-lg text-slate-800">${cashTotal.toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Card Option */}
+                                    <div className="border-2 border-sky-100 rounded-lg p-4 bg-sky-50">
+                                        <h5 className="font-bold text-slate-700 text-center border-b border-sky-200 pb-2 mb-3">Card Payment</h5>
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between text-slate-500">
+                                                <span>Processing Fee ({ticket.processingFeeRate}%)</span>
+                                                <span>${feeAmount.toFixed(2)}</span>
+                                            </div>
+
+                                            {deposit > 0 ? (
+                                                <>
+                                                    <div className="border-b border-sky-200 my-2"></div>
+
+                                                    <div className="flex justify-between text-slate-700">
+                                                        <span className="font-medium">Required Deposit (30%)</span>
+                                                        <span className="font-medium">${cardDeposit.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 text-right -mt-1 mb-2 italic">Due Now to Schedule</div>
+
+                                                    <div className="flex justify-between text-slate-500">
+                                                        <span>Balance Due (70%)</span>
+                                                        <span>${cardBalance.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-400 text-right -mt-1 mb-2 italic">Due Upon Completion</div>
+
+                                                    <div className="flex justify-between items-end border-t border-sky-200 pt-2 mt-2">
+                                                        <span className="text-slate-700 font-bold">Total Charge</span>
+                                                        <span className="font-bold text-lg text-slate-800">${cardTotal.toFixed(2)}</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-slate-600">Job Total</span>
+                                                        <span className="text-slate-800">${cashTotal.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-end border-t border-sky-200 pt-1 mt-1">
+                                                        <span className="text-slate-700 font-medium">Total Charge</span>
+                                                        <span className="font-bold text-lg text-slate-800">${cardTotal.toFixed(2)}</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-slate-500 text-center pt-2">A {ticket.processingFeeRate}% card processing fee is included in the card payment total.</p>
-                            </div>
+                           </div>
                        ) : (
                             <div className="w-full max-w-xs space-y-2 text-slate-700">
                                 <div className="flex justify-between py-2 border-b border-slate-100">
@@ -276,6 +435,27 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                                     <span className="text-base font-bold text-slate-800">Total</span>
                                     <span className="text-base font-bold text-slate-800">${totalCost.toFixed(2)}</span>
                                 </div>
+                                {docType === 'estimate' ? (
+                                    deposit > 0 && (
+                                        <div className="flex justify-between py-2 border-t text-slate-800 font-semibold bg-slate-50 px-2 -mx-2 rounded">
+                                            <span>Required Deposit (30%)</span>
+                                            <span>${deposit.toFixed(2)}</span>
+                                        </div>
+                                    )
+                                ) : (
+                                    <>
+                                        {deposit > 0 && (
+                                            <div className="flex justify-between py-2 border-b border-slate-100 text-green-600">
+                                                <span className="text-sm font-medium">Deposit / Paid</span>
+                                                <span className="text-sm font-medium">-${deposit.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between py-3 border-t border-slate-300">
+                                            <span className="text-base font-bold text-slate-800">Balance Due</span>
+                                            <span className="text-base font-bold text-slate-800">${balanceDue.toFixed(2)}</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                        )}
                     </section>
