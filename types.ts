@@ -52,6 +52,7 @@ export interface JobTicket {
   laborCost: number;
   salesTaxRate?: number;
   processingFeeRate?: number;
+  deposit?: number;
 }
 
 export interface JobTemplate {
@@ -62,6 +63,12 @@ export interface JobTemplate {
   laborCost: number;
   salesTaxRate?: number;
   processingFeeRate?: number;
+}
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  defaultCost: number;
 }
 
 export interface Contact {
@@ -83,6 +90,27 @@ export interface BusinessInfo {
   email: string;
   logoUrl: string; // Base64 data URL
 }
+
+export interface EmailTemplate {
+  subject: string;
+  body: string;
+}
+
+export interface EmailSettings {
+  estimate: EmailTemplate;
+  receipt: EmailTemplate;
+}
+
+export const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
+  estimate: {
+    subject: 'Estimate from {{businessName}} - Job #{{jobId}}',
+    body: 'Hi {{customerName}},\n\nPlease find attached the estimate for the requested work.\n\nIf you have any questions, please let us know.\n\nThanks,\n{{businessName}}'
+  },
+  receipt: {
+    subject: 'Receipt from {{businessName}} - Job #{{jobId}}',
+    body: 'Hi {{customerName}},\n\nThank you for your business. Please find attached the receipt for Job #{{jobId}}.\n\nThanks,\n{{businessName}}'
+  }
+};
 
 export type ViewState = 
   | { type: 'list' }

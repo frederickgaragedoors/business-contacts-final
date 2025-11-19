@@ -11,7 +11,7 @@ import CalendarView from './components/CalendarView.tsx';
 import InvoiceView from './components/InvoiceView.tsx';
 import JobDetailView from './components/JobDetailView.tsx';
 import ContactSelectorModal from './components/ContactSelectorModal.tsx';
-import { Contact, ViewState, DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, JobTicket, FileAttachment } from './types.ts';
+import { Contact, ViewState, DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, JobTicket, FileAttachment, EmailSettings, DEFAULT_EMAIL_SETTINGS, CatalogItem } from './types.ts';
 import { generateId } from './utils.ts';
 import { addFiles, deleteFiles, clearAndAddFiles } from './db.ts';
 
@@ -139,7 +139,9 @@ function App() {
   const [viewState, setViewState] = useState<ViewState>({ type: 'dashboard' });
   const [defaultFields, setDefaultFields] = useState<DefaultFieldSetting[]>(() => getInitialState('defaultFields', []));
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(() => getInitialState('businessInfo', { name: '', address: '', phone: '', email: '', logoUrl: '' }));
+  const [emailSettings, setEmailSettings] = useState<EmailSettings>(() => getInitialState('emailSettings', DEFAULT_EMAIL_SETTINGS));
   const [jobTemplates, setJobTemplates] = useState<JobTemplate[]>(() => getInitialState('jobTemplates', []));
+  const [partsCatalog, setPartsCatalog] = useState<CatalogItem[]>(() => getInitialState('partsCatalog', []));
   const [enabledStatuses, setEnabledStatuses] = useState<Record<JobStatus, boolean>>(() => {
       const defaults = {} as Record<JobStatus, boolean>;
       ALL_JOB_STATUSES.forEach(s => defaults[s] = true);
@@ -156,7 +158,9 @@ function App() {
   useEffect(() => localStorage.setItem('contacts', JSON.stringify(contacts)), [contacts]);
   useEffect(() => localStorage.setItem('defaultFields', JSON.stringify(defaultFields)), [defaultFields]);
   useEffect(() => localStorage.setItem('businessInfo', JSON.stringify(businessInfo)), [businessInfo]);
+  useEffect(() => localStorage.setItem('emailSettings', JSON.stringify(emailSettings)), [emailSettings]);
   useEffect(() => localStorage.setItem('jobTemplates', JSON.stringify(jobTemplates)), [jobTemplates]);
+  useEffect(() => localStorage.setItem('partsCatalog', JSON.stringify(partsCatalog)), [partsCatalog]);
   useEffect(() => localStorage.setItem('enabledStatuses', JSON.stringify(enabledStatuses)), [enabledStatuses]);
   useEffect(() => localStorage.setItem('autoBackupEnabled', JSON.stringify(autoBackupEnabled)), [autoBackupEnabled]);
   useEffect(() => localStorage.setItem('lastAutoBackup', JSON.stringify(lastAutoBackup)), [lastAutoBackup]);
@@ -182,13 +186,13 @@ function App() {
   // Auto Backup Logic
   useEffect(() => {
       if (autoBackupEnabled) {
-          const data = JSON.stringify({ contacts, defaultFields, businessInfo, jobTemplates, enabledStatuses });
+          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses });
           // Only update if data changed (simple string comparison for now)
           if (!lastAutoBackup || lastAutoBackup.data !== data) {
               setLastAutoBackup({ timestamp: new Date().toISOString(), data });
           }
       }
-  }, [contacts, defaultFields, businessInfo, jobTemplates, enabledStatuses, autoBackupEnabled]); 
+  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, autoBackupEnabled]); 
 
   // Derived state
   const selectedContact = useMemo(() => {
@@ -260,7 +264,9 @@ function App() {
           if (data.contacts) setContacts(data.contacts);
           if (data.defaultFields) setDefaultFields(data.defaultFields);
           if (data.businessInfo) setBusinessInfo(data.businessInfo);
+          if (data.emailSettings) setEmailSettings(data.emailSettings);
           if (data.jobTemplates) setJobTemplates(data.jobTemplates);
+          if (data.partsCatalog) setPartsCatalog(data.partsCatalog);
           if (data.enabledStatuses) setEnabledStatuses(data.enabledStatuses);
           if (data.files) await clearAndAddFiles(data.files);
           
@@ -271,7 +277,7 @@ function App() {
       }
   };
 
-  const appStateForBackup = { contacts, defaultFields, businessInfo, jobTemplates, enabledStatuses };
+  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses };
 
   const renderView = () => {
       switch (viewState.type) {
@@ -299,6 +305,7 @@ function App() {
                   onViewInvoice={(contactId, ticketId) => setViewState({ type: 'invoice', contactId, ticketId, from: 'contact_detail' })}
                   onViewJobDetail={(contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId })}
                   jobTemplates={jobTemplates}
+                  partsCatalog={partsCatalog}
                   enabledStatuses={enabledStatuses}
                   initialJobDate={viewState.initialJobDate}
                   openJobId={viewState.openJobId}
@@ -331,12 +338,17 @@ function App() {
                   onRestoreBackup={handleRestoreBackup}
                   businessInfo={businessInfo}
                   onUpdateBusinessInfo={setBusinessInfo}
+                  emailSettings={emailSettings}
+                  onUpdateEmailSettings={setEmailSettings}
                   currentTheme={currentTheme}
                   onUpdateTheme={setCurrentTheme}
                   jobTemplates={jobTemplates}
                   onAddJobTemplate={(t) => setJobTemplates([...jobTemplates, { ...t, id: generateId() }])}
                   onUpdateJobTemplate={(id, t) => setJobTemplates(jobTemplates.map(jt => jt.id === id ? { ...t, id } : jt))}
                   onDeleteJobTemplate={(id) => setJobTemplates(jobTemplates.filter(jt => jt.id !== id))}
+                  partsCatalog={partsCatalog}
+                  onAddCatalogItem={(item) => setPartsCatalog([...partsCatalog, { ...item, id: generateId() }])}
+                  onDeleteCatalogItem={(id) => setPartsCatalog(partsCatalog.filter(i => i.id !== id))}
                   enabledStatuses={enabledStatuses}
                   onToggleJobStatus={(status, enabled) => setEnabledStatuses({ ...enabledStatuses, [status]: enabled })}
                   contacts={contacts}
@@ -351,6 +363,7 @@ function App() {
                   contact={invoiceContact} 
                   ticket={invoiceTicket} 
                   businessInfo={businessInfo} 
+                  emailSettings={emailSettings}
                   onClose={() => {
                     if (viewState.from === 'contact_detail') {
                         setViewState({ type: 'detail', id: invoiceContact.id });
@@ -369,6 +382,7 @@ function App() {
                     ticket={jobTicket}
                     businessInfo={businessInfo}
                     jobTemplates={jobTemplates}
+                    partsCatalog={partsCatalog}
                     onBack={() => setViewState({ type: 'detail', id: jobContact.id })}
                     onEditTicket={(updatedTicket) => {
                          const updatedTickets = jobContact.jobTickets.map(t => t.id === updatedTicket.id ? { ...t, ...updatedTicket } : t);
