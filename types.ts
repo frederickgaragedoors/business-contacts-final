@@ -1,5 +1,6 @@
 
 
+
 export interface FileAttachment {
   id: string;
   name: string;
@@ -67,12 +68,13 @@ export interface Part {
   cost: number;
 }
 
-export type InspectionStatus = 'pass' | 'fail' | 'repaired' | 'na';
+export type InspectionStatus = 'Pass' | 'Fail' | 'Repaired' | 'N/A';
 
 export interface InspectionItem {
     id: string;
     name: string;
-    status: InspectionStatus;
+    status?: InspectionStatus;
+    notes?: string;
 }
 
 export interface JobTicket {
@@ -157,32 +159,32 @@ export const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
 
 export const DEFAULT_ON_MY_WAY_TEMPLATE = "Hi {{customerName}}, this is {{businessName}}. I am on my way to service your garage door and should arrive in about 20 minutes.";
 
-export const DEFAULT_INSPECTION_POINTS = [
-    "Door Balance / Level",
-    "Safety Sensors (Photo Eyes)",
-    "Safety Reverse Test",
-    "Cables",
-    "Springs",
-    "Rollers",
+export const DEFAULT_INSPECTION_ITEMS = [
+    "Door Balance / Operation",
+    "Door Sections / Panels",
     "Hinges",
-    "Bottom Brackets",
-    "Center Bearing",
-    "End Bearings",
+    "Rollers",
+    "Vertical Track",
+    "Horizontal Track",
+    "Torsion / Extension Springs",
+    "Cables",
     "Drums",
-    "Shaft / Torsion Tube",
-    "Tracks (Vertical & Horizontal)",
+    "Center Bearing Plate",
+    "End Bearing Plates",
+    "Top Fixtures",
+    "Bottom Fixtures",
+    "Bottom Weather Seal",
+    "Perimeter Weather Seal",
+    "Struts / Trussing",
     "Opener Motor / Gear",
-    "Trolley / Carriage",
-    "J-Arm",
-    "Emergency Release Cord",
-    "Wall Button",
-    "Remote Controls",
-    "Keypad",
-    "Wiring / Connections",
-    "Limit Settings",
+    "Opener Rail / Trolley",
+    "Belt / Chain Tension",
     "Force Settings",
-    "Weather Seal (Bottom)",
-    "Perimeter Seal (Jamb)"
+    "Limit Switches",
+    "Safety Sensors (Photo Eyes)",
+    "Auto-Reverse Safety Test",
+    "Wall Button / Wiring",
+    "Remotes / Keypad"
 ];
 
 export type ViewState = 

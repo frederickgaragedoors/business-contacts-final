@@ -1,4 +1,5 @@
-const CACHE_NAME = 'business-contacts-v15-js'; // Incremented version
+
+const CACHE_NAME = 'business-contacts-v16-js'; // Incremented version
 const urlsToCache = [
   './',
   './index.html',
@@ -19,6 +20,7 @@ const urlsToCache = [
   './components/PhotoGalleryModal.js',
   './components/JobTicketModal.js',
   './components/JobTemplateModal.js',
+  './components/InspectionModal.js',
   './components/InvoiceView.js',
   './components/JobDetailView.js',
   './components/EmptyState.js',
