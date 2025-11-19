@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { jobStatusColors } from '../types.js';
-import { ChevronLeftIcon, ChevronRightIcon, BriefcaseIcon, PlusIcon } from './icons.js';
+import { jobStatusColors, paymentStatusColors, paymentStatusLabels } from '../types.js';
+import { ChevronLeftIcon, ChevronRightIcon, BriefcaseIcon, PlusIcon, CalendarIcon } from './icons.js';
 import { formatTime } from '../utils.js';
 import EmptyState from './EmptyState.js';
 
@@ -82,6 +82,17 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
         setCurrentDate(today);
         setSelectedDate(today);
     };
+    
+    const handleJumpToDate = (e) => {
+        if (e.target.value) {
+            const [y, m, d] = e.target.value.split('-').map(Number);
+            // Note: Month in Date constructor is 0-indexed. Input gives 1-indexed month.
+            const newDate = new Date(y, m - 1, d);
+            setCurrentDate(newDate);
+            setSelectedDate(newDate);
+            e.target.value = '';
+        }
+    };
 
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -95,6 +106,20 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                     )
                 ),
                 React.createElement("div", { className: "flex items-center space-x-2" },
+                    React.createElement("div", { className: "relative" },
+                        React.createElement("button", { 
+                            className: "p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600",
+                            title: "Jump to date"
+                        },
+                            React.createElement(CalendarIcon, { className: "w-5 h-5" })
+                        ),
+                        React.createElement("input", {
+                            type: "date",
+                            onChange: handleJumpToDate,
+                            className: "absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10",
+                            "aria-label": "Jump to specific date"
+                        })
+                    ),
                     React.createElement("button", { onClick: handleToday, className: "px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded hover:bg-slate-200 dark:hover:bg-slate-600" }, "Today"),
                     React.createElement("button", { onClick: handlePrevMonth, className: "p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300" },
                         React.createElement(ChevronLeftIcon, { className: "w-6 h-6" })
@@ -179,7 +204,7 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                         ),
                         React.createElement("button", { 
                             onClick: () => onAddJob(selectedDate),
-                            className: "flex items-center space-x-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" 
+                            className: "flex items-center space-x-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors"
                         },
                             React.createElement(PlusIcon, { className: "w-3 h-3" }),
                             React.createElement("span", null, "Add Job")
@@ -188,29 +213,40 @@ const CalendarView = ({ contacts, onViewJob, onAddJob }) => {
                     React.createElement("div", { className: "p-4" },
                         selectedDateJobs.length > 0 ? (
                             React.createElement("ul", { className: "space-y-3" },
-                                selectedDateJobs.sort((a,b) => (a.time || '00:00').localeCompare(b.time || '00:00')).map(job => (
-                                    React.createElement("li", { 
-                                        key: job.id, 
-                                        onClick: () => onViewJob(job.contactId, job.id),
-                                        className: "p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer transition-all"
-                                    },
-                                        React.createElement("div", { className: "flex justify-between items-start mb-1" },
-                                            React.createElement("span", { className: `px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full ${jobStatusColors[job.status].base} ${jobStatusColors[job.status].text}` },
-                                                job.status
+                                selectedDateJobs.sort((a,b) => (a.time || '00:00').localeCompare(b.time || '00:00')).map(job => {
+                                    const paymentStatus = job.paymentStatus || 'unpaid';
+                                    const paymentStatusColor = paymentStatusColors[paymentStatus];
+                                    const paymentStatusLabel = paymentStatusLabels[paymentStatus];
+                                    
+                                    return (
+                                        React.createElement("li", { 
+                                            key: job.id, 
+                                            onClick: () => onViewJob(job.contactId, job.id),
+                                            className: "p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer transition-all"
+                                        },
+                                            React.createElement("div", { className: "flex justify-between items-start mb-1" },
+                                                 React.createElement("div", { className: "flex flex-wrap gap-1" },
+                                                    React.createElement("span", { className: `px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full ${jobStatusColors[job.status].base} ${jobStatusColors[job.status].text}` },
+                                                        job.status
+                                                    ),
+                                                    React.createElement("span", { className: `px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}` },
+                                                        paymentStatusLabel
+                                                    )
+                                                ),
+                                                React.createElement("span", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap ml-2" },
+                                                    job.time ? formatTime(job.time) : 'No Time'
+                                                )
                                             ),
-                                            React.createElement("span", { className: "text-xs font-medium text-slate-500 dark:text-slate-400" },
-                                                job.time ? formatTime(job.time) : 'No Time'
+                                            React.createElement("p", { className: "font-semibold text-slate-800 dark:text-slate-100 mt-1" }, job.contactName),
+                                            job.notes && (
+                                                React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400 truncate mt-1" }, job.notes)
                                             )
-                                        ),
-                                        React.createElement("p", { className: "font-semibold text-slate-800 dark:text-slate-100" }, job.contactName),
-                                        job.notes && (
-                                            React.createElement("p", { className: "text-sm text-slate-500 dark:text-slate-400 truncate mt-1" }, job.notes)
                                         )
-                                    )
-                                ))
+                                    );
+                                })
                             )
                         ) : (
-                             React.createElement("div", { className: "py-8" },
+                            React.createElement("div", { className: "py-8" },
                                 React.createElement(EmptyState, { 
                                     Icon: BriefcaseIcon,
                                     title: "No Jobs",

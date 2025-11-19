@@ -1,4 +1,8 @@
 
+
+
+
+
 import React from 'react';
 
 export const PhoneIcon = ({ className = 'w-6 h-6' }) => (
@@ -101,6 +105,12 @@ export const ChevronRightIcon = ({ className = 'w-6 h-6' }) => (
   )
 );
 
+export const ChevronDownIcon = ({ className = 'w-6 h-6' }) => (
+    React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', className, fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor' },
+      React.createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: 2, d: 'M19 9l-7 7-7-7' })
+    )
+);
+
 export const EyeIcon = ({ className = 'w-6 h-6' }) => (
     React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', className, fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor' },
         React.createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: '2', d: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z' }),
@@ -155,4 +165,23 @@ export const CalendarIcon = ({ className = 'w-6 h-6' }) => (
   React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', className, fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor' },
     React.createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: 2, d: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' })
   )
+);
+
+export const ShareIcon = ({ className = 'w-6 h-6' }) => (
+    React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', className, fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor' },
+        React.createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: 2, d: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z' })
+    )
+);
+
+export const CarIcon = ({ className = 'w-6 h-6' }) => (
+    React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', className, fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor' },
+        React.createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: 2, d: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z' }),
+        React.createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: 2, d: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1' })
+    )
+);
+
+export const HomeIcon = ({ className = 'w-6 h-6' }) => (
+    React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', className, fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor' },
+        React.createElement('path', { strokeLinecap: 'round', strokeLinejoin: 'round', strokeWidth: 2, d: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' })
+    )
 );

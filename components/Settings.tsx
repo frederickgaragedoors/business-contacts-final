@@ -1,8 +1,16 @@
 
 
+
+
+
+
+
+
+
+
 import React, { useState } from 'react';
-import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact, EmailSettings, CatalogItem } from '../types.ts';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon } from './icons.tsx';
+import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact, EmailSettings, CatalogItem, DEFAULT_ON_MY_WAY_TEMPLATE } from '../types.ts';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon } from './icons.tsx';
 import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.ts';
 import { getAllFiles } from '../db.ts';
 import JobTemplateModal from './JobTemplateModal.tsx';
@@ -37,6 +45,31 @@ interface SettingsProps {
     contacts: Contact[];
     autoCalendarExportEnabled: boolean;
     onToggleAutoCalendarExport: (enabled: boolean) => void;
+}
+
+const SettingsSection = ({ title, subtitle, children, defaultOpen = false }: { title: string, subtitle?: string, children: React.ReactNode, defaultOpen?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="border-t dark:border-slate-700">
+        <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full flex items-center justify-between py-4 text-left focus:outline-none group"
+        >
+            <div>
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">{title}</h3>
+                {subtitle && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>}
+            </div>
+            <div className={`transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                 <ChevronDownIcon className="w-5 h-5 text-slate-400 group-hover:text-sky-500" />
+            </div>
+        </button>
+        {isOpen && (
+            <div className="pb-6 animate-fadeIn">
+                {children}
+            </div>
+        )}
+    </div>
+  );
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -84,7 +117,7 @@ const Settings: React.FC<SettingsProps> = ({
         }
     };
     
-    const handleBusinessInfoChange = (field: keyof BusinessInfo, value: string) => {
+    const handleBusinessInfoChange = (field: keyof BusinessInfo, value: string | number) => {
         setCurrentBusinessInfo(prev => ({ ...prev, [field]: value }));
     };
     
@@ -108,12 +141,14 @@ const Settings: React.FC<SettingsProps> = ({
     const handleBusinessInfoSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onUpdateBusinessInfo(currentBusinessInfo);
+        alert('Business info saved.');
     };
 
     const handleEmailSettingsSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onUpdateEmailSettings(currentEmailSettings);
-        alert('Email settings saved.');
+        onUpdateBusinessInfo(currentBusinessInfo); // Also save business info updates (for SMS template and defaults)
+        alert('Settings saved.');
     };
 
     const handleManualBackup = async () => {
@@ -205,11 +240,120 @@ const Settings: React.FC<SettingsProps> = ({
                         ))}
                     </div>
                 </div>
+
+                <SettingsSection title="Business Information" subtitle="This info will appear on your estimates and receipts.">
+                     <form onSubmit={handleBusinessInfoSubmit}>
+                        <div className="mt-2 space-y-4">
+                            <div className="flex items-center space-x-4">
+                                <div className="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center">
+                                    {currentBusinessInfo.logoUrl ? (
+                                        <img src={currentBusinessInfo.logoUrl} alt="Business Logo" className="w-full h-full object-contain rounded-full" />
+                                    ) : (
+                                        <UserCircleIcon className="w-16 h-16 text-slate-400 dark:text-slate-500" />
+                                    )}
+                                </div>
+                                <label htmlFor="logo-upload" className="cursor-pointer text-sm font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/50 hover:bg-sky-100 dark:hover:bg-sky-900 px-3 py-2 rounded-md">
+                                    Change Logo
+                                    <input id="logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                                </label>
+                            </div>
+                            <div>
+                                <label htmlFor="business-name" className={labelStyles}>Company Name</label>
+                                <input type="text" id="business-name" value={currentBusinessInfo.name} onChange={e => handleBusinessInfoChange('name', e.target.value)} className={inputStyles} />
+                            </div>
+                             <div>
+                                <label htmlFor="business-phone" className={labelStyles}>Phone</label>
+                                <input type="tel" id="business-phone" value={currentBusinessInfo.phone} onChange={e => handleBusinessInfoChange('phone', e.target.value)} className={inputStyles} />
+                            </div>
+                             <div>
+                                <label htmlFor="business-email" className={labelStyles}>Email</label>
+                                <input type="email" id="business-email" value={currentBusinessInfo.email} onChange={e => handleBusinessInfoChange('email', e.target.value)} className={inputStyles} />
+                            </div>
+                            <div>
+                                <label htmlFor="business-address" className={labelStyles}>Address</label>
+                                <textarea id="business-address" value={currentBusinessInfo.address} onChange={e => handleBusinessInfoChange('address', e.target.value)} rows={3} className={inputStyles}></textarea>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="default-tax" className={labelStyles}>Default Sales Tax (%)</label>
+                                    <input 
+                                        type="number" 
+                                        id="default-tax" 
+                                        value={currentBusinessInfo.defaultSalesTaxRate || ''} 
+                                        onChange={e => handleBusinessInfoChange('defaultSalesTaxRate', parseFloat(e.target.value))} 
+                                        step="0.01"
+                                        className={inputStyles} 
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="default-fee" className={labelStyles}>Default Card Fee (%)</label>
+                                    <input 
+                                        type="number" 
+                                        id="default-fee" 
+                                        value={currentBusinessInfo.defaultProcessingFeeRate || ''} 
+                                        onChange={e => handleBusinessInfoChange('defaultProcessingFeeRate', parseFloat(e.target.value))} 
+                                        step="0.01"
+                                        className={inputStyles} 
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                         <button type="submit" className="mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save Business Info</button>
+                    </form>
+                </SettingsSection>
                 
-                 <div className="mt-8 border-t dark:border-slate-700 pt-6">
-                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Job Status Visibility</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Choose which statuses appear in the dropdown menu.</p>
-                    <div className="mt-6 space-y-3">
+                <SettingsSection title="Communication Templates" subtitle="Configure default messages for SMS and Emails.">
+                     <form onSubmit={handleEmailSettingsSubmit}>
+                        <div className="mt-2 space-y-6">
+                            <div>
+                                <h4 className="font-medium text-slate-700 dark:text-slate-200 mb-3">"On My Way" SMS</h4>
+                                <div>
+                                    <label className={labelStyles}>Message Body</label>
+                                    <textarea 
+                                        value={currentBusinessInfo.onMyWayTemplate || DEFAULT_ON_MY_WAY_TEMPLATE}
+                                        onChange={e => handleBusinessInfoChange('onMyWayTemplate', e.target.value)}
+                                        rows={3}
+                                        className={inputStyles}
+                                    ></textarea>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="font-medium text-slate-700 dark:text-slate-200 mb-3">Estimate Email</h4>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className={labelStyles}>Subject</label>
+                                        <input type="text" value={currentEmailSettings.estimate.subject} onChange={e => handleEmailSettingsChange('estimate', 'subject', e.target.value)} className={inputStyles} />
+                                    </div>
+                                    <div>
+                                        <label className={labelStyles}>Body</label>
+                                        <textarea value={currentEmailSettings.estimate.body} onChange={e => handleEmailSettingsChange('estimate', 'body', e.target.value)} rows={4} className={inputStyles}></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="font-medium text-slate-700 dark:text-slate-200 mb-3">Receipt Email</h4>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className={labelStyles}>Subject</label>
+                                        <input type="text" value={currentEmailSettings.receipt.subject} onChange={e => handleEmailSettingsChange('receipt', 'subject', e.target.value)} className={inputStyles} />
+                                    </div>
+                                    <div>
+                                        <label className={labelStyles}>Body</label>
+                                        <textarea value={currentEmailSettings.receipt.body} onChange={e => handleEmailSettingsChange('receipt', 'body', e.target.value)} rows={4} className={inputStyles}></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" className="mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save Templates</button>
+                    </form>
+                </SettingsSection>
+
+                 <SettingsSection title="Job Status Visibility" subtitle="Choose which statuses appear in the dropdown menu.">
+                    <div className="mt-2 space-y-3">
                          {ALL_JOB_STATUSES.map((status) => (
                             <div key={status} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                                 <span className="font-medium text-slate-700 dark:text-slate-200">{status}</span>
@@ -222,86 +366,10 @@ const Settings: React.FC<SettingsProps> = ({
                             </div>
                          ))}
                     </div>
-                </div>
+                </SettingsSection>
 
-                <form onSubmit={handleBusinessInfoSubmit} className="border-t dark:border-slate-700 pt-6 mt-8">
-                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Business Information</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">This info will appear on your estimates and receipts.</p>
-                    <div className="mt-6 space-y-4">
-                        <div className="flex items-center space-x-4">
-                            <div className="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center">
-                                {currentBusinessInfo.logoUrl ? (
-                                    <img src={currentBusinessInfo.logoUrl} alt="Business Logo" className="w-full h-full object-contain rounded-full" />
-                                ) : (
-                                    <UserCircleIcon className="w-16 h-16 text-slate-400 dark:text-slate-500" />
-                                )}
-                            </div>
-                            <label htmlFor="logo-upload" className="cursor-pointer text-sm font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/50 hover:bg-sky-100 dark:hover:bg-sky-900 px-3 py-2 rounded-md">
-                                Change Logo
-                                <input id="logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                            </label>
-                        </div>
-                        <div>
-                            <label htmlFor="business-name" className={labelStyles}>Company Name</label>
-                            <input type="text" id="business-name" value={currentBusinessInfo.name} onChange={e => handleBusinessInfoChange('name', e.target.value)} className={inputStyles} />
-                        </div>
-                         <div>
-                            <label htmlFor="business-phone" className={labelStyles}>Phone</label>
-                            <input type="tel" id="business-phone" value={currentBusinessInfo.phone} onChange={e => handleBusinessInfoChange('phone', e.target.value)} className={inputStyles} />
-                        </div>
-                         <div>
-                            <label htmlFor="business-email" className={labelStyles}>Email</label>
-                            <input type="email" id="business-email" value={currentBusinessInfo.email} onChange={e => handleBusinessInfoChange('email', e.target.value)} className={inputStyles} />
-                        </div>
-                        <div>
-                            <label htmlFor="business-address" className={labelStyles}>Address</label>
-                            <textarea id="business-address" value={currentBusinessInfo.address} onChange={e => handleBusinessInfoChange('address', e.target.value)} rows={3} className={inputStyles}></textarea>
-                        </div>
-                    </div>
-                     <button type="submit" className="mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save Business Info</button>
-                </form>
-
-                <form onSubmit={handleEmailSettingsSubmit} className="border-t dark:border-slate-700 pt-6 mt-8">
-                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Email Templates</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Configure the default subject and body for your emails. Use placeholders like {'{{customerName}}'}, {'{{jobId}}'}, {'{{businessName}}'}.</p>
-                    
-                    <div className="mt-6 space-y-6">
-                        <div>
-                            <h4 className="font-medium text-slate-700 dark:text-slate-200 mb-3">Estimate Email</h4>
-                            <div className="space-y-3">
-                                <div>
-                                    <label className={labelStyles}>Subject</label>
-                                    <input type="text" value={currentEmailSettings.estimate.subject} onChange={e => handleEmailSettingsChange('estimate', 'subject', e.target.value)} className={inputStyles} />
-                                </div>
-                                <div>
-                                    <label className={labelStyles}>Body</label>
-                                    <textarea value={currentEmailSettings.estimate.body} onChange={e => handleEmailSettingsChange('estimate', 'body', e.target.value)} rows={4} className={inputStyles}></textarea>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 className="font-medium text-slate-700 dark:text-slate-200 mb-3">Receipt Email</h4>
-                            <div className="space-y-3">
-                                <div>
-                                    <label className={labelStyles}>Subject</label>
-                                    <input type="text" value={currentEmailSettings.receipt.subject} onChange={e => handleEmailSettingsChange('receipt', 'subject', e.target.value)} className={inputStyles} />
-                                </div>
-                                <div>
-                                    <label className={labelStyles}>Body</label>
-                                    <textarea value={currentEmailSettings.receipt.body} onChange={e => handleEmailSettingsChange('receipt', 'body', e.target.value)} rows={4} className={inputStyles}></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" className="mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save Templates</button>
-                </form>
-
-                <div className="mt-8 border-t dark:border-slate-700 pt-6">
-                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Manage Default Fields</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">These fields will be automatically added to any new contact you create.</p>
-
-                    <form onSubmit={handleDefaultFieldSubmit} className="mt-6 flex space-x-2">
+                <SettingsSection title="Manage Default Fields" subtitle="These fields will be automatically added to any new contact.">
+                    <form onSubmit={handleDefaultFieldSubmit} className="mt-2 flex space-x-2">
                         <input
                             type="text"
                             value={newFieldLabel}
@@ -334,12 +402,10 @@ const Settings: React.FC<SettingsProps> = ({
                             <p className="text-center text-slate-500 dark:text-slate-400 p-4">No default fields have been set.</p>
                         )}
                     </div>
-                </div>
+                </SettingsSection>
 
-                <div className="mt-8 border-t dark:border-slate-700 pt-6">
-                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Manage Job Templates</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Create reusable templates for common jobs to save time.</p>
-                    <div className="mt-6">
+                <SettingsSection title="Manage Job Templates" subtitle="Create reusable templates for common jobs to save time.">
+                    <div className="mt-2">
                         <button
                             type="button"
                             onClick={() => { setEditingTemplate(null); setIsTemplateModalOpen(true); }}
@@ -378,13 +444,10 @@ const Settings: React.FC<SettingsProps> = ({
                             <p className="text-center text-slate-500 dark:text-slate-400 p-4">No job templates have been created.</p>
                         )}
                     </div>
-                </div>
+                </SettingsSection>
                 
-                <div className="mt-8 border-t dark:border-slate-700 pt-6">
-                    <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Parts Catalog</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage common parts and services for quick addition to job tickets.</p>
-
-                    <form onSubmit={handleAddCatalogItem} className="mt-6 flex gap-2 items-end">
+                <SettingsSection title="Parts Catalog" subtitle="Manage common parts and services for quick addition to job tickets.">
+                    <form onSubmit={handleAddCatalogItem} className="mt-2 flex gap-2 items-end">
                         <div className="flex-grow">
                             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Item Name</label>
                             <input
@@ -435,13 +498,13 @@ const Settings: React.FC<SettingsProps> = ({
                             <p className="text-center text-slate-500 dark:text-slate-400 p-4">No items in catalog.</p>
                         )}
                     </div>
-                </div>
+                </SettingsSection>
                 
                 <div className="mt-8 border-t dark:border-slate-700 pt-6">
                      <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Calendar Integration</h3>
                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Export your jobs to an external calendar.</p>
                       <div className="mt-6 space-y-3">
-                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                         <div className="flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                             <div>
                                 <p className="font-medium text-slate-700 dark:text-slate-200">Auto-Export .ics on Change</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Automatically prompt to download an updated .ics file when you add, edit, or delete jobs.</p>
@@ -453,12 +516,12 @@ const Settings: React.FC<SettingsProps> = ({
                                 <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${autoCalendarExportEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                             </button>
                         </div>
-                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                         <div className="flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                             <div>
                                 <p className="font-medium text-slate-700 dark:text-slate-200">Manual Export</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Download an .ics file to import into Google Calendar, Outlook, etc.</p>
                             </div>
-                            <button onClick={handleExportCalendar} className="inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                            <button onClick={handleExportCalendar} className="inline-flex items-center justify-center whitespace-nowrap flex-shrink-0 space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
                                 <CalendarIcon className="w-4 h-4" />
                                 <span>Export .ics</span>
                             </button>
@@ -470,28 +533,28 @@ const Settings: React.FC<SettingsProps> = ({
                     <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Backup & Restore</h3>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage your application data. Backups include all contacts, custom fields, and work logs.</p>
                     <div className="mt-6 space-y-3">
-                         <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                         <div className="flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                             <div>
                                 <p className="font-medium text-slate-700 dark:text-slate-200">Manual Backup</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Download all your data to a single file.</p>
                             </div>
-                            <button onClick={handleManualBackup} className="inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                            <button onClick={handleManualBackup} className="inline-flex items-center justify-center whitespace-nowrap flex-shrink-0 space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
                                 <DownloadIcon className="w-4 h-4" />
                                 <span>Backup Now</span>
                             </button>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                        <div className="flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                             <div>
                                 <p className="font-medium text-slate-700 dark:text-slate-200">Restore from Backup</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Import data from a backup file.</p>
                             </div>
-                            <label htmlFor="backup-upload" className="cursor-pointer inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                            <label htmlFor="backup-upload" className="cursor-pointer inline-flex items-center justify-center whitespace-nowrap flex-shrink-0 space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
                                 <UploadIcon className="w-4 h-4" />
                                 <span>Import Backup</span>
                                 <input id="backup-upload" type="file" accept=".json" className="hidden" onChange={handleFileImport} />
                             </label>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                        <div className="flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                             <div>
                                 <p className="font-medium text-slate-700 dark:text-slate-200">Automatic Backups</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">Automatically save a backup when data changes.</p>
@@ -505,14 +568,14 @@ const Settings: React.FC<SettingsProps> = ({
                         </div>
 
                          {autoBackupEnabled && lastAutoBackup && (
-                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                            <div className="flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                                 <div>
                                     <p className="font-medium text-slate-700 dark:text-slate-200">Last Automatic Backup</p>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">
                                         {new Date(lastAutoBackup.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                                     </p>
                                 </div>
-                                <button onClick={handleDownloadAutoBackup} className="inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
+                                <button onClick={handleDownloadAutoBackup} className="inline-flex items-center justify-center whitespace-nowrap flex-shrink-0 space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors">
                                     <DownloadIcon className="w-4 h-4" />
                                     <span>Download</span>
                                 </button>

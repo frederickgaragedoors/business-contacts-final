@@ -1,7 +1,19 @@
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus, CatalogItem } from '../types.ts';
+import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, PaymentStatus, BusinessInfo } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
 import JobTicketModal from './JobTicketModal.tsx';
 import EmptyState from './EmptyState.tsx';
@@ -20,6 +32,7 @@ import {
   CameraIcon,
   BriefcaseIcon,
   ClipboardListIcon,
+  HomeIcon,
 } from './icons.tsx';
 import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal, formatTime } from '../utils.ts';
 import { getFiles } from '../db.ts';
@@ -39,6 +52,7 @@ interface ContactDetailProps {
     enabledStatuses: Record<JobStatus, boolean>;
     initialJobDate?: string;
     openJobId?: string;
+    businessInfo?: BusinessInfo;
 }
 
 const VIEWABLE_MIME_TYPES = [
@@ -52,7 +66,7 @@ const VIEWABLE_MIME_TYPES = [
 
 type ActiveTab = 'details' | 'jobs' | 'files';
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId, businessInfo }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -79,6 +93,9 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 parts: [],
                 laborCost: 0,
                 createdAt: new Date().toISOString(),
+                salesTaxRate: businessInfo?.defaultSalesTaxRate || 0,
+                processingFeeRate: businessInfo?.defaultProcessingFeeRate || 0,
+                jobLocation: contact.address || '',
             });
             setIsJobTicketModalOpen(true);
         } else if (openJobId) {
@@ -89,7 +106,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                  setIsJobTicketModalOpen(true);
              }
         }
-    }, [initialJobDate, openJobId]); // Deliberately excluding contact.jobTickets to run primarily on mount/navigation
+    }, [initialJobDate, openJobId, businessInfo]); // Deliberately excluding contact.jobTickets to run primarily on mount/navigation
 
     const handleViewFile = async (file: FileAttachment) => {
         if (!file.dataUrl) return;
@@ -204,6 +221,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 processingFeeRate: entry.processingFeeRate,
                 deposit: entry.deposit || 0,
                 createdAt: new Date().toISOString(),
+                jobLocation: entry.jobLocation,
             };
             updatedTickets = [newTicket, ...currentTickets];
         }
@@ -222,6 +240,45 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     const sortedJobTickets = useMemo(() => {
         return [...(contact.jobTickets || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [contact.jobTickets]);
+
+    // Backward compatibility: convert single doorProfile to array if needed
+    const normalizedDoorProfiles = useMemo(() => {
+        if (contact.doorProfiles && contact.doorProfiles.length > 0) {
+            return contact.doorProfiles.map(p => ({
+                ...p,
+                // Migrate legacy data where installDate might have been a single field
+                doorInstallDate: p.doorInstallDate || (p as any).installDate || 'Unknown',
+                springInstallDate: p.springInstallDate || (p as any).installDate || 'Unknown',
+                openerInstallDate: p.openerInstallDate || (p as any).installDate || 'Unknown',
+            }));
+        }
+        // Fallback for old data structure (single profile)
+        if ((contact as any).doorProfile) {
+             const oldP = (contact as any).doorProfile;
+            return [{
+                ...oldP,
+                doorInstallDate: oldP.installDate || 'Unknown',
+                springInstallDate: oldP.installDate || 'Unknown',
+                openerInstallDate: oldP.installDate || 'Unknown',
+            }];
+        }
+        return [];
+    }, [contact.doorProfiles, (contact as any).doorProfile]);
+
+    const formatInstallDate = (value: string | undefined) => {
+        if (!value || value === 'Unknown' || value === 'Original') {
+            return (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
+                    {value || 'Unknown'}
+                </span>
+            );
+        }
+        // Check if it matches YYYY-MM-DD format approximately
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+             return <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{new Date(value).toLocaleDateString()}</span>;
+        }
+        return <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{value}</span>;
+    };
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -270,6 +327,83 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                 </div>
                             </div>
                         </div>
+
+                        {/* Door/System Profile Section */}
+                        {normalizedDoorProfiles.length > 0 && (
+                             <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center mb-4">
+                                    <HomeIcon className="w-6 h-6 text-slate-400 mr-2" />
+                                    <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Door & System Profiles</h2>
+                                </div>
+                                <div className="space-y-6">
+                                    {normalizedDoorProfiles.map((profile, index) => (
+                                        <div key={index} className={`bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 ${index > 0 ? 'border-t border-slate-200 dark:border-slate-600' : ''}`}>
+                                            {normalizedDoorProfiles.length > 1 && (
+                                                <h3 className="text-md font-bold text-slate-700 dark:text-slate-200 mb-3">System {index + 1}</h3>
+                                            )}
+                                            
+                                            {/* Door Section */}
+                                            <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-600">
+                                                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3">Door</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4">
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Dimensions</p>
+                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{profile.dimensions || '-'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Type</p>
+                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{profile.doorType || '-'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Installed</p>
+                                                        <div className="mt-0.5">{formatInstallDate(profile.doorInstallDate)}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Spring Section */}
+                                            <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-600">
+                                                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3">Springs</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4">
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">System</p>
+                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{profile.springSystem || '-'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Size</p>
+                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{profile.springSize || '-'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Installed</p>
+                                                        <div className="mt-0.5">{formatInstallDate(profile.springInstallDate)}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Opener Section */}
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3">Opener</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4">
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Brand</p>
+                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{profile.openerBrand || '-'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Model</p>
+                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{profile.openerModel || '-'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Installed</p>
+                                                        <div className="mt-0.5">{formatInstallDate(profile.openerInstallDate)}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                             </div>
+                        )}
+
                         {allCustomFields.length > 0 && (
                             <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
                                 <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Additional Information</h2>
@@ -306,11 +440,20 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                 {sortedJobTickets.map(ticket => {
                                     const { totalCost } = calculateJobTicketTotal(ticket);
                                     const statusColor = jobStatusColors[ticket.status];
+                                    const paymentStatus = ticket.paymentStatus || 'unpaid';
+                                    const paymentStatusColor = paymentStatusColors[paymentStatus];
+                                    const paymentStatusLabel = paymentStatusLabels[paymentStatus];
+
                                     return <li key={ticket.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover">
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
-                                                {ticket.status}
-                                            </span>
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                                                    {ticket.status}
+                                                </span>
+                                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}`}>
+                                                    {paymentStatusLabel}
+                                                </span>
+                                            </div>
                                             <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{`$${totalCost.toFixed(2)}`}</p>
                                         </div>
                                         <p className="font-semibold text-slate-700 dark:text-slate-200">
@@ -540,6 +683,9 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     jobTemplates={jobTemplates}
                     partsCatalog={partsCatalog}
                     enabledStatuses={enabledStatuses}
+                    defaultSalesTaxRate={businessInfo?.defaultSalesTaxRate}
+                    defaultProcessingFeeRate={businessInfo?.defaultProcessingFeeRate}
+                    contactAddress={contact.address}
                 />
             )}
         </>

@@ -2,15 +2,27 @@
 
 
 
-import React, { useState, useEffect, useMemo } from 'react';
+
+
+
+
+
+
+
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { XIcon, PlusIcon, TrashIcon } from './icons.js';
 import { generateId, calculateJobTicketTotal } from '../utils.js';
 import { ALL_JOB_STATUSES } from '../types.js';
 
-const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses }) => {
+const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress }) => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [status, setStatus] = useState('Estimate Scheduled');
+  const [jobLocation, setJobLocation] = useState('');
+  const [jobLocationContactName, setJobLocationContactName] = useState('');
+  const [jobLocationContactPhone, setJobLocationContactPhone] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('unpaid');
   const [notes, setNotes] = useState('');
   const [parts, setParts] = useState([]);
   const [laborCost, setLaborCost] = useState('');
@@ -24,6 +36,10 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
       setDate(entry.date);
       setTime(entry.time || '');
       setStatus(entry.status);
+      setJobLocation(entry.jobLocation || '');
+      setJobLocationContactName(entry.jobLocationContactName || '');
+      setJobLocationContactPhone(entry.jobLocationContactPhone || '');
+      setPaymentStatus(entry.paymentStatus || 'unpaid');
       setNotes(entry.notes);
       setParts(entry.parts.map(p => ({...p}))); // Create a copy to avoid direct mutation
       setLaborCost(entry.laborCost);
@@ -34,14 +50,19 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
       setDate(new Date().toISOString().split('T')[0]);
       setTime('');
       setStatus('Estimate Scheduled');
+      // Default to contact address for new tickets
+      setJobLocation(contactAddress || '');
+      setJobLocationContactName('');
+      setJobLocationContactPhone('');
+      setPaymentStatus('unpaid');
       setNotes('');
       setParts([]);
       setLaborCost(0);
-      setSalesTaxRate(0);
-      setProcessingFeeRate(0);
+      setSalesTaxRate(defaultSalesTaxRate || 0);
+      setProcessingFeeRate(defaultProcessingFeeRate || 0);
       setDeposit(0);
     }
-  }, [entry]);
+  }, [entry, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress]);
 
   const handleAddPart = () => {
     setParts([...parts, { id: generateId(), name: '', cost: 0, quantity: 1 }]);
@@ -66,8 +87,8 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
         setNotes(selectedTemplate.notes);
         setParts(selectedTemplate.parts.map(p => ({...p, id: generateId()})));
         setLaborCost(selectedTemplate.laborCost);
-        setSalesTaxRate(selectedTemplate.salesTaxRate || 0);
-        setProcessingFeeRate(selectedTemplate.processingFeeRate || 0);
+        setSalesTaxRate(selectedTemplate.salesTaxRate || defaultSalesTaxRate || 0);
+        setProcessingFeeRate(selectedTemplate.processingFeeRate || defaultProcessingFeeRate || 0);
     }
   };
   
@@ -83,6 +104,10 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
       date,
       time,
       status,
+      jobLocation,
+      jobLocationContactName,
+      jobLocationContactPhone,
+      paymentStatus,
       notes,
       parts,
       laborCost: Number(laborCost || 0),
@@ -90,14 +115,32 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
       processingFeeRate: Number(processingFeeRate || 0),
       deposit: Number(deposit || 0),
       createdAt: entry?.createdAt,
-  }), [entry, date, time, status, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
+  }), [entry, date, time, status, jobLocation, jobLocationContactName, jobLocationContactPhone, paymentStatus, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
 
   const { subtotal, taxAmount, feeAmount, totalCost: finalTotal, balanceDue } = calculateJobTicketTotal(currentTicketState);
 
-  const calculate30PercentDeposit = () => {
-      const thirtyPercent = finalTotal * 0.30;
-      setDeposit(parseFloat(thirtyPercent.toFixed(2)));
-  };
+  // Helper for summary display
+  const summaryPaidAmount = paymentStatus === 'paid_in_full' 
+    ? finalTotal 
+    : (paymentStatus === 'deposit_paid' ? Number(deposit || 0) : 0);
+  const summaryBalanceDue = finalTotal - summaryPaidAmount;
+
+  const calculate30PercentDeposit = useCallback(() => {
+      // Calculate based on current values to ensure freshness
+      const currentPartsTotal = parts.reduce((sum, part) => sum + (Number(part.cost || 0) * Number(part.quantity || 1)), 0);
+      const currentSubtotal = currentPartsTotal + Number(laborCost || 0);
+      const currentTax = currentSubtotal * (Number(salesTaxRate || 0) / 100);
+      const currentTotalAfterTax = currentSubtotal + currentTax;
+      const currentFee = currentTotalAfterTax * (Number(processingFeeRate || 0) / 100);
+      const currentTotal = currentTotalAfterTax + currentFee;
+
+      if (currentTotal > 0) {
+          const thirtyPercent = currentTotal * 0.30;
+          setDeposit(parseFloat(thirtyPercent.toFixed(2)));
+      } else {
+          setDeposit(0);
+      }
+  }, [parts, laborCost, salesTaxRate, processingFeeRate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -170,6 +213,52 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
                 )
             ),
             
+            React.createElement("div", { className: "p-3 bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-600 rounded-md space-y-3" },
+                React.createElement("h4", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase" }, "Service Site Details"),
+                React.createElement("div", null,
+                    React.createElement("label", { htmlFor: "job-location", className: labelStyles }, "Address"),
+                    React.createElement("textarea", {
+                        id: "job-location",
+                        value: jobLocation,
+                        onChange: e => setJobLocation(e.target.value),
+                        rows: 2,
+                        className: `mt-1 ${inputStyles}`,
+                        placeholder: "Leave empty if same as billing..."
+                    }),
+                    contactAddress && contactAddress !== jobLocation && (
+                        React.createElement("button", {
+                            type: "button",
+                            onClick: () => setJobLocation(contactAddress),
+                            className: "text-xs text-sky-600 hover:text-sky-700 mt-1"
+                        }, "Reset to Billing Address")
+                    )
+                ),
+                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
+                    React.createElement("div", null,
+                        React.createElement("label", { htmlFor: "job-contact-name", className: labelStyles }, "Site Contact Name"),
+                        React.createElement("input", {
+                            type: "text",
+                            id: "job-contact-name",
+                            value: jobLocationContactName,
+                            onChange: e => setJobLocationContactName(e.target.value),
+                            className: `mt-1 ${inputStyles}`,
+                            placeholder: "e.g. Tenant Name"
+                        })
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("label", { htmlFor: "job-contact-phone", className: labelStyles }, "Site Contact Phone"),
+                        React.createElement("input", {
+                            type: "tel",
+                            id: "job-contact-phone",
+                            value: jobLocationContactPhone,
+                            onChange: e => setJobLocationContactPhone(e.target.value),
+                            className: `mt-1 ${inputStyles}`,
+                            placeholder: "e.g. 555-0199"
+                        })
+                    )
+                )
+            ),
+
             React.createElement("div", null,
                  React.createElement("label", { htmlFor: "job-status", className: labelStyles }, "Status"),
                 React.createElement("select", {
@@ -324,8 +413,41 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
                         )
                     ),
                     
-                    React.createElement("div", { className: "!mt-4" },
-                        React.createElement("label", { htmlFor: "deposit-amount", className: labelStyles }, "Deposit / Payment"),
+                    React.createElement("div", { className: "!mt-4 pt-4 border-t border-slate-200 dark:border-slate-600" },
+                        React.createElement("label", { className: `${labelStyles} mb-2` }, "Payment Status"),
+                        React.createElement("div", { className: "flex space-x-2 mb-4" },
+                            React.createElement("button", {
+                                type: "button",
+                                onClick: () => setPaymentStatus('unpaid'),
+                                className: `flex-1 py-2 px-2 rounded-md text-sm font-medium transition-colors border ${
+                                    paymentStatus === 'unpaid'
+                                        ? 'bg-slate-200 border-slate-300 text-slate-800 dark:bg-slate-600 dark:border-slate-500 dark:text-white'
+                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                                }`
+                            }, "Unpaid"),
+                            React.createElement("button", {
+                                type: "button",
+                                onClick: () => setPaymentStatus('deposit_paid'),
+                                className: `flex-1 py-2 px-2 rounded-md text-sm font-medium transition-colors border ${
+                                    paymentStatus === 'deposit_paid'
+                                        ? 'bg-sky-100 border-sky-200 text-sky-800 dark:bg-sky-900/40 dark:border-sky-800 dark:text-sky-200'
+                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                                }`
+                            }, "Deposit Paid"),
+                            React.createElement("button", {
+                                type: "button",
+                                onClick: () => setPaymentStatus('paid_in_full'),
+                                className: `flex-1 py-2 px-2 rounded-md text-sm font-medium transition-colors border ${
+                                    paymentStatus === 'paid_in_full'
+                                        ? 'bg-green-100 border-green-200 text-green-800 dark:bg-green-900/40 dark:border-green-800 dark:text-green-200'
+                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                                }`
+                            }, "Paid in Full")
+                        ),
+
+                        React.createElement("label", { htmlFor: "deposit-amount", className: labelStyles }, 
+                            paymentStatus === 'deposit_paid' ? 'Amount Collected (Deposit)' : 'Required Deposit Amount'
+                        ),
                         React.createElement("div", { className: "flex space-x-2" },
                              React.createElement("div", { className: "relative mt-1 flex-grow" },
                                 React.createElement("div", { className: "pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3" },
@@ -337,14 +459,16 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
                                     value: deposit,
                                     onChange: (e) => setDeposit(e.target.value === '' ? '' : parseFloat(e.target.value)),
                                     className: `${inputStyles} pl-7`,
-                                    placeholder: "0.00"
+                                    placeholder: "0.00",
+                                    disabled: paymentStatus === 'paid_in_full'
                                 })
                              ),
                              React.createElement("button", {
                                 type: "button",
                                 onClick: calculate30PercentDeposit,
-                                className: "mt-1 px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors",
-                                title: "Calculate 30% Deposit"
+                                className: "mt-1 px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                                title: "Calculate 30% Deposit",
+                                disabled: paymentStatus === 'paid_in_full' || finalTotal <= 0
                              }, "30%")
                         )
                     )
@@ -358,8 +482,9 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
                 React.createElement("p", null, `Tax (${Number(salesTaxRate || 0)}%): `, React.createElement("span", { className: "font-medium" }, `$${taxAmount.toFixed(2)}`)),
                 React.createElement("p", null, `Card Fee (${Number(processingFeeRate || 0)}%): `, React.createElement("span", { className: "font-medium" }, `$${feeAmount.toFixed(2)}`)),
                 React.createElement("p", { className: "font-bold text-lg text-slate-800 dark:text-slate-100 mt-1" }, "Total: ", React.createElement("span", { className: "font-bold text-xl" }, `$${finalTotal.toFixed(2)}`)),
-                Number(deposit || 0) > 0 && React.createElement("p", { className: "text-green-600 dark:text-green-400 font-medium mt-1" }, `Paid/Deposit: -$${Number(deposit).toFixed(2)}`),
-                React.createElement("p", { className: "font-bold text-slate-800 dark:text-slate-100 mt-1" }, "Balance: ", React.createElement("span", { className: "font-bold" }, `$${balanceDue.toFixed(2)}`))
+                
+                summaryPaidAmount > 0 && React.createElement("p", { className: "text-green-600 dark:text-green-400 font-medium mt-1" }, `Paid: -$${summaryPaidAmount.toFixed(2)}`),
+                React.createElement("p", { className: "font-bold text-slate-800 dark:text-slate-100 mt-1" }, "Balance: ", React.createElement("span", { className: "font-bold" }, `$${summaryBalanceDue.toFixed(2)}`))
             ) : React.createElement("div", null),
             React.createElement("div", { className: "flex space-x-2" },
                 React.createElement("button", { type: "button", onClick: onClose, className: "px-4 py-2 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors" },

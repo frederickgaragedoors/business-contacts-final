@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { Contact, JobTicket, jobStatusColors, JobStatus } from '../types.ts';
+import { Contact, JobTicket, jobStatusColors, JobStatus, paymentStatusColors, paymentStatusLabels } from '../types.ts';
 import EmptyState from './EmptyState.tsx';
 import { ClipboardListIcon } from './icons.tsx';
 import { formatTime } from '../utils.ts';
@@ -87,6 +87,10 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
 
     const JobCard: React.FC<{ job: JobWithContact }> = ({ job }) => {
         const statusColor = jobStatusColors[job.status];
+        const paymentStatus = job.paymentStatus || 'unpaid';
+        const paymentStatusColor = paymentStatusColors[paymentStatus];
+        const paymentStatusLabel = paymentStatusLabels[paymentStatus];
+
         return (
             <li 
                 onClick={() => onViewJobDetail(job.contactId, job.id)}
@@ -100,9 +104,14 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
                             {job.time && <span className="ml-1 text-slate-500 font-normal">at {formatTime(job.time)}</span>}
                         </p>
                     </div>
-                     <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
-                        {job.status}
-                    </span>
+                    <div className="flex flex-col items-end space-y-1">
+                         <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                            {job.status}
+                        </span>
+                         <span className={`flex-shrink-0 px-2 py-0.5 text-[10px] font-medium rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}`}>
+                            {paymentStatusLabel}
+                        </span>
+                    </div>
                 </div>
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 truncate">{job.notes}</p>
             </li>

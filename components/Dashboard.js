@@ -1,6 +1,8 @@
 
+
+
 import React, { useMemo } from 'react';
-import { jobStatusColors } from '../types.js';
+import { jobStatusColors, paymentStatusColors, paymentStatusLabels } from '../types.js';
 import EmptyState from './EmptyState.js';
 import { ClipboardListIcon } from './icons.js';
 import { formatTime } from '../utils.js';
@@ -78,6 +80,10 @@ const Dashboard = ({ contacts, onViewJobDetail }) => {
 
     const JobCard = ({ job }) => {
         const statusColor = jobStatusColors[job.status];
+        const paymentStatus = job.paymentStatus || 'unpaid';
+        const paymentStatusColor = paymentStatusColors[paymentStatus];
+        const paymentStatusLabel = paymentStatusLabels[paymentStatus];
+
         return (
             React.createElement("li", { 
                 onClick: () => onViewJobDetail(job.contactId, job.id),
@@ -91,8 +97,13 @@ const Dashboard = ({ contacts, onViewJobDetail }) => {
                             job.time && React.createElement("span", { className: "ml-1 text-slate-500 font-normal" }, `at ${formatTime(job.time)}`)
                         )
                     ),
-                     React.createElement("span", { className: `flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
-                        job.status
+                    React.createElement("div", { className: "flex flex-col items-end space-y-1" },
+                         React.createElement("span", { className: `flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
+                            job.status
+                        ),
+                         React.createElement("span", { className: `flex-shrink-0 px-2 py-0.5 text-[10px] font-medium rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}` },
+                            paymentStatusLabel
+                        )
                     )
                 ),
                 React.createElement("p", { className: "mt-2 text-sm text-slate-600 dark:text-slate-300 truncate" }, job.notes)

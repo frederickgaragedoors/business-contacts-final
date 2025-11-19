@@ -1,7 +1,17 @@
 
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { JobTicket, JobStatus, Part, JobTemplate, ALL_JOB_STATUSES, CatalogItem } from '../types.ts';
+
+
+
+
+
+
+
+
+
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { JobTicket, JobStatus, Part, JobTemplate, ALL_JOB_STATUSES, CatalogItem, PaymentStatus } from '../types.ts';
 import { XIcon, PlusIcon, TrashIcon } from './icons.tsx';
 import { generateId, calculateJobTicketTotal } from '../utils.ts';
 
@@ -12,12 +22,19 @@ interface JobTicketModalProps {
   jobTemplates?: JobTemplate[];
   partsCatalog?: CatalogItem[];
   enabledStatuses?: Record<JobStatus, boolean>;
+  defaultSalesTaxRate?: number;
+  defaultProcessingFeeRate?: number;
+  contactAddress?: string;
 }
 
-const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses }) => {
+const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress }) => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [status, setStatus] = useState<JobStatus>('Estimate Scheduled');
+  const [jobLocation, setJobLocation] = useState('');
+  const [jobLocationContactName, setJobLocationContactName] = useState('');
+  const [jobLocationContactPhone, setJobLocationContactPhone] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('unpaid');
   const [notes, setNotes] = useState('');
   const [parts, setParts] = useState<Part[]>([]);
   const [laborCost, setLaborCost] = useState<number | ''>(0);
@@ -30,6 +47,10 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       setDate(entry.date);
       setTime(entry.time || '');
       setStatus(entry.status);
+      setJobLocation(entry.jobLocation || '');
+      setJobLocationContactName(entry.jobLocationContactName || '');
+      setJobLocationContactPhone(entry.jobLocationContactPhone || '');
+      setPaymentStatus(entry.paymentStatus || 'unpaid');
       setNotes(entry.notes);
       setParts(entry.parts.map(p => ({...p}))); // Create a copy to avoid direct mutation
       setLaborCost(entry.laborCost);
@@ -40,14 +61,19 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       setDate(new Date().toISOString().split('T')[0]);
       setTime('');
       setStatus('Estimate Scheduled');
+      // Default to contact address for new tickets if available
+      setJobLocation(contactAddress || '');
+      setJobLocationContactName('');
+      setJobLocationContactPhone('');
+      setPaymentStatus('unpaid');
       setNotes('');
       setParts([]);
       setLaborCost(0);
-      setSalesTaxRate(0);
-      setProcessingFeeRate(0);
+      setSalesTaxRate(defaultSalesTaxRate || 0);
+      setProcessingFeeRate(defaultProcessingFeeRate || 0);
       setDeposit(0);
     }
-  }, [entry]);
+  }, [entry, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress]);
 
   const handleAddPart = () => {
     setParts([...parts, { id: generateId(), name: '', cost: 0, quantity: 1 }]);
@@ -72,8 +98,8 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
         setNotes(selectedTemplate.notes);
         setParts(selectedTemplate.parts.map(p => ({...p, id: generateId()})));
         setLaborCost(selectedTemplate.laborCost);
-        setSalesTaxRate(selectedTemplate.salesTaxRate || 0);
-        setProcessingFeeRate(selectedTemplate.processingFeeRate || 0);
+        setSalesTaxRate(selectedTemplate.salesTaxRate || defaultSalesTaxRate || 0);
+        setProcessingFeeRate(selectedTemplate.processingFeeRate || defaultProcessingFeeRate || 0);
     }
   };
   
@@ -88,26 +114,48 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       id: entry?.id || '',
       date,
       time,
+      jobLocation,
+      jobLocationContactName,
+      jobLocationContactPhone,
       status,
+      paymentStatus,
       notes,
       parts,
       laborCost: Number(laborCost || 0),
       salesTaxRate: Number(salesTaxRate || 0),
       processingFeeRate: Number(processingFeeRate || 0),
       deposit: Number(deposit || 0),
-      createdAt: entry?.createdAt, // Preserve original creation date
-  }), [entry, date, time, status, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
+      createdAt: entry?.createdAt,
+  }), [entry, date, time, jobLocation, jobLocationContactName, jobLocationContactPhone, status, paymentStatus, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
 
   const { subtotal, taxAmount, feeAmount, totalCost: finalTotal, balanceDue } = calculateJobTicketTotal(currentTicketState);
 
-  const calculate30PercentDeposit = () => {
-      const thirtyPercent = finalTotal * 0.30;
-      setDeposit(parseFloat(thirtyPercent.toFixed(2)));
-  };
+  const summaryPaidAmount = paymentStatus === 'paid_in_full' 
+    ? finalTotal 
+    : (paymentStatus === 'deposit_paid' ? Number(deposit || 0) : 0);
+  
+  const summaryBalanceDue = finalTotal - summaryPaidAmount;
+
+  const calculate30PercentDeposit = useCallback(() => {
+      // Calculate total independent of current deposit state to ensure freshness
+      const currentPartsTotal = parts.reduce((sum, part) => sum + (Number(part.cost || 0) * Number(part.quantity || 1)), 0);
+      const currentSubtotal = currentPartsTotal + Number(laborCost || 0);
+      const currentTax = currentSubtotal * (Number(salesTaxRate || 0) / 100);
+      const currentTotalAfterTax = currentSubtotal + currentTax;
+      const currentFee = currentTotalAfterTax * (Number(processingFeeRate || 0) / 100);
+      const currentTotal = currentTotalAfterTax + currentFee;
+
+      if (currentTotal > 0) {
+          const thirtyPercent = currentTotal * 0.30;
+          setDeposit(parseFloat(thirtyPercent.toFixed(2)));
+      } else {
+          setDeposit(0);
+      }
+  }, [parts, laborCost, salesTaxRate, processingFeeRate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (notes.trim() || parts.length > 0) { // Allow saving if there are parts or notes
+    if (notes.trim() || parts.length > 0) {
       onSave(currentTicketState);
     } else {
       alert("Please add some notes or parts to the job ticket before saving.");
@@ -175,6 +223,54 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                 </div>
             </div>
             
+            <div className="p-3 bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-600 rounded-md space-y-3">
+                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Service Site Details</h4>
+                <div>
+                    <label htmlFor="job-location" className={labelStyles}>Address</label>
+                    <textarea
+                        id="job-location"
+                        value={jobLocation}
+                        onChange={e => setJobLocation(e.target.value)}
+                        rows={2}
+                        className={`mt-1 ${inputStyles}`}
+                        placeholder="Leave empty if same as billing..."
+                    />
+                    {contactAddress && contactAddress !== jobLocation && (
+                        <button 
+                            type="button" 
+                            onClick={() => setJobLocation(contactAddress)}
+                            className="text-xs text-sky-600 hover:text-sky-700 mt-1"
+                        >
+                            Reset to Billing Address
+                        </button>
+                    )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label htmlFor="job-contact-name" className={labelStyles}>Site Contact Name</label>
+                        <input
+                            type="text"
+                            id="job-contact-name"
+                            value={jobLocationContactName}
+                            onChange={e => setJobLocationContactName(e.target.value)}
+                            className={`mt-1 ${inputStyles}`}
+                            placeholder="e.g. Tenant Name"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="job-contact-phone" className={labelStyles}>Site Contact Phone</label>
+                        <input
+                            type="tel"
+                            id="job-contact-phone"
+                            value={jobLocationContactPhone}
+                            onChange={e => setJobLocationContactPhone(e.target.value)}
+                            className={`mt-1 ${inputStyles}`}
+                            placeholder="e.g. 555-0199"
+                        />
+                    </div>
+                </div>
+            </div>
+
             <div>
                 <label htmlFor="job-status" className={labelStyles}>Status</label>
                 <select
@@ -330,8 +426,47 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                           </div>
                       </div>
 
-                      <div className="!mt-4">
-                          <label htmlFor="deposit-amount" className={labelStyles}>Deposit / Payment</label>
+                      <div className="!mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+                          <label className={`${labelStyles} mb-2`}>Payment Status</label>
+                          <div className="flex space-x-2 mb-4">
+                              <button
+                                  type="button"
+                                  onClick={() => setPaymentStatus('unpaid')}
+                                  className={`flex-1 py-2 px-2 rounded-md text-sm font-medium transition-colors border ${
+                                      paymentStatus === 'unpaid'
+                                          ? 'bg-slate-200 border-slate-300 text-slate-800 dark:bg-slate-600 dark:border-slate-500 dark:text-white'
+                                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                                  }`}
+                              >
+                                  Unpaid
+                              </button>
+                              <button
+                                  type="button"
+                                  onClick={() => setPaymentStatus('deposit_paid')}
+                                  className={`flex-1 py-2 px-2 rounded-md text-sm font-medium transition-colors border ${
+                                      paymentStatus === 'deposit_paid'
+                                          ? 'bg-sky-100 border-sky-200 text-sky-800 dark:bg-sky-900/40 dark:border-sky-800 dark:text-sky-200'
+                                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                                  }`}
+                              >
+                                  Deposit Paid
+                              </button>
+                              <button
+                                  type="button"
+                                  onClick={() => setPaymentStatus('paid_in_full')}
+                                  className={`flex-1 py-2 px-2 rounded-md text-sm font-medium transition-colors border ${
+                                      paymentStatus === 'paid_in_full'
+                                          ? 'bg-green-100 border-green-200 text-green-800 dark:bg-green-900/40 dark:border-green-800 dark:text-green-200'
+                                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700'
+                                  }`}
+                              >
+                                  Paid in Full
+                              </button>
+                          </div>
+
+                          <label htmlFor="deposit-amount" className={labelStyles}>
+                              {paymentStatus === 'deposit_paid' ? 'Amount Collected (Deposit)' : 'Required Deposit Amount'}
+                          </label>
                           <div className="flex space-x-2">
                               <div className="relative mt-1 flex-grow">
                                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -344,13 +479,15 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                                       onChange={(e) => setDeposit(e.target.value === '' ? '' : parseFloat(e.target.value))}
                                       className={`${inputStyles} pl-7`}
                                       placeholder="0.00"
+                                      disabled={paymentStatus === 'paid_in_full'}
                                   />
                               </div>
                               <button 
                                   type="button" 
                                   onClick={calculate30PercentDeposit}
-                                  className="mt-1 px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors"
+                                  className="mt-1 px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   title="Calculate 30% Deposit"
+                                  disabled={paymentStatus === 'paid_in_full' || finalTotal <= 0}
                               >
                                   30%
                               </button>
@@ -368,10 +505,11 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                     <p>Tax ({Number(salesTaxRate || 0)}%): <span className="font-medium">${taxAmount.toFixed(2)}</span></p>
                     <p>Card Fee ({Number(processingFeeRate || 0)}%): <span className="font-medium">${feeAmount.toFixed(2)}</span></p>
                     <p className="font-bold text-lg text-slate-800 dark:text-slate-100 mt-1">Total: <span className="font-bold text-xl">${finalTotal.toFixed(2)}</span></p>
-                    {Number(deposit || 0) > 0 && (
-                        <p className="text-green-600 dark:text-green-400 font-medium mt-1">Paid/Deposit: -${Number(deposit).toFixed(2)}</p>
+                    
+                    {summaryPaidAmount > 0 && (
+                        <p className="text-green-600 dark:text-green-400 font-medium mt-1">Paid: -${summaryPaidAmount.toFixed(2)}</p>
                     )}
-                     <p className="font-bold text-slate-800 dark:text-slate-100 mt-1">Balance: <span className="font-bold">${balanceDue.toFixed(2)}</span></p>
+                     <p className="font-bold text-slate-800 dark:text-slate-100 mt-1">Balance: <span className="font-bold">${summaryBalanceDue.toFixed(2)}</span></p>
                 </div>
             ) : (
                 <div></div> // Placeholder to keep layout consistent

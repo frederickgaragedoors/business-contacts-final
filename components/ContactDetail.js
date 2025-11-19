@@ -3,6 +3,19 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
@@ -22,10 +35,11 @@ import {
   CameraIcon,
   BriefcaseIcon,
   ClipboardListIcon,
+  HomeIcon,
 } from './icons.js';
 import { fileToDataUrl, formatFileSize, getInitials, generateId, calculateJobTicketTotal, formatTime } from '../utils.js';
 import { getFiles } from '../db.js';
-import { jobStatusColors } from '../types.js';
+import { jobStatusColors, paymentStatusColors, paymentStatusLabels } from '../types.js';
 
 
 const VIEWABLE_MIME_TYPES = [
@@ -37,7 +51,7 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId, businessInfo }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -64,6 +78,9 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 parts: [],
                 laborCost: 0,
                 createdAt: new Date().toISOString(),
+                salesTaxRate: businessInfo?.defaultSalesTaxRate || 0,
+                processingFeeRate: businessInfo?.defaultProcessingFeeRate || 0,
+                jobLocation: contact.address || '',
             });
             setIsJobTicketModalOpen(true);
         } else if (openJobId) {
@@ -74,7 +91,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                  setIsJobTicketModalOpen(true);
              }
         }
-    }, [initialJobDate, openJobId]);
+    }, [initialJobDate, openJobId, businessInfo]);
     
     const handleViewFile = async (file) => {
         if (!file.dataUrl) return;
@@ -190,6 +207,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 processingFeeRate: entry.processingFeeRate,
                 deposit: entry.deposit || 0,
                 createdAt: new Date().toISOString(),
+                jobLocation: entry.jobLocation,
             };
             updatedTickets = [newTicket, ...currentTickets];
         }
@@ -208,6 +226,41 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     const sortedJobTickets = useMemo(() => {
         return [...(contact.jobTickets || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [contact.jobTickets]);
+    
+    const normalizedDoorProfiles = useMemo(() => {
+        if (contact.doorProfiles && contact.doorProfiles.length > 0) {
+             return contact.doorProfiles.map(p => ({
+                ...p,
+                doorInstallDate: p.doorInstallDate || p.installDate || 'Unknown',
+                springInstallDate: p.springInstallDate || p.installDate || 'Unknown',
+                openerInstallDate: p.openerInstallDate || p.installDate || 'Unknown',
+            }));
+        }
+        if (contact.doorProfile) {
+            const oldP = contact.doorProfile;
+            return [{
+                ...oldP,
+                doorInstallDate: oldP.installDate || 'Unknown',
+                springInstallDate: oldP.installDate || 'Unknown',
+                openerInstallDate: oldP.installDate || 'Unknown',
+            }];
+        }
+        return [];
+    }, [contact.doorProfiles, contact.doorProfile]);
+
+    const formatInstallDate = (value) => {
+        if (!value || value === 'Unknown' || value === 'Original') {
+            return (
+                React.createElement("span", { className: "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600" },
+                    value || 'Unknown'
+                )
+            );
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+             return React.createElement("span", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200" }, new Date(value).toLocaleDateString());
+        }
+        return React.createElement("span", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200" }, value);
+    };
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -255,6 +308,81 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                             )
                         )
                     ),
+                    
+                    // Door/System Profiles Section
+                    normalizedDoorProfiles.length > 0 && React.createElement("div", { className: "mt-6 pt-6 border-t border-slate-200 dark:border-slate-700" },
+                        React.createElement("div", { className: "flex items-center mb-4" },
+                            React.createElement(HomeIcon, { className: "w-6 h-6 text-slate-400 mr-2" }),
+                            React.createElement("h2", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100" }, "Door & System Profiles")
+                        ),
+                        React.createElement("div", { className: "space-y-6" },
+                            normalizedDoorProfiles.map((profile, index) => (
+                                React.createElement("div", { key: index, className: `bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 ${index > 0 ? 'border-t border-slate-200 dark:border-slate-600' : ''}` },
+                                    normalizedDoorProfiles.length > 1 && (
+                                        React.createElement("h3", { className: "text-md font-bold text-slate-700 dark:text-slate-200 mb-3" }, `System ${index + 1}`)
+                                    ),
+                                    
+                                    // Door Section
+                                    React.createElement("div", { className: "mb-4 pb-4 border-b border-slate-200 dark:border-slate-600" },
+                                        React.createElement("h4", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Door"),
+                                        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4" },
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Dimensions"),
+                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.dimensions || '-')
+                                            ),
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Type"),
+                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.doorType || '-')
+                                            ),
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Installed"),
+                                                React.createElement("div", { className: "mt-0.5" }, formatInstallDate(profile.doorInstallDate))
+                                            )
+                                        )
+                                    ),
+
+                                    // Spring Section
+                                    React.createElement("div", { className: "mb-4 pb-4 border-b border-slate-200 dark:border-slate-600" },
+                                        React.createElement("h4", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Springs"),
+                                        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4" },
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "System"),
+                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.springSystem || '-')
+                                            ),
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Size"),
+                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.springSize || '-')
+                                            ),
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Installed"),
+                                                React.createElement("div", { className: "mt-0.5" }, formatInstallDate(profile.springInstallDate))
+                                            )
+                                        )
+                                    ),
+
+                                    // Opener Section
+                                    React.createElement("div", null,
+                                        React.createElement("h4", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Opener"),
+                                        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4" },
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Brand"),
+                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.openerBrand || '-')
+                                            ),
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Model"),
+                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.openerModel || '-')
+                                            ),
+                                            React.createElement("div", null,
+                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Installed"),
+                                                React.createElement("div", { className: "mt-0.5" }, formatInstallDate(profile.openerInstallDate))
+                                            )
+                                        )
+                                    )
+                                )
+                            ))
+                        )
+                    ),
+
                     allCustomFields.length > 0 && (
                         React.createElement("div", { className: "mt-6 pt-6 border-t border-slate-200 dark:border-slate-700" },
                             React.createElement("h2", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4" }, "Additional Information"),
@@ -289,10 +417,19 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                             sortedJobTickets.map(ticket => {
                                 const { totalCost } = calculateJobTicketTotal(ticket);
                                 const statusColor = jobStatusColors[ticket.status];
+                                const paymentStatus = ticket.paymentStatus || 'unpaid';
+                                const paymentStatusColor = paymentStatusColors[paymentStatus];
+                                const paymentStatusLabel = paymentStatusLabels[paymentStatus];
+
                                 return React.createElement("li", { key: ticket.id, className: "p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover" },
                                     React.createElement("div", { className: "flex justify-between items-start mb-2" },
-                                        React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
-                                            ticket.status
+                                        React.createElement("div", { className: "flex flex-wrap gap-2" },
+                                            React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
+                                                ticket.status
+                                            ),
+                                            React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}` },
+                                                paymentStatusLabel
+                                            )
                                         ),
                                         React.createElement("p", { className: "font-bold text-lg text-slate-800 dark:text-slate-100" }, `$${totalCost.toFixed(2)}`)
                                     ),
@@ -504,7 +641,10 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     onClose: () => { setIsJobTicketModalOpen(false); setEditingJobTicket(null); },
                     jobTemplates: jobTemplates,
                     partsCatalog: partsCatalog,
-                    enabledStatuses: enabledStatuses
+                    enabledStatuses: enabledStatuses,
+                    defaultSalesTaxRate: businessInfo?.defaultSalesTaxRate,
+                    defaultProcessingFeeRate: businessInfo?.defaultProcessingFeeRate,
+                    contactAddress: contact.address
                 })
             )
         )

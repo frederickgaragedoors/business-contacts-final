@@ -1,4 +1,12 @@
 
+
+
+
+
+
+
+
+
 import React, { useState, useCallback } from 'react';
 import { UserCircleIcon, XIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
 import { fileToDataUrl, formatFileSize, generateId } from '../utils.js';
@@ -13,6 +21,39 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
   const [customFields, setCustomFields] = useState(
     initialContact?.customFields || defaultFields?.map(df => ({ id: generateId(), label: df.label, value: '' })) || []
   );
+  
+  const [doorProfiles, setDoorProfiles] = useState(() => {
+      if (initialContact?.doorProfiles) {
+          return initialContact.doorProfiles.map(p => ({
+              ...p,
+              doorInstallDate: p.doorInstallDate || p.installDate || 'Unknown',
+              springInstallDate: p.springInstallDate || p.installDate || 'Unknown',
+              openerInstallDate: p.openerInstallDate || p.installDate || 'Unknown',
+          }));
+      }
+      if (initialContact?.doorProfile) {
+          const oldP = initialContact.doorProfile;
+          return [{ 
+              ...oldP, 
+              id: generateId(),
+              doorInstallDate: oldP.installDate || 'Unknown',
+              springInstallDate: oldP.installDate || 'Unknown',
+              openerInstallDate: oldP.installDate || 'Unknown'
+            }];
+      }
+      return [{
+        id: generateId(),
+        dimensions: '',
+        doorType: '',
+        springSystem: '',
+        springSize: '',
+        openerBrand: '',
+        openerModel: '',
+        doorInstallDate: 'Unknown',
+        springInstallDate: 'Unknown',
+        openerInstallDate: 'Unknown'
+      }];
+  });
 
   const [stagedFiles, setStagedFiles] = useState([]);
 
@@ -74,6 +115,29 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
   const removeCustomField = (id) => {
     setCustomFields(customFields.filter(cf => cf.id !== id));
   };
+  
+  const handleDoorProfileChange = (id, field, value) => {
+    setDoorProfiles(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+  
+  const addDoorProfile = () => {
+      setDoorProfiles(prev => [...prev, {
+        id: generateId(),
+        dimensions: '',
+        doorType: '',
+        springSystem: '',
+        springSize: '',
+        openerBrand: '',
+        openerModel: '',
+        doorInstallDate: 'Unknown',
+        springInstallDate: 'Unknown',
+        openerInstallDate: 'Unknown'
+      }]);
+  };
+
+  const removeDoorProfile = (id) => {
+      setDoorProfiles(prev => prev.filter(p => p.id !== id));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -92,13 +156,63 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
             createdAt: new Date().toISOString()
         }];
     }
+    
+    // Filter empty door profiles
+    const finalDoorProfiles = doorProfiles.filter(p => 
+        p.dimensions || p.doorType || p.springSystem || p.openerBrand || p.openerModel
+    );
 
-    onSave({ name, email, phone, address, photoUrl, files: finalFiles, customFields, jobTickets: initialJobTickets });
+    onSave({ 
+        name, 
+        email, 
+        phone, 
+        address, 
+        photoUrl, 
+        files: finalFiles, 
+        customFields, 
+        jobTickets: initialJobTickets,
+        doorProfiles: finalDoorProfiles
+    });
   };
   
-  const inputStyles = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm";
+  const inputStyles = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white";
   const labelStyles = "block text-sm font-medium text-slate-600 dark:text-slate-300";
+  const profileLabelClass = "block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1";
 
+  const renderDateInput = (label, profileId, field, value) => {
+      const isDate = /^\d{4}-\d{2}-\d{2}$/.test(value);
+      const selectValue = isDate ? 'date' : (value === 'Original' ? 'Original' : 'Unknown');
+
+      const handleSelectChange = (e) => {
+          const selection = e.target.value;
+          if (selection === 'date') {
+              handleDoorProfileChange(profileId, field, new Date().toISOString().split('T')[0]);
+          } else {
+              handleDoorProfileChange(profileId, field, selection);
+          }
+      };
+
+      return (
+          React.createElement("div", null,
+              React.createElement("label", { className: profileLabelClass }, label),
+              React.createElement("div", { className: "flex space-x-2" },
+                  React.createElement("select", { value: selectValue, onChange: handleSelectChange, className: `${inputStyles} w-1/2` },
+                      React.createElement("option", { value: "Unknown" }, "Unknown"),
+                      React.createElement("option", { value: "Original" }, "Original"),
+                      React.createElement("option", { value: "date" }, "Specific Date")
+                  ),
+                  isDate && (
+                      React.createElement("input", {
+                        type: "date",
+                        value: value,
+                        onChange: e => handleDoorProfileChange(profileId, field, e.target.value),
+                        className: `${inputStyles} w-1/2`
+                      })
+                  )
+              )
+          )
+      );
+  };
 
   return (
     React.createElement("form", { onSubmit: handleSubmit, className: "h-full flex flex-col bg-white dark:bg-slate-800 overflow-y-auto" },
@@ -157,6 +271,101 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
             React.createElement("label", { htmlFor: "address", className: labelStyles }, "Address"),
             React.createElement("textarea", { id: "address", value: address, onChange: e => setAddress(e.target.value), rows: 3, className: inputStyles })
           )
+        ),
+        
+        /* Door/System Profiles Section */
+        React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6" },
+            React.createElement("div", { className: "flex items-center justify-between mb-4" },
+                 React.createElement("h3", { className: "text-lg font-medium text-slate-800 dark:text-slate-100" }, "Door/System Profiles")
+            ),
+            React.createElement("div", { className: "space-y-6" },
+                doorProfiles.map((profile, index) => (
+                    React.createElement("div", { key: profile.id, className: "relative p-4 bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-600 rounded-lg" },
+                        React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                             React.createElement("h4", { className: "text-sm font-bold text-slate-700 dark:text-slate-200" },
+                                doorProfiles.length > 1 ? `Door System #${index + 1}` : 'Primary Door System'
+                             ),
+                             React.createElement("button", { 
+                                type: "button", 
+                                onClick: () => removeDoorProfile(profile.id), 
+                                className: "text-slate-400 hover:text-red-500 transition-colors",
+                                title: "Remove this profile"
+                             },
+                                React.createElement(TrashIcon, { className: "w-5 h-5" })
+                             )
+                        ),
+                        
+                        // Door Details
+                        React.createElement("div", { className: "mb-4 pb-4 border-b border-slate-200 dark:border-slate-600" },
+                            React.createElement("h5", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Door Details"),
+                            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: profileLabelClass }, "Dimensions (WxH)"),
+                                    React.createElement("input", { type: "text", placeholder: "e.g. 16x7", value: profile.dimensions, onChange: e => handleDoorProfileChange(profile.id, 'dimensions', e.target.value), className: inputStyles })
+                                ),
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: profileLabelClass }, "Door Type"),
+                                    React.createElement("select", { value: profile.doorType, onChange: e => handleDoorProfileChange(profile.id, 'doorType', e.target.value), className: inputStyles },
+                                        React.createElement("option", { value: "" }, "Select Type..."),
+                                        React.createElement("option", { value: "Sectional" }, "Sectional"),
+                                        React.createElement("option", { value: "One-piece" }, "One-piece"),
+                                        React.createElement("option", { value: "Rolling Steel" }, "Rolling Steel"),
+                                        React.createElement("option", { value: "Other" }, "Other")
+                                    )
+                                ),
+                                React.createElement("div", { className: "sm:col-span-2" },
+                                    renderDateInput("Door Install Date", profile.id, 'doorInstallDate', profile.doorInstallDate)
+                                )
+                            )
+                        ),
+
+                        // Spring Details
+                        React.createElement("div", { className: "mb-4 pb-4 border-b border-slate-200 dark:border-slate-600" },
+                            React.createElement("h5", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Spring Details"),
+                            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: profileLabelClass }, "Spring System"),
+                                    React.createElement("select", { value: profile.springSystem, onChange: e => handleDoorProfileChange(profile.id, 'springSystem', e.target.value), className: inputStyles },
+                                        React.createElement("option", { value: "" }, "Select System..."),
+                                        React.createElement("option", { value: "Torsion" }, "Torsion"),
+                                        React.createElement("option", { value: "Extension" }, "Extension"),
+                                        React.createElement("option", { value: "TorqueMaster" }, "TorqueMaster"),
+                                        React.createElement("option", { value: "Other" }, "Other")
+                                    )
+                                ),
+                                React.createElement("div", null,
+                                     React.createElement("label", { className: profileLabelClass }, "Spring Size"),
+                                     React.createElement("input", { type: "text", placeholder: "e.g. .250 x 2 x 32", value: profile.springSize || '', onChange: e => handleDoorProfileChange(profile.id, 'springSize', e.target.value), className: inputStyles })
+                                ),
+                                React.createElement("div", { className: "sm:col-span-2" },
+                                     renderDateInput("Spring Install Date", profile.id, 'springInstallDate', profile.springInstallDate)
+                                )
+                            )
+                        ),
+
+                        // Opener Details
+                        React.createElement("div", null,
+                            React.createElement("h5", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Opener Details"),
+                            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: profileLabelClass }, "Opener Brand"),
+                                    React.createElement("input", { type: "text", placeholder: "e.g. LiftMaster", value: profile.openerBrand, onChange: e => handleDoorProfileChange(profile.id, 'openerBrand', e.target.value), className: inputStyles })
+                                ),
+                                React.createElement("div", null,
+                                    React.createElement("label", { className: profileLabelClass }, "Opener Model"),
+                                    React.createElement("input", { type: "text", placeholder: "e.g. 8550W", value: profile.openerModel, onChange: e => handleDoorProfileChange(profile.id, 'openerModel', e.target.value), className: inputStyles })
+                                ),
+                                React.createElement("div", { className: "sm:col-span-2" },
+                                     renderDateInput("Opener Install Date", profile.id, 'openerInstallDate', profile.openerInstallDate)
+                                )
+                            )
+                        )
+                    )
+                ))
+            ),
+            React.createElement("button", { type: "button", onClick: addDoorProfile, className: "mt-4 w-full flex justify-center items-center px-4 py-2 border border-dashed border-slate-300 dark:border-slate-600 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" },
+                React.createElement(PlusIcon, { className: "w-4 h-4 mr-2" }), " Add Another Door"
+            )
         ),
 
         React.createElement("div", { className: "mt-6 border-t dark:border-slate-700 pt-6" },

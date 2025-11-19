@@ -1,7 +1,10 @@
 
 
+
+
+
 import React, { useState } from 'react';
-import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors, JobStatus, CatalogItem } from '../types.ts';
+import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, DEFAULT_ON_MY_WAY_TEMPLATE } from '../types.ts';
 import JobTicketModal from './JobTicketModal.tsx';
 import {
   ArrowLeftIcon,
@@ -12,8 +15,10 @@ import {
   TrashIcon,
   ClipboardListIcon,
   MessageIcon,
+  CarIcon,
+  UserCircleIcon,
 } from './icons.tsx';
-import { calculateJobTicketTotal, formatTime } from '../utils.ts';
+import { calculateJobTicketTotal, formatTime, processTemplate } from '../utils.ts';
 
 interface JobDetailViewProps {
   contact: Contact;
@@ -42,9 +47,34 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
 }) => {
   const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
 
-  const { subtotal, taxAmount, feeAmount, totalCost, deposit, balanceDue } = calculateJobTicketTotal(ticket);
+  const { subtotal, taxAmount, feeAmount, totalCost, deposit } = calculateJobTicketTotal(ticket);
   const statusColor = jobStatusColors[ticket.status];
+  
+  const paymentStatus = ticket.paymentStatus || 'unpaid';
+  const paymentStatusColor = paymentStatusColors[paymentStatus];
+  const paymentStatusLabel = paymentStatusLabels[paymentStatus];
+
   const hasCosts = ticket.parts.length > 0 || (ticket.laborCost && ticket.laborCost > 0);
+  
+  let paidAmount = 0;
+  if (paymentStatus === 'paid_in_full') {
+      paidAmount = totalCost;
+  } else if (paymentStatus === 'deposit_paid') {
+      paidAmount = deposit;
+  }
+  const displayBalance = totalCost - paidAmount;
+
+  // Determine target location for map/service
+  const serviceLocation = ticket.jobLocation || contact.address;
+  const isDifferentLocation = ticket.jobLocation && ticket.jobLocation !== contact.address;
+
+  // SMS Link for "On My Way"
+  const template = businessInfo.onMyWayTemplate || DEFAULT_ON_MY_WAY_TEMPLATE;
+  const smsBody = processTemplate(template, {
+    customerName: contact.name.split(' ')[0],
+    businessName: businessInfo.name || 'your technician'
+  });
+  const smsLink = `sms:${contact.phone}?body=${encodeURIComponent(smsBody)}`;
 
   return (
     <>
@@ -64,9 +94,14 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
             <div className="flex justify-between items-start mb-4">
                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Job Overview</h3>
-                 <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
-                    {ticket.status}
-                </span>
+                 <div className="flex flex-wrap justify-end gap-2">
+                     <span className={`px-3 py-1 text-sm font-medium rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}`}>
+                        {paymentStatusLabel}
+                    </span>
+                     <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                        {ticket.status}
+                    </span>
+                 </div>
             </div>
             
             {/* Notes Section */}
@@ -78,16 +113,61 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
 
             {/* Meta Data Section */}
             <div className="flex flex-col items-start gap-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-6 border border-slate-100 dark:border-slate-700">
-                <div>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</p>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
-                        {new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
-                        {ticket.time && <span className="ml-2 text-slate-600 dark:text-slate-300 font-normal">at {formatTime(ticket.time)}</span>}
-                    </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                    <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
+                            {new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
+                            {ticket.time && <span className="ml-2 text-slate-600 dark:text-slate-300 font-normal">at {formatTime(ticket.time)}</span>}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Job ID</p>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{ticket.id}</p>
+                    </div>
                 </div>
-                <div>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Job ID</p>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{ticket.id}</p>
+                
+                <div className="w-full pt-2 border-t border-slate-200 dark:border-slate-600 mt-1">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center">
+                        Service Location
+                        {isDifferentLocation && <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 font-bold">Different from Billing</span>}
+                    </p>
+                    <div className="flex items-start mt-1">
+                         <MapPinIcon className="w-4 h-4 text-slate-400 mr-1.5 mt-0.5 flex-shrink-0" />
+                         <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(serviceLocation)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-semibold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline whitespace-pre-line"
+                         >
+                            {serviceLocation || 'No address provided'}
+                         </a>
+                    </div>
+                    
+                    {/* Site Contact Info */}
+                    {(ticket.jobLocationContactName || ticket.jobLocationContactPhone) && (
+                        <div className="mt-3 pl-1">
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Site Contact</p>
+                            {ticket.jobLocationContactName && (
+                                <div className="flex items-center mb-1">
+                                    <UserCircleIcon className="w-4 h-4 text-slate-400 mr-2" />
+                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{ticket.jobLocationContactName}</span>
+                                </div>
+                            )}
+                            {ticket.jobLocationContactPhone && (
+                                <div className="flex items-center">
+                                    <PhoneIcon className="w-4 h-4 text-slate-400 mr-2" />
+                                    <span className="text-sm text-slate-600 dark:text-slate-300 mr-2">{ticket.jobLocationContactPhone}</span>
+                                    <a href={`tel:${ticket.jobLocationContactPhone}`} className="p-1 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-900 rounded-full transition-colors" title="Call">
+                                        <PhoneIcon className="w-3 h-3" />
+                                    </a>
+                                    <a href={`sms:${ticket.jobLocationContactPhone}`} className="p-1 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-900 rounded-full transition-colors" title="Text">
+                                        <MessageIcon className="w-3 h-3" />
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -108,14 +188,19 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
           {/* Customer Info Card */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2">Customer Information</h3>
-            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{contact.name}</p>
+            <button 
+                onClick={onBack} 
+                className="text-2xl font-bold text-slate-800 dark:text-slate-100 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors text-left"
+            >
+                {contact.name}
+            </button>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center">
                     <PhoneIcon className="w-4 h-4 text-slate-400 mr-3" />
                     <span className="text-slate-600 dark:text-slate-300">{contact.phone}</span>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                     <a href={`tel:${contact.phone}`} className="flex items-center space-x-1 px-2 py-1 rounded bg-sky-500 text-white hover:bg-sky-600 text-xs font-medium transition-colors">
                         <PhoneIcon className="w-3 h-3" />
                         <span>Call</span>
@@ -123,6 +208,10 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                     <a href={`sms:${contact.phone}`} className="flex items-center space-x-1 px-2 py-1 rounded bg-sky-500 text-white hover:bg-sky-600 text-xs font-medium transition-colors">
                         <MessageIcon className="w-3 h-3" />
                         <span>Text</span>
+                    </a>
+                    <a href={smsLink} className="flex items-center space-x-1 px-2 py-1 rounded bg-teal-500 text-white hover:bg-teal-600 text-xs font-medium transition-colors">
+                        <CarIcon className="w-3 h-3" />
+                        <span>On My Way</span>
                     </a>
                 </div>
               </div>
@@ -132,14 +221,17 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
               </div>
               <div className="flex items-start">
                 <MapPinIcon className="w-4 h-4 text-slate-400 mr-3 mt-1" />
-                <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors whitespace-pre-line" 
-                >
-                    {contact.address}
-                </a>
+                <div>
+                    <span className="text-xs text-slate-400 uppercase font-bold mb-0.5 block">Billing Address</span>
+                    <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors whitespace-pre-line" 
+                    >
+                        {contact.address}
+                    </a>
+                </div>
               </div>
             </div>
           </div>
@@ -149,51 +241,59 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2">Cost Breakdown</h3>
             {hasCosts ? (
                 <>
-                  <div className="">
-                      <table className="w-full text-left text-xs sm:text-sm table-fixed">
-                        <thead>
-                          <tr className="border-b dark:border-slate-700">
-                            <th className="py-2 px-1 sm:px-2 font-medium w-[40%]">Item/Service</th>
-                            <th className="py-2 px-1 sm:px-2 font-medium text-center w-[12%]">Qty</th>
-                            <th className="py-2 px-1 sm:px-2 font-medium text-right w-[24%]">Unit</th>
-                            <th className="py-2 px-1 sm:px-2 font-medium text-right w-[24%]">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ticket.parts.map(p => (
-                            <tr key={p.id} className="border-b dark:border-slate-700/50">
-                              <td className="py-2 px-1 sm:px-2 break-words align-top">{p.name}</td>
-                              <td className="py-2 px-1 sm:px-2 text-center align-top whitespace-nowrap">{p.quantity}</td>
-                              <td className="py-2 px-1 sm:px-2 text-right align-top whitespace-nowrap">${p.cost.toFixed(2)}</td>
-                              <td className="py-2 px-1 sm:px-2 text-right align-top whitespace-nowrap">${(p.cost * p.quantity).toFixed(2)}</td>
+                    <div className="">
+                        <table className="w-full text-left text-xs sm:text-sm table-fixed">
+                            <thead>
+                            <tr className="border-b dark:border-slate-700">
+                                <th className="py-2 px-1 sm:px-2 font-medium w-[40%]">Item/Service</th>
+                                <th className="py-2 px-1 sm:px-2 font-medium text-center w-[12%]">Qty</th>
+                                <th className="py-2 px-1 sm:px-2 font-medium text-right w-[24%]">Unit</th>
+                                <th className="py-2 px-1 sm:px-2 font-medium text-right w-[24%]">Total</th>
                             </tr>
-                          ))}
-                          <tr className="border-b dark:border-slate-700/50">
-                            <td className="py-2 px-1 sm:px-2">Labor</td>
-                            <td colSpan={2}></td>
-                            <td className="py-2 px-1 sm:px-2 text-right whitespace-nowrap">${ticket.laborCost.toFixed(2)}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                  </div>
-                  <div className="mt-4 flex justify-end">
-                    <div className="w-full max-w-xs space-y-1">
-                      <div className="flex justify-between"><span>Subtotal:</span><span>${subtotal.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>Tax ({ticket.salesTaxRate || 0}%):</span><span>${taxAmount.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span>Fee ({ticket.processingFeeRate || 0}%):</span><span>${feeAmount.toFixed(2)}</span></div>
-                      <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t dark:border-slate-600"><span>Total:</span><span>${totalCost.toFixed(2)}</span></div>
-                      {deposit > 0 && (
-                        <div className="flex justify-between text-green-600 dark:text-green-400 font-medium"><span>Less Deposit:</span><span>-(${deposit.toFixed(2)})</span></div>
-                      )}
-                      <div className="flex justify-between font-bold text-slate-800 dark:text-slate-100 mt-1 pt-1 border-t border-slate-200 dark:border-slate-700"><span>Balance Due:</span><span>${balanceDue.toFixed(2)}</span></div>
+                            </thead>
+                            <tbody>
+                            {ticket.parts.map(p => (
+                                <tr key={p.id} className="border-b dark:border-slate-700/50">
+                                <td className="py-2 px-1 sm:px-2 break-words align-top">{p.name}</td>
+                                <td className="py-2 px-1 sm:px-2 text-center align-top whitespace-nowrap">{p.quantity}</td>
+                                <td className="py-2 px-1 sm:px-2 text-right align-top whitespace-nowrap">${p.cost.toFixed(2)}</td>
+                                <td className="py-2 px-1 sm:px-2 text-right align-top whitespace-nowrap">${(p.cost * p.quantity).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                            <tr className="border-b dark:border-slate-700/50">
+                                <td className="py-2 px-1 sm:px-2">Labor</td>
+                                <td colSpan={2}></td>
+                                <td className="py-2 px-1 sm:px-2 text-right whitespace-nowrap">${ticket.laborCost.toFixed(2)}</td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
-                  </div>
+                    <div className="mt-4 flex justify-end">
+                        <div className="w-full max-w-xs space-y-1">
+                        <div className="flex justify-between"><span>Subtotal:</span><span>${subtotal.toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span>Tax ({ticket.salesTaxRate || 0}%):</span><span>${taxAmount.toFixed(2)}</span></div>
+                        <div className="flex justify-between"><span>Fee ({ticket.processingFeeRate || 0}%):</span><span>${feeAmount.toFixed(2)}</span></div>
+                        <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t dark:border-slate-600"><span>Total:</span><span>${totalCost.toFixed(2)}</span></div>
+                        
+                        {paymentStatus === 'unpaid' && deposit > 0 && (
+                            <div className="flex justify-between text-slate-500 dark:text-slate-400 italic text-sm"><span>Required Deposit:</span><span>${deposit.toFixed(2)}</span></div>
+                        )}
+
+                        {paidAmount > 0 && (
+                            <div className="flex justify-between text-green-600 dark:text-green-400 font-medium">
+                                <span>{paymentStatus === 'paid_in_full' ? 'Paid in Full' : 'Deposit Paid'}:</span> 
+                                <span>-${paidAmount.toFixed(2)}</span>
+                            </div>
+                        )}
+
+                        <div className="flex justify-between font-bold text-slate-800 dark:text-slate-100 mt-1 pt-1 border-t border-slate-200 dark:border-slate-700"><span>Balance Due:</span><span>${displayBalance.toFixed(2)}</span></div>
+                        </div>
+                    </div>
                 </>
             ) : (
                 <p className="text-center text-slate-500 dark:text-slate-400 italic py-4">No costs have been associated with this job yet.</p>
             )}
           </div>
-
         </div>
       </div>
 
@@ -208,6 +308,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
           jobTemplates={jobTemplates}
           partsCatalog={partsCatalog}
           enabledStatuses={enabledStatuses}
+          contactAddress={contact.address}
         />
       )}
     </>

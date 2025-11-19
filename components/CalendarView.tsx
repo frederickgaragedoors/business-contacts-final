@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { Contact, JobTicket, jobStatusColors } from '../types.ts';
-import { ChevronLeftIcon, ChevronRightIcon, BriefcaseIcon, PlusIcon } from './icons.tsx';
+import { Contact, JobTicket, jobStatusColors, paymentStatusColors, paymentStatusLabels } from '../types.ts';
+import { ChevronLeftIcon, ChevronRightIcon, BriefcaseIcon, PlusIcon, CalendarIcon } from './icons.tsx';
 import { formatTime } from '../utils.ts';
 import EmptyState from './EmptyState.tsx';
 
@@ -95,6 +95,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob, onAddJ
         setSelectedDate(today);
     };
 
+    const handleJumpToDate = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.value) {
+            const [y, m, d] = e.target.value.split('-').map(Number);
+            // Note: Month in Date constructor is 0-indexed. Input gives 1-indexed month.
+            const newDate = new Date(y, m - 1, d);
+            setCurrentDate(newDate);
+            setSelectedDate(newDate);
+            // Reset value so selecting the same date again triggers change if needed
+            e.target.value = '';
+        }
+    };
+
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     return (
@@ -107,6 +119,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob, onAddJ
                     </h2>
                 </div>
                 <div className="flex items-center space-x-2">
+                    <div className="relative">
+                        <button 
+                            className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600" 
+                            title="Jump to date"
+                        >
+                            <CalendarIcon className="w-5 h-5" />
+                        </button>
+                        <input
+                            type="date"
+                            onChange={handleJumpToDate}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            aria-label="Jump to specific date"
+                        />
+                    </div>
                     <button onClick={handleToday} className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded hover:bg-slate-200 dark:hover:bg-slate-600">Today</button>
                     <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300">
                         <ChevronLeftIcon className="w-6 h-6" />
@@ -202,26 +228,37 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contacts, onViewJob, onAddJ
                     <div className="p-4">
                         {selectedDateJobs.length > 0 ? (
                             <ul className="space-y-3">
-                                {selectedDateJobs.sort((a,b) => (a.time || '00:00').localeCompare(b.time || '00:00')).map(job => (
-                                    <li 
-                                        key={job.id} 
-                                        onClick={() => onViewJob(job.contactId, job.id)}
-                                        className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer transition-all"
-                                    >
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full ${jobStatusColors[job.status].base} ${jobStatusColors[job.status].text}`}>
-                                                {job.status}
-                                            </span>
-                                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                {job.time ? formatTime(job.time) : 'No Time'}
-                                            </span>
-                                        </div>
-                                        <p className="font-semibold text-slate-800 dark:text-slate-100">{job.contactName}</p>
-                                        {job.notes && (
-                                            <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-1">{job.notes}</p>
-                                        )}
-                                    </li>
-                                ))}
+                                {selectedDateJobs.sort((a,b) => (a.time || '00:00').localeCompare(b.time || '00:00')).map(job => {
+                                     const paymentStatus = job.paymentStatus || 'unpaid';
+                                     const paymentStatusColor = paymentStatusColors[paymentStatus];
+                                     const paymentStatusLabel = paymentStatusLabels[paymentStatus];
+
+                                     return (
+                                        <li 
+                                            key={job.id} 
+                                            onClick={() => onViewJob(job.contactId, job.id)}
+                                            className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer transition-all"
+                                        >
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div className="flex flex-wrap gap-1">
+                                                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full ${jobStatusColors[job.status].base} ${jobStatusColors[job.status].text}`}>
+                                                        {job.status}
+                                                    </span>
+                                                    <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}`}>
+                                                        {paymentStatusLabel}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap ml-2">
+                                                    {job.time ? formatTime(job.time) : 'No Time'}
+                                                </span>
+                                            </div>
+                                            <p className="font-semibold text-slate-800 dark:text-slate-100 mt-1">{job.contactName}</p>
+                                            {job.notes && (
+                                                <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-1">{job.notes}</p>
+                                            )}
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         ) : (
                             <div className="py-8">
