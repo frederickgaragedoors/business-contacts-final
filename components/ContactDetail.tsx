@@ -1,9 +1,21 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, PaymentStatus, BusinessInfo, InspectionItem } from '../types.ts';
+import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, PaymentStatus, BusinessInfo } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
 import JobTicketModal from './JobTicketModal.tsx';
-import SafetyInspectionModal from './SafetyInspectionModal.tsx';
 import EmptyState from './EmptyState.tsx';
 import {
   PhoneIcon,
@@ -60,8 +72,6 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
     const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
     const [editingJobTicket, setEditingJobTicket] = useState<JobTicket | null>(null);
-    const [inspectingTicket, setInspectingTicket] = useState<JobTicket | null>(null);
-    
     const [hydratedFiles, setHydratedFiles] = useState<FileAttachment[]>([]);
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
     const [activeTab, setActiveTab] = useState<ActiveTab>('details');
@@ -96,7 +106,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                  setIsJobTicketModalOpen(true);
              }
         }
-    }, [initialJobDate, openJobId, businessInfo]);
+    }, [initialJobDate, openJobId, businessInfo]); // Deliberately excluding contact.jobTickets to run primarily on mount/navigation
 
     const handleViewFile = async (file: FileAttachment) => {
         if (!file.dataUrl) return;
@@ -212,7 +222,6 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 deposit: entry.deposit || 0,
                 createdAt: new Date().toISOString(),
                 jobLocation: entry.jobLocation,
-                inspection: entry.inspection,
             };
             updatedTickets = [newTicket, ...currentTickets];
         }
@@ -221,18 +230,6 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
         setEditingJobTicket(null);
     };
     
-    const handleSaveInspection = (newInspection: InspectionItem[]) => {
-        if (!inspectingTicket) return;
-        
-        const updatedTickets = contact.jobTickets.map(t => 
-            t.id === inspectingTicket.id 
-            ? { ...t, inspection: newInspection } 
-            : t
-        );
-        updateContactJobTickets(contact.id, updatedTickets);
-        setInspectingTicket(null);
-    };
-
     const handleDeleteJobTicket = (id: string) => {
         if (window.confirm('Are you sure you want to delete this job ticket?')) {
             const updatedTickets = (contact.jobTickets || []).filter(ticket => ticket.id !== id);
@@ -446,32 +443,6 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                     const paymentStatus = ticket.paymentStatus || 'unpaid';
                                     const paymentStatusColor = paymentStatusColors[paymentStatus];
                                     const paymentStatusLabel = paymentStatusLabels[paymentStatus];
-                                    
-                                    // Inspection Status
-                                    const inspection = ticket.inspection || [];
-                                    const hasInspection = inspection.length > 0;
-                                    const hasFailures = hasInspection && inspection.some(i => i.status === 'fail');
-                                    
-                                    let inspectionBadge = null;
-                                    if (!hasInspection) {
-                                        inspectionBadge = (
-                                            <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded">
-                                                Inspection: Pending
-                                            </span>
-                                        );
-                                    } else if (hasFailures) {
-                                        inspectionBadge = (
-                                             <span className="text-xs font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-2 py-0.5 rounded">
-                                                Inspection: Issues Found
-                                            </span>
-                                        );
-                                    } else {
-                                        inspectionBadge = (
-                                            <span className="text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-0.5 rounded">
-                                                Inspection: Passed
-                                            </span>
-                                        );
-                                    }
 
                                     return <li key={ticket.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover">
                                         <div className="flex justify-between items-start mb-2">
@@ -489,22 +460,6 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                             {new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
                                             {ticket.time && <span className="text-slate-500 dark:text-slate-400 font-normal ml-1"> at {formatTime(ticket.time)}</span>}
                                         </p>
-                                        
-                                        <div className="mt-2 flex items-center">
-                                            <ClipboardListIcon className={`w-4 h-4 mr-1.5 ${hasFailures ? 'text-red-500' : (!hasInspection ? 'text-slate-400' : 'text-green-500')}`} />
-                                            {inspectionBadge}
-                                            {!hasInspection && (
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setInspectingTicket(ticket);
-                                                    }}
-                                                    className="ml-2 text-xs bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors font-medium"
-                                                >
-                                                    Start
-                                                </button>
-                                            )}
-                                        </div>
                                         
                                         {ticket.notes && (
                                             <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-3">{ticket.notes}</p>
@@ -710,7 +665,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
 
                 <input type="file" accept="image/*" multiple ref={imageUploadRef} onChange={handleFilesSelected} className="hidden" />
                 <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleFilesSelected} className="hidden" />
-                <input type="file" multiple ref={fileUploadRef} onChange={handleFilesSelected} className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*" />
+                <input type="file" multiple ref={fileUploadRef} onChange={handleFilesSelected} className="hidden" />
 
             </div>
             {isGalleryOpen && (
@@ -731,15 +686,6 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     defaultSalesTaxRate={businessInfo?.defaultSalesTaxRate}
                     defaultProcessingFeeRate={businessInfo?.defaultProcessingFeeRate}
                     contactAddress={contact.address}
-                />
-            )}
-            {inspectingTicket && (
-                <SafetyInspectionModal
-                    isOpen={!!inspectingTicket}
-                    onClose={() => setInspectingTicket(null)}
-                    initialInspection={inspectingTicket.inspection || []}
-                    onSave={handleSaveInspection}
-                    jobId={inspectingTicket.id}
                 />
             )}
         </>

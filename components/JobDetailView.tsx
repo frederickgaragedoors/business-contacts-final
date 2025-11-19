@@ -1,8 +1,14 @@
 
+
+
+
+
+
+
 import React, { useState } from 'react';
 import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, DEFAULT_ON_MY_WAY_TEMPLATE, InspectionItem } from '../types.ts';
 import JobTicketModal from './JobTicketModal.tsx';
-import SafetyInspectionModal from './SafetyInspectionModal.tsx';
+import InspectionModal from './InspectionModal.tsx';
 import {
   ArrowLeftIcon,
   PhoneIcon,
@@ -14,6 +20,7 @@ import {
   MessageIcon,
   CarIcon,
   UserCircleIcon,
+  ClipboardCheckIcon,
 } from './icons.tsx';
 import { calculateJobTicketTotal, formatTime, processTemplate } from '../utils.ts';
 
@@ -73,20 +80,14 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     businessName: businessInfo.name || 'your technician'
   });
   const smsLink = `sms:${contact.phone}?body=${encodeURIComponent(smsBody)}`;
-
+  
   // Inspection Summary
-  const inspection = ticket.inspection || [];
-  const hasInspection = inspection.length > 0;
-  const passedCount = inspection.filter(i => i.status === 'pass').length;
-  const failedItems = inspection.filter(i => i.status === 'fail');
-  const repairedItems = inspection.filter(i => i.status === 'repaired');
-
-  const handleSaveInspection = (newInspection: InspectionItem[]) => {
-      onEditTicket({
-          ...ticket,
-          inspection: newInspection
-      });
-  };
+  const inspectionItems = ticket.inspection || [];
+  const totalInspectionItems = inspectionItems.length;
+  const failedItems = inspectionItems.filter(i => i.status === 'Fail').length;
+  const repairedItems = inspectionItems.filter(i => i.status === 'Repaired').length;
+  const passedItems = inspectionItems.filter(i => i.status === 'Pass').length;
+  const inspectionStatus = totalInspectionItems === 0 ? 'Not Started' : 'In Progress';
 
   return (
     <>
@@ -182,7 +183,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                     )}
                 </div>
             </div>
-            
+
             {/* Actions */}
             <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-center space-x-3">
                 <button onClick={() => setIsJobTicketModalOpen(true)} className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors">
@@ -196,85 +197,61 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                 </button>
             </div>
           </div>
-
-          {/* Safety Inspection Section */}
-          {hasInspection ? (
-              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
-                     <div className="flex justify-between items-center mb-4 border-b dark:border-slate-700 pb-2">
-                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Safety Inspection</h3>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${failedItems.length > 0 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'}`}>
-                            {failedItems.length > 0 ? `${failedItems.length} Issues` : 'Passed'}
-                        </span>
-                     </div>
-
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-2 text-center mb-4">
-                             <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                 <p className="text-xl font-bold text-green-600 dark:text-green-400">{passedCount}</p>
-                                 <p className="text-xs text-green-800 dark:text-green-300">Passed</p>
-                             </div>
-                             <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                 <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{repairedItems.length}</p>
-                                 <p className="text-xs text-blue-800 dark:text-blue-300">Repaired</p>
-                             </div>
-                             <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                 <p className="text-xl font-bold text-red-600 dark:text-red-400">{failedItems.length}</p>
-                                 <p className="text-xs text-red-800 dark:text-red-300">Failed</p>
-                             </div>
-                        </div>
-                        
-                        {failedItems.length > 0 && (
-                            <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-md border border-red-100 dark:border-red-900/30">
-                                <h4 className="text-sm font-bold text-red-700 dark:text-red-300 mb-2">Attention Needed</h4>
-                                <ul className="list-disc list-inside text-sm text-red-600 dark:text-red-200">
-                                    {failedItems.map(item => <li key={item.id}>{item.name}</li>)}
-                                </ul>
-                            </div>
-                        )}
-                        
-                        {repairedItems.length > 0 && (
-                            <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-md border border-blue-100 dark:border-blue-900/30">
-                                <h4 className="text-sm font-bold text-blue-700 dark:text-blue-300 mb-2">Repaired Items</h4>
-                                <ul className="list-disc list-inside text-sm text-blue-600 dark:text-blue-200">
-                                    {repairedItems.map(item => <li key={item.id}>{item.name}</li>)}
-                                </ul>
-                            </div>
-                        )}
-
-                        <button 
-                            onClick={() => setIsInspectionModalOpen(true)}
-                            className="w-full mt-2 flex items-center justify-center px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                        >
-                            Review / Edit Inspection
-                        </button>
-                    </div>
+          
+          {/* Safety Inspection Card */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
+              <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center">
+                      <ClipboardCheckIcon className="w-6 h-6 text-slate-600 dark:text-slate-300 mr-2" />
+                      <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Safety Inspection</h3>
+                  </div>
+                  {totalInspectionItems > 0 && (
+                       <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">{passedItems + repairedItems + failedItems} / {totalInspectionItems} Checked</span>
+                  )}
               </div>
-          ) : (
-             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6 text-center">
-                 <div className="flex flex-col items-center">
-                     <div className="bg-amber-100 dark:bg-amber-800 p-3 rounded-full mb-3">
-                        <ClipboardListIcon className="w-8 h-8 text-amber-600 dark:text-amber-300" />
-                     </div>
-                     <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-1">Safety Inspection Required</h3>
-                     <p className="text-amber-700 dark:text-amber-300 text-sm mb-4 max-w-xs">
-                        Complete the 25-point safety inspection for liability protection and to identify potential upsells.
-                     </p>
-                     <button 
+              
+              {totalInspectionItems === 0 ? (
+                  <div className="bg-slate-50 dark:bg-slate-700/30 rounded-lg p-6 text-center border border-dashed border-slate-300 dark:border-slate-600">
+                      <p className="text-slate-500 dark:text-slate-400 mb-3 text-sm">Documenting the 25-point inspection protects your business and ensures safety.</p>
+                      <button 
                         onClick={() => setIsInspectionModalOpen(true)}
-                        className="inline-flex items-center px-6 py-2.5 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors"
-                     >
-                        Start 25-Point Inspection
-                     </button>
-                 </div>
-             </div>
-          )}
+                        className="px-4 py-2 bg-sky-500 text-white font-medium rounded-md hover:bg-sky-600 transition-colors text-sm"
+                      >
+                          Start Inspection
+                      </button>
+                  </div>
+              ) : (
+                  <div>
+                       <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                           <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-800">
+                               <p className="text-2xl font-bold text-red-600 dark:text-red-400">{failedItems}</p>
+                               <p className="text-xs text-red-600 dark:text-red-300 uppercase font-bold">Fail</p>
+                           </div>
+                           <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800">
+                               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{repairedItems}</p>
+                               <p className="text-xs text-blue-600 dark:text-blue-300 uppercase font-bold">Repaired</p>
+                           </div>
+                           <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-100 dark:border-green-800">
+                               <p className="text-2xl font-bold text-green-600 dark:text-green-400">{passedItems}</p>
+                               <p className="text-xs text-green-600 dark:text-green-300 uppercase font-bold">Pass</p>
+                           </div>
+                       </div>
+                       <button 
+                            onClick={() => setIsInspectionModalOpen(true)}
+                            className="w-full py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm"
+                       >
+                           Edit Inspection
+                       </button>
+                  </div>
+              )}
+          </div>
 
           {/* Customer Info Card */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2">Customer Information</h3>
             <button 
                 onClick={onBack} 
-                className="text-2xl font-bold text-slate-800 dark:text-slate-100 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors text-left"
+                className="text-2xl font-bold text-slate-800 dark:text-slate-100 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors text-left" 
             >
                 {contact.name}
             </button>
@@ -397,13 +374,14 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
       )}
 
       {isInspectionModalOpen && (
-          <SafetyInspectionModal
-              isOpen={isInspectionModalOpen}
-              onClose={() => setIsInspectionModalOpen(false)}
-              initialInspection={ticket.inspection || []}
-              onSave={handleSaveInspection}
-              jobId={ticket.id}
-          />
+        <InspectionModal
+          existingInspection={ticket.inspection}
+          onSave={(inspection) => {
+            onEditTicket({ ...ticket, inspection });
+            setIsInspectionModalOpen(false);
+          }}
+          onClose={() => setIsInspectionModalOpen(false)}
+        />
       )}
     </>
   );
