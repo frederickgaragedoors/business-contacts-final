@@ -19,7 +19,21 @@ export interface DefaultFieldSetting {
   label: string;
 }
 
+export interface DoorProfile {
+  id: string;
+  dimensions: string;
+  doorType: string; // Sectional, One-piece, Rolling Steel
+  springSystem: string; // Torsion, Extension
+  springSize?: string; // e.g. .250x2x32
+  openerBrand: string;
+  openerModel: string;
+  doorInstallDate: string;   // YYYY-MM-DD, "Original", or "Unknown"
+  springInstallDate: string; // YYYY-MM-DD, "Original", or "Unknown"
+  openerInstallDate: string; // YYYY-MM-DD, "Original", or "Unknown"
+}
+
 export type JobStatus = 'Estimate Scheduled' | 'Quote Sent' | 'Scheduled' | 'In Progress' | 'Awaiting Parts' | 'Completed' | 'Paid' | 'Declined';
+export type PaymentStatus = 'unpaid' | 'deposit_paid' | 'paid_in_full';
 
 export const jobStatusColors: Record<JobStatus, { base: string, text: string }> = {
   'Estimate Scheduled': { base: 'bg-slate-200 dark:bg-slate-700', text: 'text-slate-700 dark:text-slate-200' },
@@ -30,6 +44,18 @@ export const jobStatusColors: Record<JobStatus, { base: string, text: string }> 
   'Completed': { base: 'bg-green-100 dark:bg-green-900', text: 'text-green-800 dark:text-green-200' },
   'Paid': { base: 'bg-indigo-100 dark:bg-indigo-900', text: 'text-indigo-800 dark:text-indigo-200' },
   'Declined': { base: 'bg-red-100 dark:bg-red-900', text: 'text-red-800 dark:text-red-200' },
+};
+
+export const paymentStatusColors: Record<PaymentStatus, { base: string, text: string }> = {
+  'unpaid': { base: 'bg-slate-100 dark:bg-slate-700', text: 'text-slate-600 dark:text-slate-400' },
+  'deposit_paid': { base: 'bg-sky-100 dark:bg-sky-900', text: 'text-sky-800 dark:text-sky-200' },
+  'paid_in_full': { base: 'bg-green-100 dark:bg-green-900', text: 'text-green-800 dark:text-green-200' },
+};
+
+export const paymentStatusLabels: Record<PaymentStatus, string> = {
+    'unpaid': 'Unpaid',
+    'deposit_paid': 'Deposit Paid',
+    'paid_in_full': 'Paid in Full',
 };
 
 export const ALL_JOB_STATUSES = Object.keys(jobStatusColors) as JobStatus[];
@@ -45,8 +71,12 @@ export interface JobTicket {
   id: string;
   date: string; // ISO string format e.g., "2023-10-27"
   time?: string; // 24h format "14:30"
+  jobLocation?: string; // Service address, defaults to contact address
+  jobLocationContactName?: string; // Name of person at site if different from contact
+  jobLocationContactPhone?: string; // Phone of person at site
   createdAt?: string; // ISO string
   status: JobStatus;
+  paymentStatus?: PaymentStatus;
   notes: string;
   parts: Part[];
   laborCost: number;
@@ -81,6 +111,7 @@ export interface Contact {
   files: FileAttachment[];
   customFields: CustomField[];
   jobTickets: JobTicket[];
+  doorProfiles?: DoorProfile[];
 }
 
 export interface BusinessInfo {
@@ -89,6 +120,9 @@ export interface BusinessInfo {
   phone: string;
   email: string;
   logoUrl: string; // Base64 data URL
+  onMyWayTemplate?: string;
+  defaultSalesTaxRate?: number;
+  defaultProcessingFeeRate?: number;
 }
 
 export interface EmailTemplate {
@@ -111,6 +145,8 @@ export const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
     body: 'Hi {{customerName}},\n\nThank you for your business. Please find attached the receipt for Job #{{jobId}}.\n\nThanks,\n{{businessName}}'
   }
 };
+
+export const DEFAULT_ON_MY_WAY_TEMPLATE = "Hi {{customerName}}, this is {{businessName}}. I am on my way to service your garage door and should arrive in about 20 minutes.";
 
 export type ViewState = 
   | { type: 'list' }

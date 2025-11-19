@@ -1,5 +1,13 @@
 
 
+
+
+
+
+
+
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.js';
 import ContactList from './components/ContactList.js';
@@ -33,6 +41,20 @@ const getSampleContacts = () => {
             photoUrl: '',
             files: [],
             customFields: [],
+            doorProfiles: [
+                {
+                    id: 'DP-1',
+                    dimensions: '16x7',
+                    doorType: 'Sectional',
+                    springSystem: 'Torsion',
+                    springSize: '.250x2x32',
+                    openerBrand: 'LiftMaster',
+                    openerModel: '8550W',
+                    doorInstallDate: '2021-05-12',
+                    springInstallDate: '2021-05-12',
+                    openerInstallDate: '2021-05-12'
+                }
+            ],
             jobTickets: [
                 {
                     id: 'JOB-101',
@@ -57,6 +79,32 @@ const getSampleContacts = () => {
             photoUrl: '',
             files: [],
             customFields: [{ id: 'CF-1', label: 'Referred By', value: 'Yelp' }],
+            doorProfiles: [
+                {
+                    id: 'DP-2',
+                    dimensions: '9x8',
+                    doorType: 'One-piece',
+                    springSystem: 'Extension',
+                    springSize: '',
+                    openerBrand: 'Genie',
+                    openerModel: 'Aladdin Connect',
+                    doorInstallDate: 'Original',
+                    springInstallDate: 'Unknown',
+                    openerInstallDate: '2019-11-03'
+                },
+                {
+                    id: 'DP-3',
+                    dimensions: '16x7',
+                    doorType: 'Sectional',
+                    springSystem: 'Torsion',
+                    springSize: '.218x1.75x28',
+                    openerBrand: 'Chamberlain',
+                    openerModel: 'B970',
+                    doorInstallDate: '2020-02-15',
+                    springInstallDate: '2020-02-15',
+                    openerInstallDate: '2020-02-15'
+                }
+            ],
             jobTickets: [
                 {
                     id: 'JOB-102',
@@ -193,13 +241,33 @@ function App() {
     return null;
   }, [contacts, viewState]);
 
-  const handleSaveContact = (contactData) => {
+  const handleSaveContact = async (contactData) => {
+    // 1. Save files with content to IndexedDB
+    const filesToSave = contactData.files.filter(f => f.dataUrl);
+    if (filesToSave.length > 0) {
+        try {
+            await addFiles(filesToSave);
+        } catch (error) {
+            console.error("Failed to save files to DB", error);
+            alert("Failed to save attachments to database. Please try again.");
+            return;
+        }
+    }
+
+    // 2. Strip dataUrl from files before saving to state/localStorage to avoid quota limits
+    const filesForState = contactData.files.map(f => {
+        const { dataUrl, ...rest } = f;
+        return rest;
+    });
+
+    const cleanContactData = { ...contactData, files: filesForState };
+
     if (viewState.type === 'edit_form' && selectedContact) {
-        const updatedContact = { ...contactData, id: selectedContact.id };
+        const updatedContact = { ...cleanContactData, id: selectedContact.id };
         setContacts(contacts.map(c => c.id === selectedContact.id ? updatedContact : c));
         setViewState({ type: 'detail', id: selectedContact.id });
     } else {
-        const newContact = { ...contactData, id: generateId() };
+        const newContact = { ...cleanContactData, id: generateId() };
         setContacts([...contacts, newContact]);
         
         if (viewState.type === 'new_form' && viewState.initialJobDate) {
@@ -227,13 +295,26 @@ function App() {
   };
 
   const handleAddFilesToContact = async (contactId, files) => {
-      await addFiles(files);
-      setContacts(contacts.map(c => {
-          if (c.id === contactId) {
-              return { ...c, files: [...c.files, ...files] };
-          }
-          return c;
-      }));
+      try {
+        // Save full file data to IndexedDB
+        await addFiles(files);
+        
+        // Strip dataUrl for State/LocalStorage
+        const filesForState = files.map(f => {
+            const { dataUrl, ...rest } = f;
+            return rest;
+        });
+
+        setContacts(contacts.map(c => {
+            if (c.id === contactId) {
+                return { ...c, files: [...c.files, ...filesForState] };
+            }
+            return c;
+        }));
+      } catch (error) {
+          console.error("Failed to add files:", error);
+          alert("Failed to save attachments.");
+      }
   };
 
   const handleUpdateContactJobTickets = (contactId, jobTickets) => {
@@ -248,14 +329,27 @@ function App() {
   const handleRestoreBackup = async (fileContent) => {
       try {
           const data = JSON.parse(fileContent);
-          if (data.contacts) setContacts(data.contacts);
+          
+          if (data.files) await clearAndAddFiles(data.files);
+
           if (data.defaultFields) setDefaultFields(data.defaultFields);
           if (data.businessInfo) setBusinessInfo(data.businessInfo);
           if (data.emailSettings) setEmailSettings(data.emailSettings);
           if (data.jobTemplates) setJobTemplates(data.jobTemplates);
           if (data.partsCatalog) setPartsCatalog(data.partsCatalog);
           if (data.enabledStatuses) setEnabledStatuses(data.enabledStatuses);
-          if (data.files) await clearAndAddFiles(data.files);
+
+          // Ensure contacts loaded from backup don't contain dataUrls in the file list
+          if (data.contacts) {
+              const cleanContacts = data.contacts.map(c => ({
+                  ...c,
+                  files: c.files ? c.files.map(f => {
+                      const { dataUrl, ...rest } = f;
+                      return rest;
+                  }) : []
+              }));
+              setContacts(cleanContacts);
+          }
           
           alert('Backup restored successfully!');
       } catch (error) {
@@ -295,7 +389,8 @@ function App() {
                   partsCatalog: partsCatalog,
                   enabledStatuses: enabledStatuses,
                   initialJobDate: viewState.initialJobDate,
-                  openJobId: viewState.openJobId
+                  openJobId: viewState.openJobId,
+                  businessInfo: businessInfo
               });
           case 'new_form':
               return React.createElement(ContactForm, { 

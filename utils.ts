@@ -1,5 +1,8 @@
 
 
+
+
+
 import { JobTicket, Contact } from './types.ts';
 
 /**
@@ -43,6 +46,19 @@ export const getInitials = (name: string): string => {
       return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
     return names[0] ? names[0][0].toUpperCase() : '';
+};
+
+/**
+ * Formats a phone number string to (XXX) XXX-XXXX if it contains 10 digits.
+ */
+export const formatPhoneNumber = (phoneNumber: string | undefined): string => {
+  if (!phoneNumber) return '';
+  const cleaned = ('' + phoneNumber).replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+  if (match) {
+    return '(' + match[1] + ') ' + match[2] + '-' + match[3];
+  }
+  return phoneNumber;
 };
 
 /**
@@ -205,8 +221,11 @@ export const generateICSContent = (contacts: Contact[]): string => {
             
             icsContent += `SUMMARY:${summary}\n`;
             icsContent += `DESCRIPTION:${description}\n`;
-            if (contact.address) {
-                icsContent += `LOCATION:${contact.address.replace(/\n/g, ', ')}\n`;
+            
+            // Use Job Location if available, otherwise Contact Address
+            const location = ticket.jobLocation || contact.address;
+            if (location) {
+                icsContent += `LOCATION:${location.replace(/\n/g, ', ')}\n`;
             }
             
             icsContent += "END:VEVENT\n";
@@ -227,4 +246,13 @@ export const downloadICSFile = (content: string): void => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+/**
+ * Replaces placeholders in a template string with values from a data object.
+ */
+export const processTemplate = (template: string, data: Record<string, string>): string => {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    return data[key] !== undefined ? data[key] : match;
+  });
 };

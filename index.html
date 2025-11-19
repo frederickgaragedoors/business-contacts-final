@@ -7,13 +7,33 @@
     <meta name="theme-color" content="#0ea5e9" />
     <title>Business Contacts Manager</title>
     <link rel="manifest" href="./manifest.json" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // Explicitly configure Tailwind to use the class strategy for dark mode
+      // And override the default 'slate' palette to be neutral/black
       tailwind.config = {
         darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                50: '#fafafa',
+                100: '#f5f5f5',
+                200: '#e5e5e5',
+                300: '#d4d4d4',
+                400: '#a3a3a3',
+                500: '#737373',
+                600: '#525252',
+                700: '#404040',
+                800: '#171717', // Mapped to Neutral-900 for darker cards
+                900: '#0a0a0a', // Mapped to Neutral-950 for very dark background
+                950: '#000000', // Pure black
+              }
+            }
+          }
+        }
       }
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* Add some subtle transitions for a more modern feel */
       .card-hover {
@@ -32,9 +52,10 @@
   "imports": {
     "react": "https://esm.sh/react@18.2.0",
     "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
     "jspdf": "https://esm.sh/jspdf@2.5.1",
-    "html2canvas": "https://esm.sh/html2canvas@1.4.1",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/"
+    "jspdf-autotable": "https://esm.sh/jspdf-autotable@3.5.28",
+    "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1"
   }
 }
 </script>
