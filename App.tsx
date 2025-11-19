@@ -1,13 +1,6 @@
 
 
 
-
-
-
-
-
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
@@ -372,6 +365,33 @@ function App() {
           alert('Failed to restore backup. Invalid file format.');
       }
   };
+  
+  const handleResetApp = async () => {
+      if (window.confirm('WARNING: This will delete ALL contacts, jobs, and settings from this device. This action cannot be undone. Are you sure?')) {
+          // Clear Local Storage
+          localStorage.removeItem('contacts');
+          localStorage.removeItem('defaultFields');
+          localStorage.removeItem('businessInfo');
+          localStorage.removeItem('emailSettings');
+          localStorage.removeItem('jobTemplates');
+          localStorage.removeItem('partsCatalog');
+          localStorage.removeItem('enabledStatuses');
+          localStorage.removeItem('lastAutoBackup');
+          
+          // Clear State
+          setContacts([]);
+          setDefaultFields([]);
+          setBusinessInfo({ name: '', address: '', phone: '', email: '', logoUrl: '' });
+          setJobTemplates([]);
+          setPartsCatalog([]);
+          
+          // Clear DB
+          await clearAndAddFiles([]);
+          
+          alert('Application data has been reset.');
+          setViewState({ type: 'dashboard' });
+      }
+  };
 
   const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses };
 
@@ -451,6 +471,7 @@ function App() {
                   contacts={contacts}
                   autoCalendarExportEnabled={autoCalendarExportEnabled}
                   onToggleAutoCalendarExport={setAutoCalendarExportEnabled}
+                  onResetApp={handleResetApp}
               />;
           case 'invoice':
               const invoiceContact = contacts.find(c => c.id === viewState.contactId);

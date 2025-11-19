@@ -67,6 +67,14 @@ export interface Part {
   cost: number;
 }
 
+export type InspectionStatus = 'pass' | 'fail' | 'repaired' | 'na';
+
+export interface InspectionItem {
+    id: string;
+    name: string;
+    status: InspectionStatus;
+}
+
 export interface JobTicket {
   id: string;
   date: string; // ISO string format e.g., "2023-10-27"
@@ -83,6 +91,7 @@ export interface JobTicket {
   salesTaxRate?: number;
   processingFeeRate?: number;
   deposit?: number;
+  inspection?: InspectionItem[];
 }
 
 export interface JobTemplate {
@@ -147,6 +156,34 @@ export const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
 };
 
 export const DEFAULT_ON_MY_WAY_TEMPLATE = "Hi {{customerName}}, this is {{businessName}}. I am on my way to service your garage door and should arrive in about 20 minutes.";
+
+export const DEFAULT_INSPECTION_POINTS = [
+    "Door Balance / Level",
+    "Safety Sensors (Photo Eyes)",
+    "Safety Reverse Test",
+    "Cables",
+    "Springs",
+    "Rollers",
+    "Hinges",
+    "Bottom Brackets",
+    "Center Bearing",
+    "End Bearings",
+    "Drums",
+    "Shaft / Torsion Tube",
+    "Tracks (Vertical & Horizontal)",
+    "Opener Motor / Gear",
+    "Trolley / Carriage",
+    "J-Arm",
+    "Emergency Release Cord",
+    "Wall Button",
+    "Remote Controls",
+    "Keypad",
+    "Wiring / Connections",
+    "Limit Settings",
+    "Force Settings",
+    "Weather Seal (Bottom)",
+    "Perimeter Seal (Jamb)"
+];
 
 export type ViewState = 
   | { type: 'list' }

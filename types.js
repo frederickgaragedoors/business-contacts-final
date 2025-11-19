@@ -1,6 +1,7 @@
 
 
 
+
 export const jobStatusColors = {
   'Estimate Scheduled': { base: 'bg-slate-200 dark:bg-slate-700', text: 'text-slate-700 dark:text-slate-200' },
   'Quote Sent': { base: 'bg-orange-100 dark:bg-orange-900', text: 'text-orange-800 dark:text-orange-200' },
@@ -38,3 +39,31 @@ export const DEFAULT_EMAIL_SETTINGS = {
 };
 
 export const DEFAULT_ON_MY_WAY_TEMPLATE = "Hi {{customerName}}, this is {{businessName}}. I am on my way to service your garage door and should arrive in about 20 minutes.";
+
+export const DEFAULT_INSPECTION_POINTS = [
+    "Door Balance / Level",
+    "Safety Sensors (Photo Eyes)",
+    "Safety Reverse Test",
+    "Cables",
+    "Springs",
+    "Rollers",
+    "Hinges",
+    "Bottom Brackets",
+    "Center Bearing",
+    "End Bearings",
+    "Drums",
+    "Shaft / Torsion Tube",
+    "Tracks (Vertical & Horizontal)",
+    "Opener Motor / Gear",
+    "Trolley / Carriage",
+    "J-Arm",
+    "Emergency Release Cord",
+    "Wall Button",
+    "Remote Controls",
+    "Keypad",
+    "Wiring / Connections",
+    "Limit Settings",
+    "Force Settings",
+    "Weather Seal (Bottom)",
+    "Perimeter Seal (Jamb)"
+];
