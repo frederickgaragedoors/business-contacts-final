@@ -8,6 +8,8 @@
 
 
 
+
+
 import React, { useState } from 'react';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon } from './icons.js';
 import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.js';
@@ -68,6 +70,7 @@ const Settings = ({
     contacts,
     autoCalendarExportEnabled,
     onToggleAutoCalendarExport,
+    onResetApp,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState(businessInfo);
@@ -461,7 +464,7 @@ const Settings = ({
                         React.createElement("div", { className: "flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg" },
                             React.createElement("div", null,
                                 React.createElement("p", { className: "font-medium text-slate-700 dark:text-slate-200" }, "Restore from Backup"),
-                                React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, "Import data from a backup file.")
+                                React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, React.createElement("span", null, "Replace your current data with a backup file. "), React.createElement("strong", null, "Existing data will be overwritten.")),
                             ),
                             React.createElement("label", { htmlFor: "backup-upload", className: "cursor-pointer inline-flex items-center justify-center whitespace-nowrap flex-shrink-0 space-x-2 px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors" },
                                 React.createElement(UploadIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Import Backup"),
@@ -487,6 +490,25 @@ const Settings = ({
                             )
                         )
                     )
+                ),
+
+                React.createElement("div", { className: "mt-8 border-t border-red-200 dark:border-red-900/30 pt-6 pb-8" },
+                     React.createElement("h3", { className: "text-xl font-semibold text-red-600 dark:text-red-400" }, "Danger Zone"),
+                     React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "Irreversible actions for your application data."),
+                     React.createElement("div", { className: "mt-6" },
+                        React.createElement("div", { className: "flex items-center justify-between gap-4 p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-lg" },
+                             React.createElement("div", null,
+                                React.createElement("p", { className: "font-medium text-red-700 dark:text-red-300" }, "Reset Application Data"),
+                                React.createElement("p", { className: "text-xs text-red-600/80 dark:text-red-400/70" }, "Permanently delete all contacts, jobs, and settings. This cannot be undone.")
+                            ),
+                            React.createElement("button", { 
+                                onClick: onResetApp,
+                                className: "inline-flex items-center justify-center whitespace-nowrap flex-shrink-0 px-4 py-2 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 transition-colors shadow-sm"
+                            },
+                                "Reset App"
+                            )
+                        )
+                     )
                 )
             ),
             isTemplateModalOpen && React.createElement(JobTemplateModal, { template: editingTemplate, onSave: handleSaveTemplate, onClose: () => { setIsTemplateModalOpen(false); setEditingTemplate(null); } })

@@ -1,24 +1,8 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
+import SafetyInspectionModal from './SafetyInspectionModal.js';
 import EmptyState from './EmptyState.js';
 import {
   PhoneIcon,
@@ -57,6 +41,8 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
     const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
     const [editingJobTicket, setEditingJobTicket] = useState(null);
+    const [inspectingTicket, setInspectingTicket] = useState(null);
+    
     const [hydratedFiles, setHydratedFiles] = useState([]);
     const [isLoadingFiles, setIsLoadingFiles] = useState(false);
     const [activeTab, setActiveTab] = useState('details');
@@ -208,12 +194,25 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 deposit: entry.deposit || 0,
                 createdAt: new Date().toISOString(),
                 jobLocation: entry.jobLocation,
+                inspection: entry.inspection,
             };
             updatedTickets = [newTicket, ...currentTickets];
         }
         updateContactJobTickets(contact.id, updatedTickets);
         setIsJobTicketModalOpen(false);
         setEditingJobTicket(null);
+    };
+
+    const handleSaveInspection = (newInspection) => {
+        if (!inspectingTicket) return;
+
+        const updatedTickets = contact.jobTickets.map(t => 
+            t.id === inspectingTicket.id 
+            ? { ...t, inspection: newInspection } 
+            : t
+        );
+        updateContactJobTickets(contact.id, updatedTickets);
+        setInspectingTicket(null);
     };
     
     const handleDeleteJobTicket = (id) => {
@@ -420,6 +419,20 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                 const paymentStatus = ticket.paymentStatus || 'unpaid';
                                 const paymentStatusColor = paymentStatusColors[paymentStatus];
                                 const paymentStatusLabel = paymentStatusLabels[paymentStatus];
+                                
+                                // Inspection Status
+                                const inspection = ticket.inspection || [];
+                                const hasInspection = inspection.length > 0;
+                                const hasFailures = hasInspection && inspection.some(i => i.status === 'fail');
+                                
+                                let inspectionBadge = null;
+                                if (!hasInspection) {
+                                    inspectionBadge = React.createElement("span", { className: "text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded" }, "Inspection: Pending");
+                                } else if (hasFailures) {
+                                    inspectionBadge = React.createElement("span", { className: "text-xs font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-2 py-0.5 rounded" }, "Inspection: Issues Found");
+                                } else {
+                                    inspectionBadge = React.createElement("span", { className: "text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-0.5 rounded" }, "Inspection: Passed");
+                                }
 
                                 return React.createElement("li", { key: ticket.id, className: "p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover" },
                                     React.createElement("div", { className: "flex justify-between items-start mb-2" },
@@ -437,6 +450,19 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                         new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }),
                                         ticket.time && React.createElement("span", { className: "text-slate-500 dark:text-slate-400 font-normal ml-1" }, ` at ${formatTime(ticket.time)}`)
                                     ),
+                                    
+                                    React.createElement("div", { className: "mt-2 flex items-center" },
+                                        React.createElement(ClipboardListIcon, { className: `w-4 h-4 mr-1.5 ${hasFailures ? 'text-red-500' : (!hasInspection ? 'text-slate-400' : 'text-green-500')}` }),
+                                        inspectionBadge,
+                                        !hasInspection && React.createElement("button", {
+                                            onClick: (e) => {
+                                                e.stopPropagation();
+                                                setInspectingTicket(ticket);
+                                            },
+                                            className: "ml-2 text-xs bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded hover:bg-sky-200 dark:hover:bg-sky-900 transition-colors font-medium"
+                                        }, "Start")
+                                    ),
+                                    
                                     ticket.notes && (
                                         React.createElement("p", { className: "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-3" }, ticket.notes)
                                     ),
@@ -624,7 +650,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
 
                 React.createElement("input", { type: "file", accept: "image/*", multiple: true, ref: imageUploadRef, onChange: handleFilesSelected, className: "hidden" }),
                 React.createElement("input", { type: "file", accept: "image/*", capture: "environment", ref: cameraInputRef, onChange: handleFilesSelected, className: "hidden" }),
-                React.createElement("input", { type: "file", multiple: true, ref: fileUploadRef, onChange: handleFilesSelected, className: "hidden" }),
+                React.createElement("input", { type: "file", multiple: true, ref: fileUploadRef, onChange: handleFilesSelected, className: "hidden", accept: ".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*" }),
 
             ),
             isGalleryOpen && (
@@ -645,6 +671,15 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     defaultSalesTaxRate: businessInfo?.defaultSalesTaxRate,
                     defaultProcessingFeeRate: businessInfo?.defaultProcessingFeeRate,
                     contactAddress: contact.address
+                })
+            ),
+            inspectingTicket && (
+                React.createElement(SafetyInspectionModal, {
+                    isOpen: !!inspectingTicket,
+                    onClose: () => setInspectingTicket(null),
+                    initialInspection: inspectingTicket.inspection || [],
+                    onSave: handleSaveInspection,
+                    jobId: inspectingTicket.id
                 })
             )
         )

@@ -1,973 +1,618 @@
 
-
-
-
-
-
-
-
-
-
-import React, { useState, useRef } from 'react';
-import { jsPDF } from 'jspdf';
+import React, { useState } from 'react';
+import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Contact, JobTicket, BusinessInfo, FileAttachment, EmailSettings } from '../types.ts';
-import { ArrowLeftIcon, MailIcon, ShareIcon } from './icons.tsx';
-import { generateId, fileToDataUrl, calculateJobTicketTotal, processTemplate, formatPhoneNumber } from '../utils.ts';
-
+import { Contact, JobTicket, BusinessInfo, EmailSettings, PaymentStatus } from '../types.ts';
+import { calculateJobTicketTotal, formatPhoneNumber, generateId } from '../utils.ts';
+import { ArrowLeftIcon, DownloadIcon, ShareIcon, FileIcon } from './icons.tsx';
 
 interface InvoiceViewProps {
-    contact: Contact;
-    ticket: JobTicket;
-    businessInfo: BusinessInfo;
-    emailSettings: EmailSettings;
-    onClose: () => void;
-    addFilesToContact: (contactId: string, files: FileAttachment[]) => void;
+  contact: Contact;
+  ticket: JobTicket;
+  businessInfo: BusinessInfo;
+  emailSettings: EmailSettings;
+  onClose: () => void;
+  addFilesToContact: (contactId: string, files: any[]) => Promise<void>;
 }
 
-const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo, emailSettings, onClose, addFilesToContact }) => {
-    const [docType, setDocType] = useState<'receipt' | 'estimate'>('receipt');
-    const [isSaving, setIsSaving] = useState(false);
-    const invoiceContentRef = useRef<HTMLDivElement>(null);
+const InvoiceView: React.FC<InvoiceViewProps> = ({
+  contact,
+  ticket,
+  businessInfo,
+  emailSettings,
+  onClose,
+  addFilesToContact
+}) => {
+  const [docType, setDocType] = useState<'estimate' | 'receipt'>(
+    ticket.status === 'Estimate Scheduled' || ticket.status === 'Quote Sent' ? 'estimate' : 'receipt'
+  );
+  const [isSaving, setIsSaving] = useState(false);
 
-    // --- Calculations ---
-    const { subtotal, taxAmount, feeAmount, totalCost, deposit, balanceDue } = calculateJobTicketTotal(ticket);
-    
-    const cashTotal = subtotal + taxAmount;
-    const cardTotal = totalCost; 
-    const depositRatio = totalCost > 0 ? deposit / totalCost : 0;
-    
-    const cardDeposit = deposit; 
-    const cardBalance = cardTotal - cardDeposit;
-    
-    const cashDeposit = cashTotal * depositRatio;
-    const cashBalance = cashTotal - cashDeposit;
+  const { subtotal, taxAmount, feeAmount, totalCost, deposit, balanceDue } = calculateJobTicketTotal(ticket);
+  
+  const paymentStatus = ticket.paymentStatus || 'unpaid';
 
-    const isNativeShareSupported = typeof navigator !== 'undefined' && !!navigator.share;
+  // Calculate breakdown for Estimate View
+  const cashSubtotal = subtotal;
+  const cashTax = cashSubtotal * ((ticket.salesTaxRate || 0) / 100);
+  const cashTotal = cashSubtotal + cashTax;
+  const cashDeposit = cashTotal * 0.3;
+  const cashBalance = cashTotal - (ticket.deposit || 0);
 
-    // Determine Display Title and Logic based on Payment Status
-    const paymentStatus = ticket.paymentStatus || 'unpaid';
-    
-    let displayTitle = docType.toUpperCase();
-    if (docType === 'receipt') {
-        if (paymentStatus === 'paid_in_full') {
-            displayTitle = 'FINAL RECEIPT';
-        } else if (paymentStatus === 'deposit_paid') {
-            displayTitle = 'DEPOSIT RECEIPT';
-        } else {
-            displayTitle = 'INVOICE';
+  const cardTotal = totalCost; 
+  const cardDeposit = cardTotal * 0.3;
+  const cardBalance = cardTotal - (ticket.deposit || 0);
+
+  const createPDFDoc = () => {
+    const doc = new jsPDF();
+    const logoSize = 30;
+    let startY = 20;
+
+    // Logo & Header
+    if (businessInfo.logoUrl) {
+        try {
+            const format = businessInfo.logoUrl.includes('image/png') ? 'PNG' : 'JPEG';
+            doc.addImage(businessInfo.logoUrl, format, 20, 20, logoSize, logoSize);
+            
+            // Company Info (pushed down)
+            doc.setFontSize(20);
+            doc.text(businessInfo.name, 20, 20 + logoSize + 10);
+            
+            doc.setFontSize(10);
+            doc.text(businessInfo.address || '', 20, 20 + logoSize + 17);
+            doc.text(`Phone: ${formatPhoneNumber(businessInfo.phone)}`, 20, 20 + logoSize + 22);
+            doc.text(`Email: ${businessInfo.email}`, 20, 20 + logoSize + 27);
+
+            startY = 20 + logoSize + 40;
+        } catch (e) {
+            console.error("Error adding logo to PDF", e);
+            // Fallback layout if logo fails
+            doc.setFontSize(20);
+            doc.text(businessInfo.name, 20, 20);
+            doc.setFontSize(10);
+            doc.text(businessInfo.address || '', 20, 27);
+            doc.text(`Phone: ${formatPhoneNumber(businessInfo.phone)}`, 20, 32);
+            doc.text(`Email: ${businessInfo.email}`, 20, 37);
+            startY = 50;
         }
+    } else {
+        // No Logo Layout
+        doc.setFontSize(20);
+        doc.text(businessInfo.name, 20, 20);
+        doc.setFontSize(10);
+        doc.text(businessInfo.address || '', 20, 27);
+        doc.text(`Phone: ${formatPhoneNumber(businessInfo.phone)}`, 20, 32);
+        doc.text(`Email: ${businessInfo.email}`, 20, 37);
+        startY = 50;
     }
 
-    const generatePdf = async () => {
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'pt',
-            format: 'letter'
-        });
+    // Document Details (Top Right)
+    doc.setFontSize(16);
+    doc.text(docType.toUpperCase(), 150, 20);
+    doc.setFontSize(10);
+    doc.text(`# ${ticket.id}`, 150, 27);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 150, 32);
 
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 40;
-        const startY = 40;
+    // Bill To
+    const billToY = startY;
+    doc.text("BILL TO:", 20, billToY);
+    doc.setFontSize(12);
+    doc.text(contact.name, 20, billToY + 6);
+    doc.setFontSize(10);
+    doc.text(contact.address || '', 20, billToY + 11);
+    doc.text(`Phone: ${formatPhoneNumber(contact.phone)}`, 20, billToY + 16);
+    doc.text(`Email: ${contact.email}`, 20, billToY + 21);
 
-        let logoWidth = 0;
-        let logoHeight = 0;
-        let headerHeight = 0;
+    // Job Location
+    if (ticket.jobLocation && ticket.jobLocation !== contact.address) {
+      doc.text("JOB LOCATION:", 100, billToY);
+      doc.text(ticket.jobLocation, 100, billToY + 6);
+    }
 
-        // --- 1. Logo (Left Margin) ---
-        if (businessInfo.logoUrl) {
-            try {
-                const getImageDimensions = (src: string): Promise<{ width: number; height: number } | null> => {
-                    return new Promise((resolve) => {
-                        const img = new Image();
-                        img.onload = () => resolve({ width: img.width, height: img.height });
-                        img.onerror = () => resolve(null);
-                        img.src = src;
-                    });
-                };
+    // Table
+    const tableY = billToY + 30;
+    const tableBody = ticket.parts.map(part => [
+      part.name,
+      part.quantity.toString(),
+      `$${part.cost.toFixed(2)}`,
+      `$${(part.quantity * part.cost).toFixed(2)}`
+    ]);
 
-                const dims = await getImageDimensions(businessInfo.logoUrl);
-                if (dims) {
-                    const aspectRatio = dims.width / dims.height;
-                    logoHeight = 60; // Fixed height target
-                    logoWidth = logoHeight * aspectRatio;
+    if (ticket.laborCost > 0) {
+        tableBody.push(['Labor', '1', `$${ticket.laborCost.toFixed(2)}`, `$${ticket.laborCost.toFixed(2)}`]);
+    }
 
-                    if (logoWidth > 150) {
-                        logoWidth = 150;
-                        logoHeight = logoWidth / aspectRatio;
-                    }
+    autoTable(doc, {
+      startY: tableY,
+      head: [['Description', 'Qty', 'Unit Price', 'Amount']],
+      body: tableBody,
+      theme: 'striped',
+      headStyles: { fillColor: [66, 66, 66] },
+    });
 
-                    const format = businessInfo.logoUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-                    doc.addImage(businessInfo.logoUrl, format, margin, startY, logoWidth, logoHeight);
-                }
-            } catch (e) {
-                console.warn("Could not add logo", e);
-            }
+    let finalY = (doc as any).lastAutoTable.finalY + 10;
+
+    // Totals
+    doc.text(`Subtotal: $${subtotal.toFixed(2)}`, 140, finalY);
+    finalY += 5;
+    if (ticket.salesTaxRate) {
+        doc.text(`Tax (${ticket.salesTaxRate}%): $${taxAmount.toFixed(2)}`, 140, finalY);
+        finalY += 5;
+    }
+    if (ticket.processingFeeRate) {
+        doc.text(`Processing Fee (${ticket.processingFeeRate}%): $${feeAmount.toFixed(2)}`, 140, finalY);
+        finalY += 5;
+    }
+    
+    doc.setFontSize(12);
+    doc.text(`Total: $${totalCost.toFixed(2)}`, 140, finalY + 2);
+    finalY += 10;
+
+    if (docType === 'receipt') {
+        if (paymentStatus === 'paid_in_full') {
+            doc.text(`Amount Paid: $${totalCost.toFixed(2)}`, 140, finalY);
+            finalY += 5;
+            doc.text(`Balance Due: $0.00`, 140, finalY);
+        } else if (paymentStatus === 'deposit_paid' && deposit > 0) {
+            doc.text(`Deposit Paid: $${deposit.toFixed(2)}`, 140, finalY);
+            finalY += 5;
+            doc.text(`Balance Due: $${balanceDue.toFixed(2)}`, 140, finalY);
+        } else {
+             doc.text(`Balance Due: $${totalCost.toFixed(2)}`, 140, finalY);
         }
-
-        // --- 2. Business Info (Right of Logo) ---
-        const infoX = margin + logoWidth + (logoWidth > 0 ? 20 : 0);
-        let infoY = startY + 10;
-
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30);
-        doc.text(businessInfo.name || 'Your Company', infoX, infoY);
-        
-        infoY += 15;
+    } else if (docType === 'estimate' && deposit > 0) {
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100);
-        
-        const rightColWidth = 150;
-        const maxInfoWidth = pageWidth - margin - rightColWidth - infoX - 20;
-        const safeInfoWidth = Math.max(maxInfoWidth, 200);
+        doc.text(`Required Deposit: $${deposit.toFixed(2)}`, 140, finalY);
+    }
 
-        const addressLines = doc.splitTextToSize(businessInfo.address || '', safeInfoWidth);
-        doc.text(addressLines, infoX, infoY);
-        infoY += (addressLines.length * 12);
-        
-        if (businessInfo.phone) {
-            doc.text(businessInfo.phone, infoX, infoY);
-            infoY += 12;
-        }
-        if (businessInfo.email) {
-            doc.text(businessInfo.email, infoX, infoY);
-            infoY += 12;
-        }
-        
-        const infoBlockHeight = infoY - startY;
-        headerHeight = Math.max(logoHeight, infoBlockHeight);
-
-        // --- 3. Document Info (Far Right) ---
-        let docInfoY = startY + 10;
-        const rightColX = pageWidth - margin;
-        
-        doc.setFontSize(24);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(50);
-        doc.text(displayTitle, rightColX, docInfoY, { align: 'right' });
-        docInfoY += 25;
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100);
-        doc.text(`Job ID: ${ticket.id}`, rightColX, docInfoY, { align: 'right' });
-        docInfoY += 14;
-        doc.text(`Date: ${new Date(ticket.date).toLocaleDateString()}`, rightColX, docInfoY, { align: 'right' });
-        
-        let yPos = startY + Math.max(headerHeight, docInfoY - startY) + 35;
-        
-        // --- Bill To ---
-        const leftColX = margin;
-        // Calculate width to avoid overlapping with potential "Service Location"
-        // If service location exists, we split width.
-        const hasServiceLocation = ticket.jobLocation && ticket.jobLocation !== contact.address;
-        const halfPageWidth = (pageWidth - (margin * 2)) / 2;
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(100);
-        doc.text('BILL TO', leftColX, yPos);
-        
-        if (hasServiceLocation) {
-             doc.text('SERVICE LOCATION', leftColX + halfPageWidth + 20, yPos);
-        }
-
-        yPos += 15;
-        
-        // Bill To Content
-        doc.setFontSize(11);
-        doc.setTextColor(0);
-        doc.text(contact.name, leftColX, yPos);
-        
-        // Service Location Content (Use specific site contact name if available, else main contact)
-        if (hasServiceLocation) {
-            const siteName = ticket.jobLocationContactName || contact.name;
-            doc.text(siteName, leftColX + halfPageWidth + 20, yPos);
-        }
-
-        yPos += 14;
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(50);
-        
-        const clientAddressLines = doc.splitTextToSize(contact.address || '', 250);
-        doc.text(clientAddressLines, leftColX, yPos);
-        
-        let billToY = yPos + (clientAddressLines.length * 12) + 5;
-        if(contact.phone) {
-             doc.text(contact.phone, leftColX, billToY);
-             billToY += 12;
-        }
-        if(contact.email) {
-             doc.text(contact.email, leftColX, billToY);
-             billToY += 12;
-        }
-
-        let serviceY = yPos;
-        // Service Location Address
-        if (hasServiceLocation && ticket.jobLocation) {
-             const serviceAddressLines = doc.splitTextToSize(ticket.jobLocation, 250);
-             doc.text(serviceAddressLines, leftColX + halfPageWidth + 20, yPos);
-             serviceY = yPos + (serviceAddressLines.length * 12) + 5;
-
-             if (ticket.jobLocationContactPhone) {
-                 doc.text(formatPhoneNumber(ticket.jobLocationContactPhone), leftColX + halfPageWidth + 20, serviceY);
-                 serviceY += 12;
-             }
-        }
-        
-        // Advance Y position to max of both columns
-        yPos = Math.max(billToY, serviceY) + 20;
-
-        // --- Item Table ---
-        const tableColumn = ["Description", "Qty", "Unit Price", "Amount"];
-        const tableRows: string[][] = [];
-
-        ticket.parts.forEach(part => {
-            const partData = [
-                part.name,
-                part.quantity.toString(),
-                `$${part.cost.toFixed(2)}`,
-                `$${(part.cost * part.quantity).toFixed(2)}`
-            ];
-            tableRows.push(partData);
-        });
-        
-        if (ticket.laborCost > 0) {
-            tableRows.push(["Labor", "-", "-", `$${ticket.laborCost.toFixed(2)}`]);
-        }
-
-        autoTable(doc, {
-            startY: yPos,
-            head: [tableColumn],
-            body: tableRows,
-            theme: 'plain',
-            headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold' }, 
-            styles: { fontSize: 10, cellPadding: 8, lineColor: [226, 232, 240], lineWidth: 0.5 },
-            columnStyles: {
-                0: { cellWidth: 'auto' },
-                1: { cellWidth: 40, halign: 'center' },
-                2: { cellWidth: 80, halign: 'right' },
-                3: { cellWidth: 80, halign: 'right' }
-            }
-        });
-        
-        let finalY = (doc as any).lastAutoTable.finalY + 30;
-
-        // --- Totals & Payment Options ---
-        
-        if (finalY > doc.internal.pageSize.getHeight() - 200) {
+    // Payment Terms
+    if (docType === 'estimate' && deposit > 0) {
+        if (finalY > doc.internal.pageSize.getHeight() - 60) {
             doc.addPage();
             finalY = 40;
-        }
-
-        if (docType === 'estimate' && ticket.processingFeeRate > 0) {
-             // ** Dual Column Estimate Layout **
-             doc.setFontSize(10);
-             doc.setTextColor(50);
-             const rAlign = pageWidth - margin;
-             
-             doc.text(`Subtotal: $${subtotal.toFixed(2)}`, rAlign, finalY, {align: 'right'});
-             finalY += 15;
-             if (ticket.salesTaxRate > 0) {
-                 doc.text(`Sales Tax (${ticket.salesTaxRate}%): $${taxAmount.toFixed(2)}`, rAlign, finalY, {align: 'right'});
-                 finalY += 25;
-             } else {
-                 finalY += 10;
-             }
-             
-             doc.setFontSize(12);
-             doc.setFont('helvetica', 'bold');
-             doc.setTextColor(0);
-             doc.text("PAYMENT OPTIONS", pageWidth / 2, finalY, { align: 'center' });
-             finalY += 20;
-             
-             const boxWidth = 240;
-             const boxHeight = 130;
-             const boxY = finalY;
-             
-             const leftBoxX = margin;
-             doc.setDrawColor(226, 232, 240);
-             doc.setFillColor(248, 250, 252);
-             doc.roundedRect(leftBoxX, boxY, boxWidth, boxHeight, 5, 5, 'FD');
-             
-             doc.setFontSize(11);
-             doc.text("Cash / Check", leftBoxX + (boxWidth/2), boxY + 20, { align: 'center' });
-             
-             doc.setDrawColor(226, 232, 240);
-             doc.line(leftBoxX + 20, boxY + 30, leftBoxX + boxWidth - 20, boxY + 30);
-             
-             doc.setFontSize(9);
-             doc.setFont('helvetica', 'normal');
-             let innerY = boxY + 50;
-             
-             if (deposit > 0) {
-                doc.text("Required Deposit (30%)", leftBoxX + 15, innerY);
-                doc.text(`$${cashDeposit.toFixed(2)}`, leftBoxX + boxWidth - 15, innerY, { align: 'right' });
-                innerY += 20;
-                
-                doc.text("Balance Due (70%)", leftBoxX + 15, innerY);
-                doc.text(`$${cashBalance.toFixed(2)}`, leftBoxX + boxWidth - 15, innerY, { align: 'right' });
-                innerY += 25;
-
-                doc.setDrawColor(226, 232, 240);
-                doc.line(leftBoxX + 15, innerY - 15, leftBoxX + boxWidth - 15, innerY - 15);
-             } else {
-                innerY += 45;
-             }
-             
-             doc.setFontSize(11);
-             doc.setFont('helvetica', 'bold');
-             doc.text("Total", leftBoxX + 15, innerY);
-             doc.text(`$${cashTotal.toFixed(2)}`, leftBoxX + boxWidth - 15, innerY, { align: 'right' });
-
-             const rightBoxX = pageWidth - margin - boxWidth;
-             doc.setFillColor(240, 249, 255);
-             doc.setDrawColor(186, 230, 253);
-             doc.roundedRect(rightBoxX, boxY, boxWidth, boxHeight, 5, 5, 'FD');
-             
-             doc.setFontSize(11);
-             doc.setTextColor(0);
-             doc.text("Card Payment", rightBoxX + (boxWidth/2), boxY + 20, { align: 'center' });
-
-             doc.setDrawColor(186, 230, 253);
-             doc.line(rightBoxX + 20, boxY + 30, rightBoxX + boxWidth - 20, boxY + 30);
-             
-             doc.setFontSize(9);
-             doc.setFont('helvetica', 'normal');
-             doc.setTextColor(50);
-             innerY = boxY + 50;
-
-             doc.text(`Processing Fee (${ticket.processingFeeRate}%)`, rightBoxX + 15, innerY);
-             doc.text(`$${feeAmount.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
-             innerY += 20;
-
-             if (deposit > 0) {
-                 doc.setDrawColor(186, 230, 253);
-                 doc.line(rightBoxX + 15, innerY - 12, rightBoxX + boxWidth - 15, innerY - 12);
-
-                 doc.text("Required Deposit (30%)", rightBoxX + 15, innerY);
-                 doc.text(`$${cardDeposit.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
-                 innerY += 20;
-                 
-                 doc.text("Balance Due (70%)", rightBoxX + 15, innerY);
-                 doc.text(`$${cardBalance.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
-                 innerY += 25; 
-             } else {
-                 innerY += 25;
-             }
-
-             doc.setDrawColor(186, 230, 253);
-             doc.line(rightBoxX + 15, innerY - 15, rightBoxX + boxWidth - 15, innerY - 15);
-
-             doc.setFontSize(11);
-             doc.setFont('helvetica', 'bold');
-             doc.setTextColor(0);
-             doc.text("Total Charge", rightBoxX + 15, innerY);
-             doc.text(`$${cardTotal.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
-
-             finalY += boxHeight + 30;
-
         } else {
-            // ** Standard Single Column Layout (Receipts or simple Estimates) **
-            const rAlign = pageWidth - margin;
-            const lAlign = rAlign - 150;
-            
-            doc.setFontSize(10);
-            doc.setTextColor(50);
-            
-            doc.text("Subtotal:", lAlign, finalY);
-            doc.text(`$${subtotal.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-            finalY += 15;
-            
-            if (ticket.salesTaxRate > 0) {
-                doc.text(`Sales Tax (${ticket.salesTaxRate}%):`, lAlign, finalY);
-                doc.text(`$${taxAmount.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-                finalY += 15;
-            }
-            
-            if (ticket.processingFeeRate > 0) {
-                 doc.text(`Processing Fee (${ticket.processingFeeRate}%):`, lAlign, finalY);
-                 doc.text(`$${feeAmount.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-                 finalY += 15;
-            }
-            
-            finalY += 5;
-            doc.setDrawColor(200);
-            doc.line(lAlign - 10, finalY - 10, rAlign, finalY - 10);
-            
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(0);
-            doc.text("Total:", lAlign, finalY);
-            doc.text(`$${totalCost.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-            finalY += 20;
-            
-            // Logic for Receipts based on payment status
-            if (docType === 'receipt') {
-                if (paymentStatus === 'paid_in_full') {
-                     doc.setFontSize(10);
-                     doc.setFont('helvetica', 'normal');
-                     doc.setTextColor(22, 163, 74);
-                     doc.text("Amount Paid:", lAlign, finalY);
-                     doc.text(`-$${totalCost.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-                     finalY += 15;
-                     
-                     doc.setFontSize(12);
-                     doc.setFont('helvetica', 'bold');
-                     doc.setTextColor(0);
-                     doc.text("Balance Due:", lAlign, finalY);
-                     doc.text(`$0.00`, rAlign, finalY, { align: 'right' });
-                     finalY += 20;
-
-                } else if (paymentStatus === 'deposit_paid' && deposit > 0) {
-                     doc.setFontSize(10);
-                     doc.setFont('helvetica', 'normal');
-                     doc.setTextColor(22, 163, 74);
-                     doc.text("Deposit Paid:", lAlign, finalY);
-                     doc.text(`-$${deposit.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-                     finalY += 15;
-                     
-                     doc.setFontSize(12);
-                     doc.setFont('helvetica', 'bold');
-                     doc.setTextColor(0);
-                     doc.text("Balance Due:", lAlign, finalY);
-                     doc.text(`$${balanceDue.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-                     finalY += 20;
-                } else {
-                     // Unpaid receipt/invoice
-                     doc.setFontSize(12);
-                     doc.setFont('helvetica', 'bold');
-                     doc.setTextColor(0);
-                     doc.text("Balance Due:", lAlign, finalY);
-                     doc.text(`$${totalCost.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-                     finalY += 20;
-                }
-            } else {
-                // Estimate logic
-                 if (deposit > 0) {
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(50); // Regular color for estimate
-                    doc.text("Required Deposit:", lAlign, finalY);
-                    doc.text(`$${deposit.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-                    finalY += 15;
-                    
-                    doc.setFontSize(12);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(0);
-                    doc.text("Balance Due:", lAlign, finalY);
-                    doc.text(`$${balanceDue.toFixed(2)}`, rAlign, finalY, { align: 'right' });
-                    finalY += 20;
-                }
-            }
-        }
-
-        // --- Payment Terms / Schedule ---
-        if (docType === 'estimate' && deposit > 0) {
-            if (finalY > doc.internal.pageSize.getHeight() - 100) {
-                doc.addPage();
-                finalY = 40;
-            }
-            
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(0);
-            doc.text("PAYMENT SCHEDULE", margin, finalY);
-            finalY += 15;
-            
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(50);
-            doc.text("• A deposit is due at contract signing to schedule the work.", margin + 10, finalY);
-            finalY += 15;
-            doc.text("• The remaining balance is due upon completion of the job.", margin + 10, finalY);
             finalY += 20;
         }
         
-        // --- Footer ---
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text("PAYMENT SCHEDULE", 20, finalY);
+        finalY += 8;
+        
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'italic');
-        doc.setTextColor(150);
-        doc.text("Thank you for your business!", pageWidth / 2, doc.internal.pageSize.getHeight() - 30, { align: 'center' });
-
-        return { pdf: doc, fileName: `${contact.name} - ${displayTitle} ${ticket.id}.pdf` };
-    };
-
-    const handleDownload = async () => {
-        if (isSaving) return;
-        setIsSaving(true);
-        const result = await generatePdf();
-        if (result) {
-            result.pdf.save(result.fileName);
-        }
-        setIsSaving(false);
-    };
-
-    const handleAttach = async () => {
-        if (isSaving) return;
-        setIsSaving(true);
-        const result = await generatePdf();
-        if (result) {
-            const { pdf, fileName } = result;
-            const pdfBlob = pdf.output('blob');
-            const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-            
-            try {
-                 const dataUrl = await fileToDataUrl(pdfFile);
-                 const newFileAttachment: FileAttachment = {
-                    id: generateId(),
-                    name: fileName,
-                    type: 'application/pdf',
-                    size: pdfFile.size,
-                    dataUrl: dataUrl
-                };
-                await addFilesToContact(contact.id, [newFileAttachment]);
-                alert('PDF attached successfully!');
-            } catch (error) {
-                console.error("Error attaching PDF:", error);
-                alert("Failed to attach PDF.");
-            }
-        }
-        setIsSaving(false);
-    };
+        doc.setFont('helvetica', 'normal');
+        doc.text("• A deposit is due at contract signing to schedule the work.", 25, finalY);
+        finalY += 6;
+        doc.text("• The remaining balance is due upon completion of the job.", 25, finalY);
+        finalY += 10;
+    }
     
-    const handleEmail = async () => {
-        if (isSaving) return;
-        setIsSaving(true);
+    // Safety Inspection Report
+    if (ticket.inspection && ticket.inspection.length > 0) {
+        doc.addPage();
+        let inspectY = 20;
 
-        const template = docType === 'estimate' ? emailSettings.estimate : emailSettings.receipt;
-        
-        const templateData = {
-            customerName: contact.name,
-            jobId: ticket.id,
-            businessName: businessInfo.name || 'Our Company',
-            date: new Date().toLocaleDateString()
-        };
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text("SAFETY INSPECTION REPORT", 20, inspectY);
+        inspectY += 10;
 
-        const subject = processTemplate(template.subject, templateData);
-        const body = processTemplate(template.body, templateData);
-        
-        const result = await generatePdf();
-        
-        if (result) {
-            result.pdf.save(result.fileName);
+        const inspectionRows = ticket.inspection.map(item => {
+            let statusText = item.status.toUpperCase();
+            if (statusText === 'NA') statusText = 'N/A';
+            return [item.name, statusText];
+        });
 
-            setTimeout(() => {
-                const mailtoLink = `mailto:${contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                window.location.href = mailtoLink;
-                alert("PDF downloaded. Opening email client... Please attach the PDF file to your email.");
-            }, 500);
-        }
-        setIsSaving(false);
-    };
-
-    const handleNativeShare = async () => {
-        if (isSaving) return;
-        setIsSaving(true);
-
-        const template = docType === 'estimate' ? emailSettings.estimate : emailSettings.receipt;
-
-        const templateData = {
-            customerName: contact.name,
-            jobId: ticket.id,
-            businessName: businessInfo.name || 'Our Company',
-            date: new Date().toLocaleDateString()
-        };
-        
-        const subject = processTemplate(template.subject, templateData);
-        const body = processTemplate(template.body, templateData);
-
-        try {
-             const result = await generatePdf();
-             if (!result) throw new Error("Failed to generate PDF");
-             
-             const pdfBlob = result.pdf.output('blob');
-             const file = new File([pdfBlob], result.fileName, { type: 'application/pdf' });
-
-             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                 await navigator.share({
-                     files: [file],
-                     title: subject,
-                     text: body,
-                 });
-             } else {
-                 alert("Sharing files is not supported on this device. Please use the Email or Download option.");
-             }
-        } catch (error) {
-            console.error("Share failed:", error);
-             if (error instanceof Error && error.name !== 'AbortError') {
-                alert("Share failed. Please try downloading or using the Email button.");
-            }
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    return (
-        <div className="h-full flex flex-col bg-slate-200 dark:bg-slate-900 overflow-y-auto print:bg-white print:overflow-visible print:h-auto">
-            <style>{`
-                @media print {
-                    body * {
-                        visibility: hidden;
-                    }
-                    #printable-invoice, #printable-invoice * {
-                        visibility: visible;
-                    }
-                    #printable-invoice {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        box-shadow: none !important;
-                    }
-                    @page {
-                        size: auto;
-                        margin: 0mm;
-                    }
-                    html, body, #root {
-                        height: auto !important;
-                        overflow: visible !important;
+        autoTable(doc, {
+            startY: inspectY,
+            head: [['Inspection Point', 'Status']],
+            body: inspectionRows,
+            theme: 'striped',
+            headStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: 'bold' },
+            styles: { fontSize: 9, cellPadding: 4 },
+            columnStyles: {
+                0: { cellWidth: 'auto' },
+                1: { cellWidth: 60, halign: 'center', fontStyle: 'bold' }
+            },
+            didParseCell: (data) => {
+                if (data.section === 'body' && data.column.index === 1) {
+                    const status = data.cell.raw as string;
+                    if (status === 'FAIL') {
+                        data.cell.styles.textColor = [220, 38, 38]; // Red
+                    } else if (status === 'PASS') {
+                        data.cell.styles.textColor = [22, 163, 74]; // Green
+                    } else if (status === 'REPAIRED') {
+                        data.cell.styles.textColor = [37, 99, 235]; // Blue
+                    } else {
+                        data.cell.styles.textColor = [148, 163, 184]; // Grey
                     }
                 }
-            `}</style>
-            {/* Toolbar */}
-            <div className="p-4 border-b border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 print:hidden">
-                <div className="flex flex-col xl:flex-row items-center xl:justify-between gap-4 xl:gap-0">
-                    <div className="w-full xl:w-auto flex items-center justify-center xl:justify-start relative">
-                        <button onClick={onClose} className="absolute left-0 xl:static p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-                            <ArrowLeftIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-                        </button>
-                        <div className="flex items-center justify-center w-full xl:w-auto">
-                            <div className="flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-700 rounded-lg sm:ml-4">
-                                <button
-                                    onClick={() => setDocType('estimate')}
-                                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'estimate' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
-                                >
-                                    Estimate
-                                </button>
-                                <button
-                                    onClick={() => setDocType('receipt')}
-                                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${docType === 'receipt' ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'}`}
-                                >
-                                    Receipt
-                                </button>
+            }
+        });
+    }
+
+    return doc;
+  };
+
+  const handleDownload = () => {
+      const doc = createPDFDoc();
+      doc.save(`${docType}_${ticket.id}.pdf`);
+  };
+
+  const handleShare = async () => {
+    const doc = createPDFDoc();
+    const pdfBlob = doc.output('blob');
+    const file = new File([pdfBlob], `${docType}_${ticket.id}.pdf`, { type: 'application/pdf' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: `${docType} #${ticket.id}`,
+                text: `Here is the ${docType} for your review.`
+            });
+        } catch (error) {
+            console.log('Error sharing', error);
+        }
+    } else {
+        alert("Sharing is not supported on this device. Please download the file instead.");
+    }
+  };
+
+  const handleSaveToFiles = async () => {
+      setIsSaving(true);
+      try {
+        const doc = createPDFDoc();
+        const pdfBase64 = doc.output('datauristring');
+        const file = {
+            id: generateId(),
+            name: `${docType}_${ticket.id}.pdf`,
+            type: 'application/pdf',
+            size: Math.round(pdfBase64.length * 0.75), // Approx size
+            dataUrl: pdfBase64
+        };
+        await addFilesToContact(contact.id, [file]);
+        alert(`Saved ${docType} to contact files.`);
+      } catch (e) {
+          console.error(e);
+          alert("Failed to save file.");
+      } finally {
+          setIsSaving(false);
+      }
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-900 overflow-y-auto">
+       <div className="px-4 py-3 flex flex-col sm:flex-row items-center justify-between border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md z-20 gap-3 sm:gap-4">
+          
+          <div className="flex w-full sm:w-auto items-center justify-between gap-4">
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors">
+                <ArrowLeftIcon className="w-6 h-6" />
+            </button>
+            
+            {/* Prominent Toggle */}
+            <div className="flex bg-slate-200/80 dark:bg-slate-700/80 p-1 rounded-lg flex-grow sm:flex-grow-0 max-w-xs mx-auto sm:mx-0">
+                <button 
+                    onClick={() => setDocType('estimate')}
+                    className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 ${docType === 'estimate' ? 'bg-white dark:bg-slate-600 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                >
+                    Estimate
+                </button>
+                <button 
+                    onClick={() => setDocType('receipt')}
+                    className={`flex-1 px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 ${docType === 'receipt' ? 'bg-white dark:bg-slate-600 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                >
+                    Receipt
+                </button>
+            </div>
+            
+            {/* Placeholder for balance in flex layout on mobile if needed, currently hidden */}
+             <div className="w-10 sm:hidden"></div>
+          </div>
+
+          {/* Action Buttons Group */}
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center sm:justify-end">
+             <button 
+                onClick={handleSaveToFiles} 
+                disabled={isSaving}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium text-sm hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex-1 sm:flex-none"
+                title="Save to Job Files"
+             >
+                <FileIcon className="w-5 h-5" />
+                <span className="sm:hidden">Save</span>
+             </button>
+             
+             <button 
+                onClick={handleShare} 
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-sky-500 text-white font-medium text-sm hover:bg-sky-600 transition-colors flex-1 sm:flex-none shadow-sm"
+                title="Share / Email"
+             >
+                <ShareIcon className="w-5 h-5" />
+                <span className="sm:hidden">Share</span>
+             </button>
+
+             <button 
+                onClick={handleDownload} 
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium text-sm hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors flex-1 sm:flex-none"
+                title="Download PDF"
+             >
+                <DownloadIcon className="w-5 h-5" />
+                <span className="sm:hidden">Download</span>
+             </button>
+          </div>
+       </div>
+
+       <div className="p-4 sm:p-8 max-w-3xl mx-auto w-full flex-grow">
+           <div className="bg-white dark:bg-slate-800 shadow-lg rounded-lg print:shadow-none p-6 sm:p-10">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between border-b border-slate-200 dark:border-slate-700 pb-8 gap-6">
+                    <div className="flex flex-col gap-4">
+                        {businessInfo.logoUrl && (
+                            <div className="w-24 h-24 flex-shrink-0 self-start">
+                                <img src={businessInfo.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                             </div>
+                        )}
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{businessInfo.name}</h1>
+                            <p className="text-slate-600 dark:text-slate-400 whitespace-pre-line mt-1">{businessInfo.address}</p>
+                            <p className="text-slate-600 dark:text-slate-400 mt-1">{formatPhoneNumber(businessInfo.phone)}</p>
+                            <p className="text-slate-600 dark:text-slate-400">{businessInfo.email}</p>
                         </div>
                     </div>
-                    <div className="w-full xl:w-auto flex flex-wrap items-center justify-center xl:justify-end gap-2">
-                        <button 
-                             onClick={handleEmail}
-                             disabled={isSaving}
-                             className="px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 disabled:bg-sky-300 disabled:cursor-wait flex items-center space-x-2"
-                             title="Generate PDF and open email draft"
-                        >
-                             <MailIcon className="w-4 h-4" />
-                             <span>{isSaving ? '...' : 'Email'}</span>
-                        </button>
-                         {isNativeShareSupported && (
-                            <button 
-                                onClick={handleNativeShare}
-                                disabled={isSaving}
-                                className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait flex items-center space-x-2"
-                                title="Share PDF file"
-                            >
-                                <ShareIcon className="w-4 h-4" />
-                                <span>Share</span>
-                            </button>
-                        )}
-                        <button 
-                            onClick={() => window.print()}
-                            className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                        >
-                            Print
-                        </button>
-                        <button 
-                            onClick={handleDownload}
-                            disabled={isSaving}
-                            className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
-                        >
-                            {isSaving ? '...' : 'Download'}
-                        </button>
-                        <button 
-                            onClick={handleAttach}
-                            disabled={isSaving}
-                            className="px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-wait"
-                        >
-                            {isSaving ? '...' : 'Attach'}
-                        </button>
+                    <div className="text-left sm:text-right">
+                        <h2 className="text-3xl font-bold text-slate-400 dark:text-slate-600 uppercase tracking-wide">{docType}</h2>
+                        <div className="mt-2 space-y-1">
+                            <p className="text-slate-800 dark:text-slate-200 font-medium"># {ticket.id}</p>
+                            <p className="text-slate-600 dark:text-slate-400">{new Date(ticket.date).toLocaleDateString()}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Invoice Paper */}
-            <div className="p-4 md:p-8 flex-grow print:p-0">
-                <div id="printable-invoice" ref={invoiceContentRef} className="max-w-4xl mx-auto bg-white p-8 md:p-12 shadow-lg print:shadow-none invoice-paper">
-                    <header className="flex flex-col md:flex-row justify-between items-start pb-6 border-b border-slate-200 text-slate-800">
-                         {/* Left: Logo (First in visual order for mobile usually, but here we use order classes) */}
-                        <div className="w-full md:w-1/3 flex justify-center md:justify-start order-1">
-                            {businessInfo.logoUrl && (
-                                <img src={businessInfo.logoUrl} alt="Business Logo" className="max-h-24 max-w-[150px] object-contain" />
+                {/* Bill To */}
+                <div className="py-8 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between gap-8">
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Bill To</h3>
+                        <p className="font-bold text-lg text-slate-800 dark:text-slate-100">{contact.name}</p>
+                        <p className="text-slate-600 dark:text-slate-400 whitespace-pre-line">{contact.address}</p>
+                        <p className="text-slate-600 dark:text-slate-400 mt-1">{formatPhoneNumber(contact.phone)}</p>
+                        <p className="text-slate-600 dark:text-slate-400">{contact.email}</p>
+                    </div>
+                    {ticket.jobLocation && ticket.jobLocation !== contact.address && (
+                        <div className="text-left sm:text-right">
+                             <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Service Location</h3>
+                             <p className="text-slate-600 dark:text-slate-400 whitespace-pre-line max-w-xs ml-auto">{ticket.jobLocation}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Items */}
+                <div className="mt-8 overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b-2 border-slate-200 dark:border-slate-700">
+                                <th className="text-left py-3 text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Description</th>
+                                <th className="text-center py-3 text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Qty</th>
+                                <th className="text-right py-3 text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Unit Price</th>
+                                <th className="text-right py-3 text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-slate-700 dark:text-slate-300 text-sm">
+                            {ticket.parts.map(part => (
+                                <tr key={part.id} className="border-b border-slate-100 dark:border-slate-700/50">
+                                    <td className="py-4 font-medium">{part.name}</td>
+                                    <td className="text-center py-4">{part.quantity}</td>
+                                    <td className="text-right py-4">${part.cost.toFixed(2)}</td>
+                                    <td className="text-right py-4 font-medium">${(part.quantity * part.cost).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                            {ticket.laborCost > 0 && (
+                                 <tr className="border-b border-slate-100 dark:border-slate-700/50">
+                                    <td className="py-4 font-medium">Labor</td>
+                                    <td className="text-center py-4">1</td>
+                                    <td className="text-right py-4">${ticket.laborCost.toFixed(2)}</td>
+                                    <td className="text-right py-4 font-medium">${ticket.laborCost.toFixed(2)}</td>
+                                </tr>
                             )}
-                        </div>
+                        </tbody>
+                    </table>
+                </div>
 
-                        {/* Center: Business Info */}
-                        <div className="w-full md:w-1/3 text-left md:pl-4 order-2 mt-4 md:mt-0">
-                            <h1 className="text-xl font-bold break-words">{businessInfo.name || 'Your Company'}</h1>
-                            <div className="text-sm text-slate-500 mt-1 space-y-0.5">
-                                <p className="whitespace-pre-line break-words">{businessInfo.address}</p>
-                                <p className="break-words">{businessInfo.phone}</p>
-                                <p className="break-words">{businessInfo.email}</p>
-                            </div>
-                        </div>
-
-                        {/* Right: Doc Info */}
-                        <div className="w-full md:w-1/3 text-right order-3 mt-4 md:mt-0">
-                            <h2 className="text-3xl uppercase font-bold text-slate-700">{displayTitle}</h2>
-                            <div className="text-sm text-slate-500 mt-2 space-y-1">
-                                <p>
-                                    <span className="font-semibold text-slate-600">Job ID:</span> {ticket.id}
-                                </p>
-                                <p>
-                                    <span className="font-semibold text-slate-600">Date:</span> {new Date(ticket.date).toLocaleDateString(undefined, { timeZone: 'UTC'})}
-                                </p>
-                            </div>
-                        </div>
-                    </header>
-
-                    <section className="mt-8 flex flex-col md:flex-row gap-8">
-                        <div className="flex-1">
-                            <h3 className="text-sm font-semibold uppercase text-slate-500">Bill To</h3>
-                            <div className="mt-2 text-slate-700 min-w-0">
-                                <p className="font-bold break-words">{contact.name}</p>
-                                <p className="text-sm whitespace-pre-line break-words">{contact.address}</p>
-                                <p className="text-sm break-words">{contact.phone}</p>
-                                <p className="text-sm break-words">{contact.email}</p>
-                            </div>
-                        </div>
-                        {ticket.jobLocation && ticket.jobLocation !== contact.address && (
-                             <div className="flex-1">
-                                <h3 className="text-sm font-semibold uppercase text-slate-500">Service Location</h3>
-                                <div className="mt-2 text-slate-700 min-w-0">
-                                    <p className="font-bold break-words">{ticket.jobLocationContactName || contact.name}</p>
-                                    <p className="text-sm whitespace-pre-line break-words">{ticket.jobLocation}</p>
-                                    {ticket.jobLocationContactPhone && <p className="text-sm break-words">{formatPhoneNumber(ticket.jobLocationContactPhone)}</p>}
-                                </div>
-                            </div>
-                        )}
-                    </section>
-
-                    <section className="mt-8">
-                        <table className="w-full text-left table-fixed">
-                            <thead>
-                                <tr>
-                                    <th className="p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-1/2">Description</th>
-                                    <th className="p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[15%]">Qty</th>
-                                    <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[20%]">Unit Price</th>
-                                    <th className="p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[20%]">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {ticket.parts.map(part => (
-                                    <tr key={part.id} className="border-b border-slate-100">
-                                        <td className="p-3 text-sm text-slate-700 break-words">{part.name}</td>
-                                        <td className="p-3 text-center text-sm text-slate-700">{part.quantity}</td>
-                                        <td className="p-3 text-right text-sm text-slate-700">${part.cost.toFixed(2)}</td>
-                                        <td className="p-3 text-right text-sm text-slate-700">${(part.cost * part.quantity).toFixed(2)}</td>
-                                    </tr>
-                                ))}
-                                 <tr className="border-b border-slate-100">
-                                    <td className="p-3 text-sm text-slate-700" colSpan={3}>Labor</td>
-                                    <td className="p-3 text-right text-sm text-slate-700">${ticket.laborCost.toFixed(2)}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </section>
-
-                    <section className="mt-6 flex flex-col items-end">
-                       {docType === 'estimate' && (ticket.processingFeeRate || 0) > 0 ? (
-                           <div className="w-full mt-4">
-                                <div className="w-full max-w-sm ml-auto space-y-2 text-slate-700 border-b border-slate-200 pb-4 mb-6">
-                                    <div className="flex justify-between pb-2">
-                                        <span className="text-sm font-medium text-slate-600">Subtotal</span>
-                                        <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
-                                    </div>
-                                    {(ticket.salesTaxRate || 0) > 0 && (
-                                        <div className="flex justify-between pb-2">
-                                            <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
-                                            <span className="text-sm font-medium">${taxAmount.toFixed(2)}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <h4 className="text-center font-bold text-lg text-slate-800 mb-4 uppercase tracking-wide">Payment Options</h4>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    {/* Cash/Check Option */}
-                                    <div className="border-2 border-slate-200 rounded-lg p-4 bg-slate-50">
-                                        <h5 className="font-bold text-slate-700 text-center border-b border-slate-200 pb-2 mb-3">Cash / Check</h5>
-                                        <div className="space-y-2 text-sm">
-                                            {deposit > 0 ? (
-                                                <>
-                                                    <div className="flex justify-between text-slate-700">
-                                                        <span className="font-medium">Required Deposit (30%)</span>
-                                                        <span className="font-medium">${cashDeposit.toFixed(2)}</span>
-                                                    </div>
-                                                    
-                                                    <div className="flex justify-between text-slate-500 mt-2">
-                                                        <span>Balance Due (70%)</span>
-                                                        <span>${cashBalance.toFixed(2)}</span>
-                                                    </div>
-
-                                                    <div className="flex justify-between items-end border-t border-slate-200 pt-2 mt-4">
-                                                        <span className="text-slate-600 font-bold">Total</span>
-                                                        <span className="font-bold text-lg text-slate-800">${cashTotal.toFixed(2)}</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="flex justify-between items-end">
-                                                    <span className="text-slate-600">Total</span>
-                                                    <span className="font-bold text-lg text-slate-800">${cashTotal.toFixed(2)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Card Option */}
-                                    <div className="border-2 border-sky-100 rounded-lg p-4 bg-sky-50">
-                                        <h5 className="font-bold text-slate-700 text-center border-b border-sky-200 pb-2 mb-3">Card Payment</h5>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between text-slate-500">
-                                                <span>Processing Fee ({ticket.processingFeeRate}%)</span>
-                                                <span>${feeAmount.toFixed(2)}</span>
-                                            </div>
-
-                                            {deposit > 0 ? (
-                                                <>
-                                                    <div className="border-b border-sky-200 my-2"></div>
-
-                                                    <div className="flex justify-between text-slate-700">
-                                                        <span className="font-medium">Required Deposit (30%)</span>
-                                                        <span className="font-medium">${cardDeposit.toFixed(2)}</span>
-                                                    </div>
-
-                                                    <div className="flex justify-between text-slate-500 mt-2">
-                                                        <span>Balance Due (70%)</span>
-                                                        <span>${cardBalance.toFixed(2)}</span>
-                                                    </div>
-
-                                                    <div className="flex justify-between items-end border-t border-sky-200 pt-2 mt-4">
-                                                        <span className="text-slate-700 font-bold">Total Charge</span>
-                                                        <span className="font-bold text-lg text-slate-800">${cardTotal.toFixed(2)}</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="flex justify-between">
-                                                        <span className="text-slate-600">Job Total</span>
-                                                        <span className="text-slate-800">${cashTotal.toFixed(2)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-end border-t border-sky-200 pt-1 mt-1">
-                                                        <span className="text-slate-700 font-medium">Total Charge</span>
-                                                        <span className="font-bold text-lg text-slate-800">${cardTotal.toFixed(2)}</span>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                           </div>
-                       ) : (
-                            <div className="w-full max-w-xs space-y-2 text-slate-700">
-                                <div className="flex justify-between py-2 border-b border-slate-100">
-                                    <span className="text-sm font-medium text-slate-600">Subtotal</span>
-                                    <span className="text-sm font-medium">${subtotal.toFixed(2)}</span>
+                {/* Totals */}
+                <section className="mt-8 flex flex-col items-end">
+                    {docType === 'estimate' && (ticket.processingFeeRate || 0) > 0 ? (
+                        <div className="w-full mt-4">
+                            <div className="w-full max-w-sm ml-auto space-y-3 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 pb-6 mb-8">
+                                <div className="flex justify-between text-sm">
+                                    <span className="font-medium text-slate-500 dark:text-slate-400">Subtotal</span>
+                                    <span className="font-medium">${subtotal.toFixed(2)}</span>
                                 </div>
                                 {(ticket.salesTaxRate || 0) > 0 && (
-                                    <div className="flex justify-between py-2 border-b border-slate-100">
-                                        <span className="text-sm font-medium text-slate-600">Sales Tax ({ticket.salesTaxRate}%)</span>
-                                        <span className="text-sm font-medium">${taxAmount.toFixed(2)}</span>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="font-medium text-slate-500 dark:text-slate-400">Sales Tax ({ticket.salesTaxRate}%)</span>
+                                        <span className="font-medium">${taxAmount.toFixed(2)}</span>
                                     </div>
                                 )}
-                                {(ticket.processingFeeRate || 0) > 0 && (
-                                    <div className="flex justify-between py-2 border-b border-slate-100">
-                                        <span className="text-sm font-medium text-slate-600">Card Processing Fee ({ticket.processingFeeRate}%)</span>
-                                        <span className="text-sm font-medium">${feeAmount.toFixed(2)}</span>
-                                    </div>
-                                )}
-                                 <div className="flex justify-between py-3 mt-2 border-t-2 border-slate-300">
-                                    <span className="text-base font-bold text-slate-800">Total</span>
-                                    <span className="text-base font-bold text-slate-800">${totalCost.toFixed(2)}</span>
-                                </div>
-                                
-                                {/* Logic for Receipt vs Estimate Totals */}
-                                {docType === 'estimate' ? (
-                                    deposit > 0 && (
-                                        <div className="flex justify-between py-2 border-t text-slate-800 font-semibold bg-slate-50 px-2 -mx-2 rounded">
-                                            <span>Required Deposit (30%)</span>
-                                            <span>${deposit.toFixed(2)}</span>
-                                        </div>
-                                    )
-                                ) : (
-                                    // Receipt Mode logic
-                                    <>
-                                        {paymentStatus === 'paid_in_full' ? (
+                            </div>
+
+                            <h4 className="text-center font-bold text-lg text-slate-800 dark:text-slate-100 mb-6 uppercase tracking-wide">Payment Options</h4>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {/* Cash/Check Option */}
+                                <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-5 bg-slate-50 dark:bg-slate-800/50 shadow-sm">
+                                    <h5 className="font-bold text-slate-800 dark:text-slate-100 text-center mb-4 pb-3 border-b border-slate-200 dark:border-slate-700">Cash / Check</h5>
+                                    <div className="space-y-3 text-sm dark:text-slate-300">
+                                        {deposit > 0 ? (
                                             <>
-                                                <div className="flex justify-between py-2 border-b border-slate-100 text-green-600 font-bold">
-                                                    <span>Amount Paid</span>
-                                                    <span>-${totalCost.toFixed(2)}</span>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500 dark:text-slate-400">Required Deposit (30%)</span>
+                                                    <span className="font-semibold">${cashDeposit.toFixed(2)}</span>
                                                 </div>
-                                                <div className="flex justify-between py-3 border-t border-slate-300">
-                                                    <span className="text-base font-bold text-slate-800">Balance Due</span>
-                                                    <span className="text-base font-bold text-slate-800">$0.00</span>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500 dark:text-slate-400">Balance Due (70%)</span>
+                                                    <span className="font-semibold">${cashBalance.toFixed(2)}</span>
                                                 </div>
-                                            </>
-                                        ) : paymentStatus === 'deposit_paid' && deposit > 0 ? (
-                                             <>
-                                                <div className="flex justify-between py-2 border-b border-slate-100 text-green-600">
-                                                    <span className="text-sm font-medium">Deposit Paid</span>
-                                                    <span className="text-sm font-medium">-${deposit.toFixed(2)}</span>
-                                                </div>
-                                                <div className="flex justify-between py-3 border-t border-slate-300">
-                                                    <span className="text-base font-bold text-slate-800">Balance Due</span>
-                                                    <span className="text-base font-bold text-slate-800">${balanceDue.toFixed(2)}</span>
+                                                <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-600 pt-3 mt-3">
+                                                    <span className="font-bold text-slate-800 dark:text-slate-100">Total</span>
+                                                    <span className="font-bold text-xl text-slate-900 dark:text-white">${cashTotal.toFixed(2)}</span>
                                                 </div>
                                             </>
                                         ) : (
-                                            // Unpaid receipt
-                                            <div className="flex justify-between py-3 border-t border-slate-300">
-                                                <span className="text-base font-bold text-slate-800">Balance Due</span>
-                                                <span className="text-base font-bold text-slate-800">${totalCost.toFixed(2)}</span>
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-bold text-slate-800 dark:text-slate-100">Total</span>
+                                                <span className="font-bold text-xl text-slate-900 dark:text-white">${cashTotal.toFixed(2)}</span>
                                             </div>
                                         )}
-                                    </>
-                                )}
-                            </div>
-                       )}
-                    </section>
+                                    </div>
+                                </div>
 
-                     {docType === 'estimate' && deposit > 0 && (
-                        <section className="mt-8 pt-6 border-t border-slate-200">
-                            <h3 className="text-sm font-bold text-slate-700 uppercase mb-3">Payment Schedule</h3>
-                            <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
-                                <li>A deposit is due at contract signing to schedule the work.</li>
-                                <li>The remaining balance is due upon completion of the job.</li>
+                                {/* Card Option */}
+                                <div className="border border-sky-200 dark:border-sky-800 rounded-xl p-5 bg-sky-50 dark:bg-sky-900/10 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-16 h-16 bg-sky-500 rotate-45 transform translate-x-8 -translate-y-8 opacity-10"></div>
+                                    <h5 className="font-bold text-slate-800 dark:text-slate-100 text-center mb-4 pb-3 border-b border-sky-200 dark:border-sky-800">Card Payment</h5>
+                                    <div className="space-y-3 text-sm dark:text-slate-300">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500 dark:text-slate-400">Processing Fee ({ticket.processingFeeRate}%)</span>
+                                            <span className="font-semibold">${feeAmount.toFixed(2)}</span>
+                                        </div>
+                                        {deposit > 0 ? (
+                                            <>
+                                                <div className="border-t border-dashed border-sky-200 dark:border-sky-800 my-2"></div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500 dark:text-slate-400">Required Deposit (30%)</span>
+                                                    <span className="font-semibold">${cardDeposit.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500 dark:text-slate-400">Balance Due (70%)</span>
+                                                    <span className="font-semibold">${cardBalance.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center border-t border-sky-200 dark:border-sky-800 pt-3 mt-3">
+                                                    <span className="font-bold text-sky-900 dark:text-sky-100">Total Charge</span>
+                                                    <span className="font-bold text-xl text-sky-700 dark:text-sky-300">${cardTotal.toFixed(2)}</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500 dark:text-slate-400">Job Total</span>
+                                                    <span className="font-semibold">${cashTotal.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center border-t border-sky-200 dark:border-sky-800 pt-3 mt-3">
+                                                    <span className="font-bold text-sky-900 dark:text-sky-100">Total Charge</span>
+                                                    <span className="font-bold text-xl text-sky-700 dark:text-sky-300">${cardTotal.toFixed(2)}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="w-full max-w-xs space-y-3 text-slate-700 dark:text-slate-300">
+                            <div className="flex justify-between py-1">
+                                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Subtotal</span>
+                                <span className="text-sm font-semibold">${subtotal.toFixed(2)}</span>
+                            </div>
+                            {(ticket.salesTaxRate || 0) > 0 && (
+                                <div className="flex justify-between py-1">
+                                    <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Sales Tax ({ticket.salesTaxRate}%)</span>
+                                    <span className="text-sm font-semibold">${taxAmount.toFixed(2)}</span>
+                                </div>
+                            )}
+                            {(ticket.processingFeeRate || 0) > 0 && (
+                                <div className="flex justify-between py-1">
+                                    <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Processing Fee ({ticket.processingFeeRate}%)</span>
+                                    <span className="text-sm font-semibold">${feeAmount.toFixed(2)}</span>
+                                </div>
+                            )}
+                             <div className="flex justify-between py-4 mt-2 border-t-2 border-slate-200 dark:border-slate-700">
+                                <span className="text-lg font-bold text-slate-800 dark:text-white">Total</span>
+                                <span className="text-lg font-bold text-slate-800 dark:text-white">${totalCost.toFixed(2)}</span>
+                            </div>
+                            
+                            {docType === 'estimate' ? (
+                                deposit > 0 && (
+                                    <div className="flex justify-between py-3 border-t border-dashed border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 font-bold bg-slate-50 dark:bg-slate-800 px-3 -mx-3 rounded-md">
+                                        <span>Required Deposit (30%)</span>
+                                        <span>${deposit.toFixed(2)}</span>
+                                    </div>
+                                )
+                            ) : (
+                                <>
+                                    {paymentStatus === 'paid_in_full' ? (
+                                        <>
+                                            <div className="flex justify-between py-2 text-green-600 dark:text-green-400 font-bold">
+                                                <span>Amount Paid</span>
+                                                <span>-${totalCost.toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between py-3 border-t border-slate-200 dark:border-slate-700">
+                                                <span className="text-lg font-bold">Balance Due</span>
+                                                <span className="text-lg font-bold">$0.00</span>
+                                            </div>
+                                        </>
+                                    ) : paymentStatus === 'deposit_paid' && deposit > 0 ? (
+                                         <>
+                                            <div className="flex justify-between py-2 text-green-600 dark:text-green-400 font-medium">
+                                                <span>Deposit Paid</span>
+                                                <span>-${deposit.toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between py-3 border-t border-slate-200 dark:border-slate-700">
+                                                <span className="text-lg font-bold">Balance Due</span>
+                                                <span className="text-lg font-bold">${balanceDue.toFixed(2)}</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex justify-between py-3 border-t border-slate-200 dark:border-slate-700">
+                                            <span className="text-lg font-bold">Balance Due</span>
+                                            <span className="text-lg font-bold">${totalCost.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
+                </section>
+
+                {docType === 'estimate' && deposit > 0 && (
+                    <section className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-700">
+                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase mb-4 tracking-wide">Payment Schedule</h3>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-100 dark:border-slate-700">
+                            <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 space-y-2">
+                                <li>A <span className="font-semibold text-slate-800 dark:text-slate-200">30% deposit</span> is required at the time of approval to schedule the work.</li>
+                                <li>The remaining balance is due upon satisfactory completion of the job.</li>
                             </ul>
-                        </section>
-                     )}
-                    
-                    <footer className="mt-12 pt-8 border-t text-center">
-                        <p className="text-sm text-slate-500">Thank you for your business!</p>
-                    </footer>
-                </div>
-            </div>
-        </div>
-    );
+                        </div>
+                    </section>
+                )}
+                
+                {ticket.inspection && ticket.inspection.length > 0 && (
+                    <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-700 break-before-page">
+                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6 uppercase tracking-wide">Safety Inspection Report</h3>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
+                             {ticket.inspection.map(item => (
+                                 <div key={item.id} className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700/50 py-2">
+                                     <span className="text-slate-600 dark:text-slate-300 font-medium">{item.name}</span>
+                                     <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
+                                         item.status === 'fail' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 
+                                         item.status === 'pass' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 
+                                         item.status === 'repaired' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 
+                                         'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                                     }`}>
+                                         {item.status === 'na' ? 'N/A' : item.status}
+                                     </span>
+                                 </div>
+                             ))}
+                         </div>
+                    </div>
+                )}
+
+                <footer className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-700 text-center">
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Thank you for your business!</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">{`Generated on ${new Date().toLocaleDateString()}`}</p>
+                </footer>
+           </div>
+       </div>
+    </div>
+  );
 };
 
 export default InvoiceView;
