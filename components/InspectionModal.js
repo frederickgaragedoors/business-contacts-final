@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { XIcon } from './icons.js';
 import { DEFAULT_INSPECTION_ITEMS } from '../types.js';
@@ -80,7 +81,7 @@ const InspectionModal = ({ existingInspection, onSave, onClose }) => {
                                         item.name
                                     )
                                 ),
-                                React.createElement("div", { className: "flex bg-white dark:bg-slate-800 rounded-md shadow-sm p-1 flex-shrink-0" },
+                                React.createElement("div", { className: "flex bg-white dark:bg-slate-800 rounded-md shadow-sm p-1 w-full sm:w-auto" },
                                     ['Pass', 'Fail', 'Repaired', 'N/A'].map((option) => {
                                          const isActive = item.status === option;
                                          let activeClass = '';
@@ -97,7 +98,7 @@ const InspectionModal = ({ existingInspection, onSave, onClose }) => {
                                              React.createElement("button", {
                                                 key: option,
                                                 onClick: () => handleStatusChange(item.id, option),
-                                                className: `px-3 py-1.5 text-xs sm:text-sm font-medium rounded transition-colors ${activeClass}`
+                                                className: `flex-1 sm:flex-none px-1 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded transition-colors ${activeClass}`
                                              }, option)
                                          );
                                     })

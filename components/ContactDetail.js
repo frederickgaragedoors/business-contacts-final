@@ -1,21 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
@@ -51,7 +34,7 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId, businessInfo }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId, businessInfo, showContactPhotos = true }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -251,15 +234,15 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
     const formatInstallDate = (value) => {
         if (!value || value === 'Unknown' || value === 'Original') {
             return (
-                React.createElement("span", { className: "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600" },
+                React.createElement("span", { className: "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600" },
                     value || 'Unknown'
                 )
             );
         }
         if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-             return React.createElement("span", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200" }, new Date(value).toLocaleDateString());
+             return React.createElement("span", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, new Date(value).toLocaleDateString());
         }
-        return React.createElement("span", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200" }, value);
+        return React.createElement("span", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, value);
     };
 
     const renderTabContent = () => {
@@ -309,7 +292,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                         )
                     ),
                     
-                    // Door/System Profiles Section
+                    /* Door/System Profiles Section */
                     normalizedDoorProfiles.length > 0 && React.createElement("div", { className: "mt-6 pt-6 border-t border-slate-200 dark:border-slate-700" },
                         React.createElement("div", { className: "flex items-center mb-4" },
                             React.createElement(HomeIcon, { className: "w-6 h-6 text-slate-400 mr-2" }),
@@ -317,64 +300,75 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                         ),
                         React.createElement("div", { className: "space-y-6" },
                             normalizedDoorProfiles.map((profile, index) => (
-                                React.createElement("div", { key: index, className: `bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 ${index > 0 ? 'border-t border-slate-200 dark:border-slate-600' : ''}` },
+                                React.createElement("div", { key: index, className: "rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm mb-4" },
                                     normalizedDoorProfiles.length > 1 && (
-                                        React.createElement("h3", { className: "text-md font-bold text-slate-700 dark:text-slate-200 mb-3" }, `System ${index + 1}`)
+                                         React.createElement("div", { className: "bg-slate-200 dark:bg-slate-700 px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider" },
+                                            `System ${index + 1}`
+                                        )
                                     ),
                                     
-                                    // Door Section
-                                    React.createElement("div", { className: "mb-4 pb-4 border-b border-slate-200 dark:border-slate-600" },
-                                        React.createElement("h4", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Door"),
-                                        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4" },
+                                    /* Door Section - Darker */
+                                    React.createElement("div", { className: "p-3 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700" },
+                                        React.createElement("div", { className: "flex items-center mb-2" },
+                                            React.createElement("span", { className: "w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2" }),
+                                            React.createElement("h4", { className: "text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide" }, "Door")
+                                        ),
+                                        React.createElement("div", { className: "grid grid-cols-3 gap-4" },
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Dimensions"),
-                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.dimensions || '-')
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Dimensions"),
+                                                React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.dimensions || '-')
                                             ),
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Type"),
-                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.doorType || '-')
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Type"),
+                                                React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.doorType || '-')
                                             ),
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Installed"),
-                                                React.createElement("div", { className: "mt-0.5" }, formatInstallDate(profile.doorInstallDate))
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Installed"),
+                                                formatInstallDate(profile.doorInstallDate)
                                             )
                                         )
                                     ),
 
-                                    // Spring Section
-                                    React.createElement("div", { className: "mb-4 pb-4 border-b border-slate-200 dark:border-slate-600" },
-                                        React.createElement("h4", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Springs"),
-                                        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4" },
+                                    /* Springs Section - Lighter */
+                                    React.createElement("div", { className: "p-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700" },
+                                         React.createElement("div", { className: "flex items-center mb-2" },
+                                            React.createElement("span", { className: "w-1.5 h-1.5 rounded-full bg-orange-500 mr-2" }),
+                                            React.createElement("h4", { className: "text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide" }, "Springs")
+                                        ),
+                                        React.createElement("div", { className: "grid grid-cols-3 gap-4" },
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "System"),
-                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.springSystem || '-')
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "System"),
+                                                React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.springSystem || '-')
                                             ),
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Size"),
-                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.springSize || '-')
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Size"),
+                                                React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.springSize || '-')
                                             ),
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Installed"),
-                                                React.createElement("div", { className: "mt-0.5" }, formatInstallDate(profile.springInstallDate))
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Installed"),
+                                                 formatInstallDate(profile.springInstallDate)
                                             )
                                         )
                                     ),
 
-                                    // Opener Section
-                                    React.createElement("div", null,
-                                        React.createElement("h4", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Opener"),
-                                        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-4" },
+                                    /* Opener Section - Darker */
+                                    React.createElement("div", { className: "p-3 bg-slate-100 dark:bg-slate-900" },
+                                         React.createElement("div", { className: "flex items-center mb-2" },
+                                            React.createElement("span", { className: "w-1.5 h-1.5 rounded-full bg-green-500 mr-2" }),
+                                            React.createElement("h4", { className: "text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wide" }, "Opener")
+                                        ),
+                                        React.createElement("div", { className: "grid grid-cols-3 gap-4" },
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Brand"),
-                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.openerBrand || '-')
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Brand"),
+                                                React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.openerBrand || '-')
                                             ),
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Model"),
-                                                React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, profile.openerModel || '-')
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Model"),
+                                                React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.openerModel || '-')
                                             ),
                                             React.createElement("div", null,
-                                                React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide" }, "Installed"),
-                                                React.createElement("div", { className: "mt-0.5" }, formatInstallDate(profile.openerInstallDate))
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Installed"),
+                                                 formatInstallDate(profile.openerInstallDate)
                                             )
                                         )
                                     )
@@ -421,7 +415,11 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                 const paymentStatusColor = paymentStatusColors[paymentStatus];
                                 const paymentStatusLabel = paymentStatusLabels[paymentStatus];
 
-                                return React.createElement("li", { key: ticket.id, className: "p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover" },
+                                return React.createElement("li", { 
+                                    key: ticket.id, 
+                                    className: "p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg card-hover cursor-pointer",
+                                    onClick: () => onViewJobDetail(contact.id, ticket.id)
+                                },
                                     React.createElement("div", { className: "flex justify-between items-start mb-2" },
                                         React.createElement("div", { className: "flex flex-wrap gap-2" },
                                             React.createElement("span", { className: `px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
@@ -440,24 +438,24 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                     ticket.notes && (
                                         React.createElement("p", { className: "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-3" }, ticket.notes)
                                     ),
-                                    React.createElement("div", { className: "flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600" },
+                                    React.createElement("div", { className: "flex items-center justify-center space-x-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-600" },
                                         React.createElement("button", {
-                                            onClick: () => onViewInvoice(contact.id, ticket.id),
+                                            onClick: (e) => { e.stopPropagation(); onViewInvoice(contact.id, ticket.id); },
                                             className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-center",
                                             "aria-label": "View PDF"
                                         }, React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "PDF")),
                                         React.createElement("button", {
-                                            onClick: () => { setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
+                                            onClick: (e) => { e.stopPropagation(); setEditingJobTicket(ticket); setIsJobTicketModalOpen(true); },
                                             className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-center",
                                             "aria-label": "Edit job"
                                         }, React.createElement(EditIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Edit")),
                                         React.createElement("button", {
-                                            onClick: () => handleDeleteJobTicket(ticket.id),
+                                            onClick: (e) => { e.stopPropagation(); handleDeleteJobTicket(ticket.id); },
                                             className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 text-center",
                                             "aria-label": "Delete job"
                                         }, React.createElement(TrashIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Delete")),
                                         React.createElement("button", {
-                                            onClick: () => onViewJobDetail(contact.id, ticket.id),
+                                            onClick: (e) => { e.stopPropagation(); onViewJobDetail(contact.id, ticket.id); },
                                             className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 text-center",
                                             "aria-label": "View job"
                                         }, React.createElement(EyeIcon, { className: "w-4 h-4" }), React.createElement("span", null, "View"))
@@ -578,15 +576,17 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     React.createElement("h2", { className: "ml-4 font-bold text-lg text-slate-700 dark:text-slate-200" }, "Contact Details")
                 ),
                 React.createElement("div", { className: "flex flex-col items-center px-4 sm:px-6 py-6 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700" },
-                    React.createElement("div", { className: "relative group w-32 h-32 rounded-full overflow-hidden bg-slate-300 dark:bg-slate-600 flex items-center justify-center mb-4 ring-4 ring-white dark:ring-slate-700 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-800" },
-                        contact.photoUrl ? (
-                            React.createElement("img", { src: contact.photoUrl, alt: contact.name, className: "w-full h-full object-cover" })
-                        ) : (
-                            React.createElement("span", { className: "text-5xl text-slate-600 dark:text-slate-300 font-semibold" }, getInitials(contact.name))
-                        ),
-                        galleryImages.length > 0 && (
-                            React.createElement("button", { onClick: () => openGallery(0), className: "absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300", "aria-label": "View photos" },
-                                React.createElement(EyeIcon, { className: "w-8 h-8" })
+                    showContactPhotos && (
+                        React.createElement("div", { className: "relative group w-32 h-32 rounded-full overflow-hidden bg-slate-300 dark:bg-slate-600 flex items-center justify-center mb-4 ring-4 ring-white dark:ring-slate-700 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-800" },
+                            contact.photoUrl ? (
+                                React.createElement("img", { src: contact.photoUrl, alt: contact.name, className: "w-full h-full object-cover" })
+                            ) : (
+                                React.createElement("span", { className: "text-5xl text-slate-600 dark:text-slate-300 font-semibold" }, getInitials(contact.name))
+                            ),
+                            galleryImages.length > 0 && (
+                                React.createElement("button", { onClick: () => openGallery(0), className: "absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300", "aria-label": "View photos" },
+                                    React.createElement(EyeIcon, { className: "w-8 h-8" })
+                                )
                             )
                         )
                     ),

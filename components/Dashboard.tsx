@@ -80,7 +80,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
             .filter(job => {
                  if (!job.date) return false;
                  const jobDate = parseDateAsLocal(job.date);
-                 return job.status === 'Scheduled' && jobDate > today;
+                 return (job.status === 'Scheduled' || job.status === 'Estimate Scheduled') && jobDate > today;
             })
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs, today]);
@@ -105,10 +105,10 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
                         </p>
                     </div>
                     <div className="flex flex-col items-end space-y-1">
-                         <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
+                         <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${statusColor.base} ${statusColor.text}`}>
                             {job.status}
                         </span>
-                         <span className={`flex-shrink-0 px-2 py-0.5 text-[10px] font-medium rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}`}>
+                         <span className={`flex-shrink-0 px-2 py-0.5 text-[10px] font-medium rounded-full whitespace-nowrap ${paymentStatusColor.base} ${paymentStatusColor.text}`}>
                             {paymentStatusLabel}
                         </span>
                     </div>
