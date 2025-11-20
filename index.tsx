@@ -1,6 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
+// @ts-ignore
+import { registerSW } from 'virtual:pwa-register';
+
+// Auto-update the service worker when a new version is deployed
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm('New content available. Reload?')) {
+      updateSW(true);
+    }
+  },
+  onOfflineReady() {
+    console.log('App is ready to work offline');
+  },
+});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -13,13 +27,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-// Service Worker removed to prevent caching issues with Vite development and Production builds.
-// The previous SW configuration was not compatible with Vite's file hashing.
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    for(let registration of registrations) {
-      registration.unregister();
-    }
-  });
-}

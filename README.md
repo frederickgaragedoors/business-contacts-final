@@ -19,6 +19,14 @@ View your app in AI Studio: https://ai.studio/apps/drive/1xJA6rpQZS01dmE8B58TgPs
 3. Run the app:
    `npm run dev`
 
+## PWA Setup (Important)
+
+To ensure the PWA works correctly on the web and GitHub Pages:
+1. Create a folder named `public` in the root directory.
+2. Move the `icons` folder into `public`.
+   - New path: `public/icons/icon.svg`
+3. Run `npm install` to install the new PWA plugin.
+
 ## Building for Desktop (Electron)
 
 To build the Windows installer:
