@@ -14,12 +14,12 @@ root.render(
   </React.StrictMode>
 );
 
+// Service Worker removed to prevent caching issues with Vite development and Production builds.
+// The previous SW configuration was not compatible with Vite's file hashing.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then(registration => {
-      console.log('ServiceWorker registration successful with scope: ', registration.scope);
-    }, err => {
-      console.log('ServiceWorker registration failed: ', err);
-    });
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+    }
   });
 }
