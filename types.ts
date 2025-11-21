@@ -1,6 +1,8 @@
 
 
 
+
+
 export interface FileAttachment {
   id: string;
   name: string;
@@ -20,12 +22,18 @@ export interface DefaultFieldSetting {
   label: string;
 }
 
+export interface Spring {
+  id: string;
+  size: string;
+}
+
 export interface DoorProfile {
   id: string;
   dimensions: string;
   doorType: string; // Sectional, One-piece, Rolling Steel
   springSystem: string; // Torsion, Extension
-  springSize?: string; // e.g. .250x2x32
+  springSize?: string; // e.g. .250x2x32 (Legacy, prefer springs array)
+  springs?: Spring[]; 
   openerBrand: string;
   openerModel: string;
   doorInstallDate: string;   // YYYY-MM-DD, "Original", or "Unknown"

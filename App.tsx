@@ -1,3 +1,6 @@
+
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
@@ -39,6 +42,7 @@ const getSampleContacts = (): Contact[] => {
                     doorType: 'Sectional',
                     springSystem: 'Torsion',
                     springSize: '.250x2x32',
+                    springs: [{ id: 'S-1', size: '.250x2x32' }, { id: 'S-2', size: '.250x2x32' }],
                     openerBrand: 'LiftMaster',
                     openerModel: '8550W',
                     doorInstallDate: '2021-05-12',
@@ -77,6 +81,7 @@ const getSampleContacts = (): Contact[] => {
                     doorType: 'One-piece',
                     springSystem: 'Extension',
                     springSize: '',
+                    springs: [{ id: 'S-3', size: 'Extension 140lb' }],
                     openerBrand: 'Genie',
                     openerModel: 'Aladdin Connect',
                     doorInstallDate: 'Original',
@@ -89,6 +94,7 @@ const getSampleContacts = (): Contact[] => {
                     doorType: 'Sectional',
                     springSystem: 'Torsion',
                     springSize: '.218x1.75x28',
+                    springs: [{ id: 'S-4', size: '.218x1.75x28' }],
                     openerBrand: 'Chamberlain',
                     openerModel: 'B970',
                     doorInstallDate: '2020-02-15',
