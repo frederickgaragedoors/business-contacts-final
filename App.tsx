@@ -384,6 +384,7 @@ function App() {
                   contacts={contacts} 
                   mapSettings={mapSettings} 
                   onGoToSettings={() => setViewState({ type: 'settings' })}
+                  onBack={() => setViewState({ type: 'dashboard' })}
               />;
           case 'list':
               return <ContactList contacts={contacts} selectedContactId={null} onSelectContact={(id) => setViewState({ type: 'detail', id })} />;
