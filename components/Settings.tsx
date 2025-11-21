@@ -1,10 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact, EmailSettings, CatalogItem, DEFAULT_ON_MY_WAY_TEMPLATE, MapSettings } from '../types.ts';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon, EyeIcon, MapPinIcon } from './icons.tsx';
-import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.ts';
+import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile, loadGoogleMapsScript } from '../utils.ts';
 import { getAllFiles } from '../db.ts';
 import JobTemplateModal from './JobTemplateModal.tsx';
+
+// Declare google for TS
+declare const google: any;
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -108,6 +111,28 @@ const Settings: React.FC<SettingsProps> = ({
     const [editingTemplate, setEditingTemplate] = useState<JobTemplate | null>(null);
     const [newCatalogItemName, setNewCatalogItemName] = useState('');
     const [newCatalogItemCost, setNewCatalogItemCost] = useState<number | ''>('');
+
+    const homeAddressRef = useRef<HTMLInputElement>(null);
+
+    // Initialize Google Maps Autocomplete for Home Address
+    useEffect(() => {
+        const apiKey = currentMapSettings.apiKey || mapSettings.apiKey;
+        if (apiKey && homeAddressRef.current) {
+            loadGoogleMapsScript(apiKey).then(() => {
+                if (homeAddressRef.current && (window as any).google && (window as any).google.maps) {
+                    const autocomplete = new (window as any).google.maps.places.Autocomplete(homeAddressRef.current, {
+                        types: ['address'],
+                    });
+                    autocomplete.addListener('place_changed', () => {
+                        const place = autocomplete.getPlace();
+                        if (place.formatted_address) {
+                            handleMapSettingsChange('homeAddress', place.formatted_address);
+                        }
+                    });
+                }
+            }).catch(err => console.error("Error loading Google Maps:", err));
+        }
+    }, [currentMapSettings.apiKey, mapSettings.apiKey]);
 
     const handleDefaultFieldSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -337,14 +362,15 @@ const Settings: React.FC<SettingsProps> = ({
                             <div>
                                 <label htmlFor="home-address" className={labelStyles}>Home / Base Address</label>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Used as the starting and ending point for your daily routes.</p>
-                                <textarea
+                                <input
+                                    ref={homeAddressRef}
+                                    type="text"
                                     id="home-address"
                                     value={currentMapSettings.homeAddress || ''}
                                     onChange={e => handleMapSettingsChange('homeAddress', e.target.value)}
-                                    rows={2}
                                     className={inputStyles}
                                     placeholder="e.g. 123 Warehouse Blvd, Springfield"
-                                ></textarea>
+                                />
                             </div>
                             <div>
                                 <label htmlFor="api-key" className={labelStyles}>Google Maps API Key</label>

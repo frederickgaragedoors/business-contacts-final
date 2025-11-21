@@ -1,23 +1,13 @@
 
-
-
-
-
-
-
-
-
-
-
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { XIcon, PlusIcon, TrashIcon } from './icons.js';
-import { generateId, calculateJobTicketTotal } from '../utils.js';
+import { generateId, calculateJobTicketTotal, loadGoogleMapsScript } from '../utils.js';
 import { ALL_JOB_STATUSES } from '../types.js';
 
-const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress }) => {
+const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress, apiKey }) => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [duration, setDuration] = useState('');
   const [status, setStatus] = useState('Estimate Scheduled');
   const [jobLocation, setJobLocation] = useState('');
   const [jobLocationContactName, setJobLocationContactName] = useState('');
@@ -30,11 +20,13 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
   const [processingFeeRate, setProcessingFeeRate] = useState('');
   const [deposit, setDeposit] = useState('');
 
+  const locationInputRef = useRef(null);
 
   useEffect(() => {
     if (entry) {
       setDate(entry.date);
       setTime(entry.time || '');
+      setDuration(entry.duration || '');
       setStatus(entry.status);
       setJobLocation(entry.jobLocation || '');
       setJobLocationContactName(entry.jobLocationContactName || '');
@@ -49,6 +41,7 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
     } else {
       setDate(new Date().toISOString().split('T')[0]);
       setTime('');
+      setDuration('');
       setStatus('Estimate Scheduled');
       // Default to contact address for new tickets
       setJobLocation(contactAddress || '');
@@ -63,6 +56,25 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
       setDeposit(0);
     }
   }, [entry, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress]);
+
+  // Initialize Google Maps Autocomplete
+  useEffect(() => {
+    if (apiKey && locationInputRef.current) {
+        loadGoogleMapsScript(apiKey).then(() => {
+            if (locationInputRef.current && window.google && window.google.maps) {
+                const autocomplete = new google.maps.places.Autocomplete(locationInputRef.current, {
+                    types: ['address'],
+                });
+                autocomplete.addListener('place_changed', () => {
+                    const place = autocomplete.getPlace();
+                    if (place.formatted_address) {
+                        setJobLocation(place.formatted_address);
+                    }
+                });
+            }
+        }).catch(err => console.error("Error loading Google Maps:", err));
+    }
+  }, [apiKey]);
 
   const handleAddPart = () => {
     setParts([...parts, { id: generateId(), name: '', cost: 0, quantity: 1 }]);
@@ -103,6 +115,7 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
       id: entry?.id || '',
       date,
       time,
+      duration: duration ? Number(duration) : undefined,
       status,
       jobLocation,
       jobLocationContactName,
@@ -115,7 +128,7 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
       processingFeeRate: Number(processingFeeRate || 0),
       deposit: Number(deposit || 0),
       createdAt: entry?.createdAt,
-  }), [entry, date, time, status, jobLocation, jobLocationContactName, jobLocationContactPhone, paymentStatus, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
+  }), [entry, date, time, duration, status, jobLocation, jobLocationContactName, jobLocationContactPhone, paymentStatus, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
 
   const { subtotal, taxAmount, feeAmount, totalCost: finalTotal, balanceDue } = calculateJobTicketTotal(currentTicketState);
 
@@ -201,15 +214,28 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
                       className: `mt-1 ${inputStyles}`
                     })
                 ),
-                React.createElement("div", null,
-                    React.createElement("label", { htmlFor: "job-time", className: labelStyles }, "Time ", React.createElement("span", { className: "text-xs text-slate-400 font-normal" }, "(Optional)")),
-                    React.createElement("input", {
-                      type: "time",
-                      id: "job-time",
-                      value: time,
-                      onChange: e => setTime(e.target.value),
-                      className: `mt-1 ${inputStyles}`
-                    })
+                React.createElement("div", { className: "grid grid-cols-2 gap-2" },
+                    React.createElement("div", null,
+                        React.createElement("label", { htmlFor: "job-time", className: labelStyles }, "Time ", React.createElement("span", { className: "text-xs text-slate-400 font-normal" }, "(Opt)")),
+                        React.createElement("input", {
+                        type: "time",
+                        id: "job-time",
+                        value: time,
+                        onChange: e => setTime(e.target.value),
+                        className: `mt-1 ${inputStyles}`
+                        })
+                    ),
+                    React.createElement("div", null,
+                        React.createElement("label", { htmlFor: "job-duration", className: labelStyles }, "Est. Min ", React.createElement("span", { className: "text-xs text-slate-400 font-normal" }, "(Opt)")),
+                        React.createElement("input", {
+                        type: "number",
+                        id: "job-duration",
+                        value: duration,
+                        onChange: e => setDuration(e.target.value === '' ? '' : parseInt(e.target.value)),
+                        className: `mt-1 ${inputStyles}`,
+                        placeholder: "60"
+                        })
+                    )
                 )
             ),
             
@@ -217,11 +243,12 @@ const JobTicketModal = ({ entry, onSave, onClose, jobTemplates, partsCatalog, en
                 React.createElement("h4", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase" }, "Service Site Details"),
                 React.createElement("div", null,
                     React.createElement("label", { htmlFor: "job-location", className: labelStyles }, "Address"),
-                    React.createElement("textarea", {
+                    React.createElement("input", {
+                        ref: locationInputRef,
+                        type: "text",
                         id: "job-location",
                         value: jobLocation,
                         onChange: e => setJobLocation(e.target.value),
-                        rows: 2,
                         className: `mt-1 ${inputStyles}`,
                         placeholder: "Leave empty if same as billing..."
                     }),

@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon, EyeIcon, MapPinIcon } from './icons.js';
-import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.js';
+import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile, loadGoogleMapsScript } from '../utils.js';
 import { getAllFiles } from '../db.js';
 import JobTemplateModal from './JobTemplateModal.js';
 import { ALL_JOB_STATUSES, DEFAULT_ON_MY_WAY_TEMPLATE } from '../types.js';
@@ -72,6 +72,28 @@ const Settings = ({
     const [editingTemplate, setEditingTemplate] = useState(null);
     const [newCatalogItemName, setNewCatalogItemName] = useState('');
     const [newCatalogItemCost, setNewCatalogItemCost] = useState('');
+
+    const homeAddressRef = useRef(null);
+
+    // Initialize Google Maps Autocomplete for Home Address
+    useEffect(() => {
+        const apiKey = currentMapSettings.apiKey || mapSettings.apiKey;
+        if (apiKey && homeAddressRef.current) {
+            loadGoogleMapsScript(apiKey).then(() => {
+                if (homeAddressRef.current && window.google && window.google.maps) {
+                    const autocomplete = new google.maps.places.Autocomplete(homeAddressRef.current, {
+                        types: ['address'],
+                    });
+                    autocomplete.addListener('place_changed', () => {
+                        const place = autocomplete.getPlace();
+                        if (place.formatted_address) {
+                            handleMapSettingsChange('homeAddress', place.formatted_address);
+                        }
+                    });
+                }
+            }).catch(err => console.error("Error loading Google Maps:", err));
+        }
+    }, [currentMapSettings.apiKey, mapSettings.apiKey]);
 
     const handleDefaultFieldSubmit = (e) => {
         e.preventDefault();
@@ -295,11 +317,12 @@ const Settings = ({
                             React.createElement("div", null,
                                 React.createElement("label", { htmlFor: "home-address", className: labelStyles }, "Home / Base Address"),
                                 React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400 mb-1" }, "Used as the starting and ending point for your daily routes."),
-                                React.createElement("textarea", {
+                                React.createElement("input", {
+                                    ref: homeAddressRef,
+                                    type: "text",
                                     id: "home-address",
                                     value: currentMapSettings.homeAddress || '',
                                     onChange: e => handleMapSettingsChange('homeAddress', e.target.value),
-                                    rows: 2,
                                     className: inputStyles,
                                     placeholder: "e.g. 123 Warehouse Blvd, Springfield"
                                 })

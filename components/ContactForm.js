@@ -1,9 +1,11 @@
 
-import React, { useState, useCallback } from 'react';
-import { UserCircleIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
-import { fileToDataUrl, formatFileSize, generateId } from '../utils.js';
 
-const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJobDate }) => {
+
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { UserCircleIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
+import { fileToDataUrl, formatFileSize, generateId, loadGoogleMapsScript } from '../utils.js';
+
+const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJobDate, apiKey }) => {
   const [name, setName] = useState(initialContact?.name || '');
   const [email, setEmail] = useState(initialContact?.email || '');
   const [phone, setPhone] = useState(initialContact?.phone || '');
@@ -14,6 +16,8 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
     initialContact?.customFields || defaultFields?.map(df => ({ id: generateId(), label: df.label, value: '' })) || []
   );
   
+  const addressInputRef = useRef(null);
+
   const [doorProfiles, setDoorProfiles] = useState(() => {
       if (initialContact?.doorProfiles) {
           return initialContact.doorProfiles.map(p => ({
@@ -51,6 +55,25 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
   });
 
   const [stagedFiles, setStagedFiles] = useState([]);
+
+  // Initialize Google Maps Autocomplete
+  useEffect(() => {
+    if (apiKey && addressInputRef.current) {
+        loadGoogleMapsScript(apiKey).then(() => {
+            if (addressInputRef.current && window.google && window.google.maps) {
+                const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, {
+                    types: ['address'],
+                });
+                autocomplete.addListener('place_changed', () => {
+                    const place = autocomplete.getPlace();
+                    if (place.formatted_address) {
+                        setAddress(place.formatted_address);
+                    }
+                });
+            }
+        }).catch(err => console.error("Error loading Google Maps:", err));
+    }
+  }, [apiKey]);
 
   const handlePhotoChange = useCallback(async (e) => {
     const input = e.target;
@@ -310,7 +333,15 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
                             ),
                             React.createElement("div", null,
                                 React.createElement("label", { htmlFor: "address", className: labelStyles }, "Address"),
-                                React.createElement("textarea", { id: "address", value: address, onChange: e => setAddress(e.target.value), rows: 3, className: inputStyles })
+                                React.createElement("input", { 
+                                    ref: addressInputRef,
+                                    type: "text",
+                                    id: "address", 
+                                    value: address, 
+                                    onChange: e => setAddress(e.target.value), 
+                                    className: inputStyles,
+                                    placeholder: ""
+                                })
                             )
                         )
                     ),

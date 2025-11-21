@@ -1,19 +1,10 @@
-
-
-
-
-
-
-
-
-
-
-
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { JobTicket, JobStatus, Part, JobTemplate, ALL_JOB_STATUSES, CatalogItem, PaymentStatus } from '../types.ts';
 import { XIcon, PlusIcon, TrashIcon } from './icons.tsx';
-import { generateId, calculateJobTicketTotal } from '../utils.ts';
+import { generateId, calculateJobTicketTotal, loadGoogleMapsScript } from '../utils.ts';
+
+// Declare google for TS
+declare const google: any;
 
 interface JobTicketModalProps {
   entry?: JobTicket | null;
@@ -25,11 +16,13 @@ interface JobTicketModalProps {
   defaultSalesTaxRate?: number;
   defaultProcessingFeeRate?: number;
   contactAddress?: string;
+  apiKey?: string;
 }
 
-const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress }) => {
+const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose, jobTemplates, partsCatalog, enabledStatuses, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress, apiKey }) => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [duration, setDuration] = useState<number | ''>('');
   const [status, setStatus] = useState<JobStatus>('Estimate Scheduled');
   const [jobLocation, setJobLocation] = useState('');
   const [jobLocationContactName, setJobLocationContactName] = useState('');
@@ -42,10 +35,13 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
   const [processingFeeRate, setProcessingFeeRate] = useState<number | ''>(0);
   const [deposit, setDeposit] = useState<number | ''>(0);
 
+  const locationInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (entry) {
       setDate(entry.date);
       setTime(entry.time || '');
+      setDuration(entry.duration || '');
       setStatus(entry.status);
       setJobLocation(entry.jobLocation || '');
       setJobLocationContactName(entry.jobLocationContactName || '');
@@ -60,6 +56,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
     } else {
       setDate(new Date().toISOString().split('T')[0]);
       setTime('');
+      setDuration('');
       setStatus('Estimate Scheduled');
       // Default to contact address for new tickets if available
       setJobLocation(contactAddress || '');
@@ -74,6 +71,25 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       setDeposit(0);
     }
   }, [entry, defaultSalesTaxRate, defaultProcessingFeeRate, contactAddress]);
+
+  // Initialize Google Maps Autocomplete
+  useEffect(() => {
+    if (apiKey && locationInputRef.current) {
+        loadGoogleMapsScript(apiKey).then(() => {
+            if (locationInputRef.current && (window as any).google && (window as any).google.maps) {
+                const autocomplete = new (window as any).google.maps.places.Autocomplete(locationInputRef.current, {
+                    types: ['address'],
+                });
+                autocomplete.addListener('place_changed', () => {
+                    const place = autocomplete.getPlace();
+                    if (place.formatted_address) {
+                        setJobLocation(place.formatted_address);
+                    }
+                });
+            }
+        }).catch(err => console.error("Error loading Google Maps:", err));
+    }
+  }, [apiKey]);
 
   const handleAddPart = () => {
     setParts([...parts, { id: generateId(), name: '', cost: 0, quantity: 1 }]);
@@ -114,6 +130,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       id: entry?.id || '',
       date,
       time,
+      duration: duration ? Number(duration) : undefined,
       jobLocation,
       jobLocationContactName,
       jobLocationContactPhone,
@@ -126,7 +143,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
       processingFeeRate: Number(processingFeeRate || 0),
       deposit: Number(deposit || 0),
       createdAt: entry?.createdAt,
-  }), [entry, date, time, jobLocation, jobLocationContactName, jobLocationContactPhone, status, paymentStatus, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
+  }), [entry, date, time, duration, jobLocation, jobLocationContactName, jobLocationContactPhone, status, paymentStatus, notes, parts, laborCost, salesTaxRate, processingFeeRate, deposit]);
 
   const { subtotal, taxAmount, feeAmount, totalCost: finalTotal, balanceDue } = calculateJobTicketTotal(currentTicketState);
 
@@ -211,15 +228,28 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                     className={`mt-1 ${inputStyles}`}
                     />
                 </div>
-                <div>
-                    <label htmlFor="job-time" className={labelStyles}>Time <span className="text-xs text-slate-400 font-normal">(Optional)</span></label>
-                    <input
-                    type="time"
-                    id="job-time"
-                    value={time}
-                    onChange={e => setTime(e.target.value)}
-                    className={`mt-1 ${inputStyles}`}
-                    />
+                <div className="grid grid-cols-2 gap-2">
+                    <div>
+                        <label htmlFor="job-time" className={labelStyles}>Time <span className="text-xs text-slate-400 font-normal">(Opt)</span></label>
+                        <input
+                        type="time"
+                        id="job-time"
+                        value={time}
+                        onChange={e => setTime(e.target.value)}
+                        className={`mt-1 ${inputStyles}`}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="job-duration" className={labelStyles}>Est. Min <span className="text-xs text-slate-400 font-normal">(Opt)</span></label>
+                        <input
+                        type="number"
+                        id="job-duration"
+                        value={duration}
+                        onChange={e => setDuration(e.target.value === '' ? '' : parseInt(e.target.value))}
+                        className={`mt-1 ${inputStyles}`}
+                        placeholder="60"
+                        />
+                    </div>
                 </div>
             </div>
             
@@ -227,11 +257,12 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                 <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Service Site Details</h4>
                 <div>
                     <label htmlFor="job-location" className={labelStyles}>Address</label>
-                    <textarea
+                    <input
+                        ref={locationInputRef}
+                        type="text"
                         id="job-location"
                         value={jobLocation}
                         onChange={e => setJobLocation(e.target.value)}
-                        rows={2}
                         className={`mt-1 ${inputStyles}`}
                         placeholder="Leave empty if same as billing..."
                     />
@@ -468,29 +499,29 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                               {paymentStatus === 'deposit_paid' ? 'Amount Collected (Deposit)' : 'Required Deposit Amount'}
                           </label>
                           <div className="flex space-x-2">
-                              <div className="relative mt-1 flex-grow">
-                                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                      <span className="text-slate-500 sm:text-sm">$</span>
-                                  </div>
-                                  <input
-                                      type="number"
-                                      id="deposit-amount"
-                                      value={deposit}
-                                      onChange={(e) => setDeposit(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                                      className={`${inputStyles} pl-7`}
-                                      placeholder="0.00"
-                                      disabled={paymentStatus === 'paid_in_full'}
-                                  />
-                              </div>
-                              <button 
-                                  type="button" 
-                                  onClick={calculate30PercentDeposit}
-                                  className="mt-1 px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Calculate 30% Deposit"
-                                  disabled={paymentStatus === 'paid_in_full' || finalTotal <= 0}
-                              >
-                                  30%
-                              </button>
+                             <div className="relative mt-1 flex-grow">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <span className="text-slate-500 sm:text-sm">$</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    id="deposit-amount"
+                                    value={deposit}
+                                    onChange={(e) => setDeposit(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                    className={`${inputStyles} pl-7`}
+                                    placeholder="0.00"
+                                    disabled={paymentStatus === 'paid_in_full'}
+                                />
+                             </div>
+                             <button
+                                type="button"
+                                onClick={calculate30PercentDeposit}
+                                className="mt-1 px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Calculate 30% Deposit"
+                                disabled={paymentStatus === 'paid_in_full' || finalTotal <= 0}
+                             >
+                                 30%
+                             </button>
                           </div>
                       </div>
                   </div>
@@ -509,10 +540,10 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                     {summaryPaidAmount > 0 && (
                         <p className="text-green-600 dark:text-green-400 font-medium mt-1">Paid: -${summaryPaidAmount.toFixed(2)}</p>
                     )}
-                     <p className="font-bold text-slate-800 dark:text-slate-100 mt-1">Balance: <span className="font-bold">${summaryBalanceDue.toFixed(2)}</span></p>
+                    <p className="font-bold text-slate-800 dark:text-slate-100 mt-1">Balance: <span className="font-bold">${summaryBalanceDue.toFixed(2)}</span></p>
                 </div>
             ) : (
-                <div></div> // Placeholder to keep layout consistent
+                <div></div>
             )}
             <div className="flex space-x-2">
                 <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">

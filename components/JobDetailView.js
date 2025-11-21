@@ -29,6 +29,7 @@ const JobDetailView = ({
   onDeleteTicket,
   onViewInvoice,
   enabledStatuses,
+  apiKey,
 }) => {
   const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
   const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
@@ -329,7 +330,8 @@ const JobDetailView = ({
           jobTemplates: jobTemplates,
           partsCatalog: partsCatalog,
           enabledStatuses: enabledStatuses,
-          contactAddress: contact.address
+          contactAddress: contact.address,
+          apiKey: apiKey
         })
       ),
 

@@ -3,6 +3,8 @@
 
 
 
+
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, PaymentStatus, BusinessInfo } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
@@ -45,6 +47,7 @@ interface ContactDetailProps {
     openJobId?: string;
     businessInfo?: BusinessInfo;
     showContactPhotos?: boolean;
+    apiKey?: string;
 }
 
 const VIEWABLE_MIME_TYPES = [
@@ -58,7 +61,7 @@ const VIEWABLE_MIME_TYPES = [
 
 type ActiveTab = 'details' | 'jobs' | 'files';
 
-const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId, businessInfo, showContactPhotos = true }) => {
+const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId, businessInfo, showContactPhotos = true, apiKey }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -711,6 +714,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                     defaultSalesTaxRate={businessInfo?.defaultSalesTaxRate}
                     defaultProcessingFeeRate={businessInfo?.defaultProcessingFeeRate}
                     contactAddress={contact.address}
+                    apiKey={apiKey}
                 />
             )}
         </>

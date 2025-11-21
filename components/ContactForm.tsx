@@ -1,12 +1,10 @@
-
-
-
-
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Contact, FileAttachment, CustomField, DefaultFieldSetting, JobTicket, DoorProfile } from '../types.ts';
 import { UserCircleIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.tsx';
-import { fileToDataUrl, formatFileSize, generateId } from '../utils.ts';
+import { fileToDataUrl, formatFileSize, generateId, loadGoogleMapsScript } from '../utils.ts';
+
+// Declare google for TS
+declare const google: any;
 
 interface ContactFormProps {
   initialContact?: Contact;
@@ -14,9 +12,10 @@ interface ContactFormProps {
   onCancel: () => void;
   defaultFields?: DefaultFieldSetting[];
   initialJobDate?: string;
+  apiKey?: string;
 }
 
-const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCancel, defaultFields, initialJobDate }) => {
+const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCancel, defaultFields, initialJobDate, apiKey }) => {
   const [name, setName] = useState(initialContact?.name || '');
   const [email, setEmail] = useState(initialContact?.email || '');
   const [phone, setPhone] = useState(initialContact?.phone || '');
@@ -27,6 +26,8 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
     initialContact?.customFields || defaultFields?.map(df => ({ id: generateId(), label: df.label, value: '' })) || []
   );
   
+  const addressInputRef = useRef<HTMLInputElement>(null);
+
   const [doorProfiles, setDoorProfiles] = useState<DoorProfile[]>(() => {
       if (initialContact?.doorProfiles) {
           return initialContact.doorProfiles.map(p => ({
@@ -64,6 +65,25 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
   });
 
   const [stagedFiles, setStagedFiles] = useState<FileAttachment[]>([]);
+
+  // Initialize Google Maps Autocomplete
+  useEffect(() => {
+    if (apiKey && addressInputRef.current) {
+        loadGoogleMapsScript(apiKey).then(() => {
+            if (addressInputRef.current && (window as any).google && (window as any).google.maps) {
+                const autocomplete = new (window as any).google.maps.places.Autocomplete(addressInputRef.current, {
+                    types: ['address'],
+                });
+                autocomplete.addListener('place_changed', () => {
+                    const place = autocomplete.getPlace();
+                    if (place.formatted_address) {
+                        setAddress(place.formatted_address);
+                    }
+                });
+            }
+        }).catch(err => console.error("Error loading Google Maps:", err));
+    }
+  }, [apiKey]);
 
   const handlePhotoChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
@@ -321,7 +341,15 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
                         </div>
                         <div>
                             <label htmlFor="address" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Address</label>
-                            <textarea id="address" value={address} onChange={e => setAddress(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white"></textarea>
+                            <input 
+                                ref={addressInputRef}
+                                type="text"
+                                id="address" 
+                                value={address} 
+                                onChange={e => setAddress(e.target.value)} 
+                                placeholder=""
+                                className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white"
+                            />
                         </div>
                     </div>
 

@@ -1,4 +1,6 @@
 
+
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import PhotoGalleryModal from './PhotoGalleryModal.js';
 import JobTicketModal from './JobTicketModal.js';
@@ -34,7 +36,7 @@ const VIEWABLE_MIME_TYPES = [
     'image/svg+xml',
 ];
 
-const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId, businessInfo, showContactPhotos = true }) => {
+const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addFilesToContact, updateContactJobTickets, onViewInvoice, onViewJobDetail, jobTemplates, partsCatalog, enabledStatuses, initialJobDate, openJobId, businessInfo, showContactPhotos = true, apiKey }) => {
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const [galleryCurrentIndex, setGalleryCurrentIndex] = useState(0);
     const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -659,7 +661,8 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                     enabledStatuses: enabledStatuses,
                     defaultSalesTaxRate: businessInfo?.defaultSalesTaxRate,
                     defaultProcessingFeeRate: businessInfo?.defaultProcessingFeeRate,
-                    contactAddress: contact.address
+                    contactAddress: contact.address,
+                    apiKey: apiKey
                 })
             )
         )

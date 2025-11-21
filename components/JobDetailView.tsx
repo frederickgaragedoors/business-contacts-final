@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, DEFAULT_ON_MY_WAY_TEMPLATE, InspectionItem } from '../types.ts';
 import JobTicketModal from './JobTicketModal.tsx';
@@ -29,6 +28,7 @@ interface JobDetailViewProps {
   onDeleteTicket: () => void;
   onViewInvoice: () => void;
   enabledStatuses: Record<JobStatus, boolean>;
+  apiKey?: string;
 }
 
 const JobDetailView: React.FC<JobDetailViewProps> = ({
@@ -42,6 +42,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
   onDeleteTicket,
   onViewInvoice,
   enabledStatuses,
+  apiKey,
 }) => {
   const [isJobTicketModalOpen, setIsJobTicketModalOpen] = useState(false);
   const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
@@ -354,6 +355,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
           partsCatalog={partsCatalog}
           enabledStatuses={enabledStatuses}
           contactAddress={contact.address}
+          apiKey={apiKey}
         />
       )}
 
