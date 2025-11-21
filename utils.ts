@@ -1,8 +1,3 @@
-
-
-
-
-
 import { JobTicket, Contact } from './types.ts';
 
 /**
@@ -254,5 +249,33 @@ export const downloadICSFile = (content: string): void => {
 export const processTemplate = (template: string, data: Record<string, string>): string => {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     return data[key] !== undefined ? data[key] : match;
+  });
+};
+
+/**
+ * Loads the Google Maps API script.
+ */
+export const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') return reject(new Error("Window not defined"));
+    if ((window as any).google && (window as any).google.maps && (window as any).google.maps.places) {
+      return resolve();
+    }
+    const scriptId = 'google-maps-script';
+    if (document.getElementById(scriptId)) {
+        // Script already added but might not be loaded yet. 
+        // For simplicity in this context, we assume it will load if added.
+        // In a robust app, we'd track loading state more precisely.
+        return resolve();
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = (e) => reject(e);
+    document.head.appendChild(script);
   });
 };

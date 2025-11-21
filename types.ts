@@ -85,6 +85,7 @@ export interface JobTicket {
   id: string;
   date: string; // ISO string format e.g., "2023-10-27"
   time?: string; // 24h format "14:30"
+  duration?: number; // Estimated duration in minutes
   jobLocation?: string; // Service address, defaults to contact address
   jobLocationContactName?: string; // Name of person at site if different from contact
   jobLocationContactPhone?: string; // Phone of person at site

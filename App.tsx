@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
@@ -408,6 +410,7 @@ function App() {
                   openJobId={viewState.openJobId}
                   businessInfo={businessInfo}
                   showContactPhotos={showContactPhotos}
+                  apiKey={mapSettings.apiKey}
               />;
           case 'new_form':
               return <ContactForm 
@@ -415,6 +418,7 @@ function App() {
                   onCancel={() => setViewState({ type: 'list' })} 
                   defaultFields={defaultFields} 
                   initialJobDate={viewState.initialJobDate}
+                  apiKey={mapSettings.apiKey}
               />;
           case 'edit_form':
               if (!selectedContact) return <div className="p-4">Contact not found</div>;
@@ -423,6 +427,7 @@ function App() {
                   onSave={handleSaveContact} 
                   onCancel={() => setViewState({ type: 'detail', id: selectedContact.id })} 
                   defaultFields={defaultFields}
+                  apiKey={mapSettings.apiKey}
               />;
           case 'settings':
               return <Settings 
@@ -500,6 +505,7 @@ function App() {
                     }}
                     onViewInvoice={() => setViewState({ type: 'invoice', contactId: jobContact.id, ticketId: jobTicket.id, from: 'job_detail' })}
                     enabledStatuses={enabledStatuses}
+                    apiKey={mapSettings.apiKey}
                 />;
           default:
               return null;

@@ -6,6 +6,7 @@
 
 
 
+
 /**
  * Generates a 7-character uppercase alphanumeric ID.
  */
@@ -253,5 +254,30 @@ export const downloadICSFile = (content) => {
 export const processTemplate = (template, data) => {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     return data[key] !== undefined ? data[key] : match;
+  });
+};
+
+/**
+ * Loads the Google Maps API script.
+ */
+export const loadGoogleMapsScript = (apiKey) => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') return reject(new Error("Window not defined"));
+    if (window.google && window.google.maps && window.google.maps.places) {
+      return resolve();
+    }
+    const scriptId = 'google-maps-script';
+    if (document.getElementById(scriptId)) {
+        return resolve();
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = (e) => reject(e);
+    document.head.appendChild(script);
   });
 };

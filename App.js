@@ -399,14 +399,16 @@ function App() {
                   initialJobDate: viewState.initialJobDate,
                   openJobId: viewState.openJobId,
                   businessInfo: businessInfo,
-                  showContactPhotos: showContactPhotos
+                  showContactPhotos: showContactPhotos,
+                  apiKey: mapSettings.apiKey
               });
           case 'new_form':
               return React.createElement(ContactForm, { 
                   onSave: handleSaveContact, 
                   onCancel: () => setViewState({ type: 'list' }), 
                   defaultFields: defaultFields, 
-                  initialJobDate: viewState.initialJobDate 
+                  initialJobDate: viewState.initialJobDate,
+                  apiKey: mapSettings.apiKey 
               });
           case 'edit_form':
               if (!selectedContact) return React.createElement("div", { className: "p-4" }, "Contact not found");
@@ -414,7 +416,8 @@ function App() {
                   initialContact: selectedContact, 
                   onSave: handleSaveContact, 
                   onCancel: () => setViewState({ type: 'detail', id: selectedContact.id }), 
-                  defaultFields: defaultFields
+                  defaultFields: defaultFields,
+                  apiKey: mapSettings.apiKey
               });
           case 'settings':
               return React.createElement(Settings, { 
@@ -491,7 +494,8 @@ function App() {
                         }
                     },
                     onViewInvoice: () => setViewState({ type: 'invoice', contactId: jobContact.id, ticketId: jobTicket.id, from: 'job_detail' }),
-                    enabledStatuses: enabledStatuses
+                    enabledStatuses: enabledStatuses,
+                    apiKey: mapSettings.apiKey
                 });
           default:
               return null;
