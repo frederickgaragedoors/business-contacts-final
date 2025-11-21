@@ -1,3 +1,13 @@
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.js';
 import ContactList from './components/ContactList.js';
@@ -185,7 +195,6 @@ function App() {
   const [lastAutoBackup, setLastAutoBackup] = useState(() => getInitialState('lastAutoBackup', null));
   const [currentTheme, setCurrentTheme] = useState(() => getInitialState('theme', 'system'));
   const [autoCalendarExportEnabled, setAutoCalendarExportEnabled] = useState(() => getInitialState('autoCalendarExportEnabled', false));
-  const [showContactPhotos, setShowContactPhotos] = useState(() => getInitialState('showContactPhotos', true));
   
   const [contactSelectorDate, setContactSelectorDate] = useState(null);
 
@@ -200,7 +209,6 @@ function App() {
   useEffect(() => localStorage.setItem('lastAutoBackup', JSON.stringify(lastAutoBackup)), [lastAutoBackup]);
   useEffect(() => localStorage.setItem('theme', JSON.stringify(currentTheme)), [currentTheme]);
   useEffect(() => localStorage.setItem('autoCalendarExportEnabled', JSON.stringify(autoCalendarExportEnabled)), [autoCalendarExportEnabled]);
-  useEffect(() => localStorage.setItem('showContactPhotos', JSON.stringify(showContactPhotos)), [showContactPhotos]);
 
   useEffect(() => {
       const applyTheme = () => {
@@ -219,12 +227,12 @@ function App() {
 
   useEffect(() => {
       if (autoBackupEnabled) {
-          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos });
+          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses });
           if (!lastAutoBackup || lastAutoBackup.data !== data) {
               setLastAutoBackup({ timestamp: new Date().toISOString(), data });
           }
       }
-  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, autoBackupEnabled]); 
+  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, autoBackupEnabled]); 
 
   const selectedContact = useMemo(() => {
     if (viewState.type === 'detail' || viewState.type === 'edit_form') {
@@ -330,7 +338,6 @@ function App() {
           if (data.jobTemplates) setJobTemplates(data.jobTemplates);
           if (data.partsCatalog) setPartsCatalog(data.partsCatalog);
           if (data.enabledStatuses) setEnabledStatuses(data.enabledStatuses);
-          if (data.showContactPhotos !== undefined) setShowContactPhotos(data.showContactPhotos);
 
           // Ensure contacts loaded from backup don't contain dataUrls in the file list
           if (data.contacts) {
@@ -351,7 +358,7 @@ function App() {
       }
   };
 
-  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos };
+  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses };
 
   const renderView = () => {
       switch (viewState.type) {
@@ -383,8 +390,7 @@ function App() {
                   enabledStatuses: enabledStatuses,
                   initialJobDate: viewState.initialJobDate,
                   openJobId: viewState.openJobId,
-                  businessInfo: businessInfo,
-                  showContactPhotos: showContactPhotos
+                  businessInfo: businessInfo
               });
           case 'new_form':
               return React.createElement(ContactForm, { 
@@ -429,9 +435,7 @@ function App() {
                   onToggleJobStatus: (status, enabled) => setEnabledStatuses({ ...enabledStatuses, [status]: enabled }),
                   contacts: contacts,
                   autoCalendarExportEnabled: autoCalendarExportEnabled,
-                  onToggleAutoCalendarExport: setAutoCalendarExportEnabled,
-                  showContactPhotos: showContactPhotos,
-                  onToggleShowContactPhotos: setShowContactPhotos
+                  onToggleAutoCalendarExport: setAutoCalendarExportEnabled
               });
           case 'invoice':
               const invoiceContact = contacts.find(c => c.id === viewState.contactId);

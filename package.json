@@ -1,50 +1,24 @@
 {
-  "name": "business-contacts-manager",
+  "name": "copy-of-business-contacts-manager",
   "private": true,
-  "version": "1.0.0",
-  "description": "A modern and sleek business contacts application.",
-  "author": "Your Name",
-  "main": "electron/main.js",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "npm run build && electron-builder"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "jspdf": "2.5.1",
-    "jspdf-autotable": "3.5.28"
+    "jspdf-autotable": "3.5.28",
+    "html2canvas": "^1.4.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0",
-    "vite-plugin-pwa": "^0.19.0",
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1",
-    "concurrently": "^8.2.2",
-    "wait-on": "^7.2.0"
-  },
-  "build": {
-    "appId": "com.businesscontacts.app",
-    "productName": "Business Contacts Manager",
-    "directories": {
-      "output": "dist_electron"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "icons/**/*",
-      "package.json"
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "icons/icon.png"
-    }
+    "vite": "^6.2.0"
   }
 }
