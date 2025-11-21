@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Contact, JobTicket, MapSettings } from '../types.ts';
-import { MapPinIcon, CalendarIcon, ArrowLeftIcon } from './icons.tsx';
+import { MapPinIcon, ArrowLeftIcon } from './icons.tsx';
 import { formatTime } from '../utils.ts';
 
 // Fix for missing Google Maps types
@@ -31,9 +31,9 @@ const RouteView: React.FC<RouteViewProps> = ({ contacts, mapSettings, onGoToSett
     const [routeError, setRouteError] = useState<string | null>(null);
     const [routeLegs, setRouteLegs] = useState<any[]>([]);
     
-    const mapRef = React.useRef<HTMLDivElement>(null);
-    const googleMapRef = React.useRef<any>(null);
-    const directionsRendererRef = React.useRef<any>(null);
+    const mapRef = useRef<HTMLDivElement>(null);
+    const googleMapRef = useRef<any>(null);
+    const directionsRendererRef = useRef<any>(null);
 
     // 1. Load Google Maps Script
     useEffect(() => {
@@ -117,12 +117,6 @@ const RouteView: React.FC<RouteViewProps> = ({ contacts, mapSettings, onGoToSett
             travelMode: google.maps.TravelMode.DRIVING,
         };
 
-        // If first job has a time, we can try to use traffic model (only works if departureTime is specified)
-        // Ideally we calculate: If I want to arrive at Job 1 at 9:00 AM... 
-        // Google Directions API in JS doesn't support 'arrival_time' for Driving easily in standard plan.
-        // So we just request current traffic or future expected.
-        // Let's assume leaving at 8AM or "Now" if looking at today.
-        
         directionsService.route(request, (result: any, status: any) => {
             if (status === google.maps.DirectionsStatus.OK && result) {
                 directionsRendererRef.current?.setDirections(result);
