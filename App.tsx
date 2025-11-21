@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
@@ -199,6 +189,7 @@ function App() {
   const [lastAutoBackup, setLastAutoBackup] = useState<{ timestamp: string; data: string } | null>(() => getInitialState('lastAutoBackup', null));
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'system'>(() => getInitialState('theme', 'system'));
   const [autoCalendarExportEnabled, setAutoCalendarExportEnabled] = useState<boolean>(() => getInitialState('autoCalendarExportEnabled', false));
+  const [showContactPhotos, setShowContactPhotos] = useState<boolean>(() => getInitialState('showContactPhotos', true));
   
   const [contactSelectorDate, setContactSelectorDate] = useState<Date | null>(null);
 
@@ -214,6 +205,7 @@ function App() {
   useEffect(() => localStorage.setItem('lastAutoBackup', JSON.stringify(lastAutoBackup)), [lastAutoBackup]);
   useEffect(() => localStorage.setItem('theme', JSON.stringify(currentTheme)), [currentTheme]);
   useEffect(() => localStorage.setItem('autoCalendarExportEnabled', JSON.stringify(autoCalendarExportEnabled)), [autoCalendarExportEnabled]);
+  useEffect(() => localStorage.setItem('showContactPhotos', JSON.stringify(showContactPhotos)), [showContactPhotos]);
 
   // Theme handling
   useEffect(() => {
@@ -234,13 +226,13 @@ function App() {
   // Auto Backup Logic
   useEffect(() => {
       if (autoBackupEnabled) {
-          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses });
+          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos });
           // Only update if data changed (simple string comparison for now)
           if (!lastAutoBackup || lastAutoBackup.data !== data) {
               setLastAutoBackup({ timestamp: new Date().toISOString(), data });
           }
       }
-  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, autoBackupEnabled]); 
+  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, autoBackupEnabled]); 
 
   // Derived state
   const selectedContact = useMemo(() => {
@@ -352,6 +344,7 @@ function App() {
           if (data.jobTemplates) setJobTemplates(data.jobTemplates);
           if (data.partsCatalog) setPartsCatalog(data.partsCatalog);
           if (data.enabledStatuses) setEnabledStatuses(data.enabledStatuses);
+          if (data.showContactPhotos !== undefined) setShowContactPhotos(data.showContactPhotos);
           
           // Ensure contacts loaded from backup don't contain dataUrls in the file list
           if (data.contacts) {
@@ -373,7 +366,7 @@ function App() {
       }
   };
 
-  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses };
+  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos };
 
   const renderView = () => {
       switch (viewState.type) {
@@ -406,6 +399,7 @@ function App() {
                   initialJobDate={viewState.initialJobDate}
                   openJobId={viewState.openJobId}
                   businessInfo={businessInfo}
+                  showContactPhotos={showContactPhotos}
               />;
           case 'new_form':
               return <ContactForm 
@@ -451,6 +445,8 @@ function App() {
                   contacts={contacts}
                   autoCalendarExportEnabled={autoCalendarExportEnabled}
                   onToggleAutoCalendarExport={setAutoCalendarExportEnabled}
+                  showContactPhotos={showContactPhotos}
+                  onToggleShowContactPhotos={setShowContactPhotos}
               />;
           case 'invoice':
               const invoiceContact = contacts.find(c => c.id === viewState.contactId);
