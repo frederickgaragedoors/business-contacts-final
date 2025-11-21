@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { PlusIcon, SettingsIcon, ClipboardListIcon, UsersIcon, CalendarIcon } from './icons.js';
+import { PlusIcon, SettingsIcon, ClipboardListIcon, UsersIcon, CalendarIcon, MapIcon } from './icons.js';
 
 const Header = ({
     currentView,
@@ -9,35 +9,36 @@ const Header = ({
     onGoToDashboard,
     onGoToList,
     onGoToCalendar,
+    onGoToRoute,
 }) => {
     const isDashboardActive = currentView === 'dashboard';
     const isCalendarActive = currentView === 'calendar';
-    const isListActive = !isDashboardActive && !isCalendarActive;
+    const isRouteActive = currentView === 'route';
+    const isListActive = !isDashboardActive && !isCalendarActive && !isRouteActive && currentView !== 'settings';
+
+    const buttonClass = (active) => 
+        `flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+            active 
+            ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm' 
+            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
+        }`;
 
     return (
         React.createElement("header", { className: "px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center space-x-2 bg-slate-50 dark:bg-slate-800 flex-shrink-0 z-20" },
             React.createElement("div", { className: "flex items-center space-x-1 p-1 bg-slate-200 dark:bg-slate-900 rounded-lg overflow-x-auto no-scrollbar" },
-                React.createElement("button", {
-                    onClick: onGoToDashboard,
-                    className: `flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${isDashboardActive ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`,
-                    "aria-label": "Dashboard"
-                },
+                React.createElement("button", { onClick: onGoToDashboard, className: buttonClass(isDashboardActive), "aria-label": "Dashboard" },
                     React.createElement(ClipboardListIcon, { className: "w-5 h-5" }),
                     React.createElement("span", { className: "hidden sm:inline" }, "Dashboard")
                 ),
-                React.createElement("button", {
-                    onClick: onGoToCalendar,
-                    className: `flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${isCalendarActive ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`,
-                    "aria-label": "Calendar"
-                },
+                React.createElement("button", { onClick: onGoToCalendar, className: buttonClass(isCalendarActive), "aria-label": "Calendar" },
                     React.createElement(CalendarIcon, { className: "w-5 h-5" }),
                     React.createElement("span", { className: "hidden sm:inline" }, "Calendar")
                 ),
-                React.createElement("button", {
-                    onClick: onGoToList,
-                    className: `flex items-center space-x-2 px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${isListActive ? 'bg-white dark:bg-slate-700 text-sky-600 dark:text-sky-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`,
-                    "aria-label": "Contacts"
-                },
+                React.createElement("button", { onClick: onGoToRoute, className: buttonClass(isRouteActive), "aria-label": "Route" },
+                    React.createElement(MapIcon, { className: "w-5 h-5" }),
+                    React.createElement("span", { className: "hidden sm:inline" }, "Route")
+                ),
+                React.createElement("button", { onClick: onGoToList, className: buttonClass(isListActive), "aria-label": "Contacts" },
                     React.createElement(UsersIcon, { className: "w-5 h-5" }),
                     React.createElement("span", { className: "hidden sm:inline" }, "Contacts")
                 )

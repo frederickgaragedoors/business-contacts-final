@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact, EmailSettings, CatalogItem, DEFAULT_ON_MY_WAY_TEMPLATE } from '../types.ts';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon, EyeIcon } from './icons.tsx';
+import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact, EmailSettings, CatalogItem, DEFAULT_ON_MY_WAY_TEMPLATE, MapSettings } from '../types.ts';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon, EyeIcon, MapPinIcon } from './icons.tsx';
 import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.ts';
 import { getAllFiles } from '../db.ts';
 import JobTemplateModal from './JobTemplateModal.tsx';
@@ -38,6 +38,8 @@ interface SettingsProps {
     onToggleAutoCalendarExport: (enabled: boolean) => void;
     showContactPhotos: boolean;
     onToggleShowContactPhotos: (enabled: boolean) => void;
+    mapSettings: MapSettings;
+    onUpdateMapSettings: (settings: MapSettings) => void;
 }
 
 const SettingsSection = ({ title, subtitle, children, defaultOpen = false }: { title: string, subtitle?: string, children?: React.ReactNode, defaultOpen?: boolean }) => {
@@ -95,10 +97,13 @@ const Settings: React.FC<SettingsProps> = ({
     onToggleAutoCalendarExport,
     showContactPhotos,
     onToggleShowContactPhotos,
+    mapSettings,
+    onUpdateMapSettings,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState<BusinessInfo>(businessInfo);
     const [currentEmailSettings, setCurrentEmailSettings] = useState<EmailSettings>(emailSettings);
+    const [currentMapSettings, setCurrentMapSettings] = useState<MapSettings>(mapSettings);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<JobTemplate | null>(null);
     const [newCatalogItemName, setNewCatalogItemName] = useState('');
@@ -126,6 +131,10 @@ const Settings: React.FC<SettingsProps> = ({
         }));
     };
 
+    const handleMapSettingsChange = (field: keyof MapSettings, value: string) => {
+        setCurrentMapSettings(prev => ({ ...prev, [field]: value }));
+    };
+
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const dataUrl = await fileToDataUrl(e.target.files[0]);
@@ -144,6 +153,12 @@ const Settings: React.FC<SettingsProps> = ({
         onUpdateEmailSettings(currentEmailSettings);
         onUpdateBusinessInfo(currentBusinessInfo); // Also save business info updates (for SMS template and defaults)
         alert('Settings saved.');
+    };
+
+    const handleMapSettingsSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onUpdateMapSettings(currentMapSettings);
+        alert('Map settings saved.');
     };
 
     const handleManualBackup = async () => {
@@ -313,6 +328,38 @@ const Settings: React.FC<SettingsProps> = ({
                             </div>
                         </div>
                          <button type="submit" className="mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save Business Info</button>
+                    </form>
+                </SettingsSection>
+
+                <SettingsSection title="Map & Route Settings" subtitle="Configure your starting location and API key for routing.">
+                    <form onSubmit={handleMapSettingsSubmit}>
+                        <div className="mt-2 space-y-4">
+                            <div>
+                                <label htmlFor="home-address" className={labelStyles}>Home / Base Address</label>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Used as the starting and ending point for your daily routes.</p>
+                                <textarea
+                                    id="home-address"
+                                    value={currentMapSettings.homeAddress || ''}
+                                    onChange={e => handleMapSettingsChange('homeAddress', e.target.value)}
+                                    rows={2}
+                                    className={inputStyles}
+                                    placeholder="e.g. 123 Warehouse Blvd, Springfield"
+                                ></textarea>
+                            </div>
+                            <div>
+                                <label htmlFor="api-key" className={labelStyles}>Google Maps API Key</label>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Required for routing, maps, and travel time calculations.</p>
+                                <input
+                                    type="password"
+                                    id="api-key"
+                                    value={currentMapSettings.apiKey || ''}
+                                    onChange={e => handleMapSettingsChange('apiKey', e.target.value)}
+                                    className={inputStyles}
+                                    placeholder="AIza..."
+                                />
+                            </div>
+                        </div>
+                        <button type="submit" className="mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">Save Map Settings</button>
                     </form>
                 </SettingsSection>
                 

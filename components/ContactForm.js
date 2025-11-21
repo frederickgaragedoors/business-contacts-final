@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
-import { UserCircleIcon, XIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
+import { UserCircleIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.js';
 import { fileToDataUrl, formatFileSize, generateId } from '../utils.js';
 
 const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJobDate }) => {
@@ -21,6 +21,7 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
               doorInstallDate: p.doorInstallDate || p.installDate || 'Unknown',
               springInstallDate: p.springInstallDate || p.installDate || 'Unknown',
               openerInstallDate: p.openerInstallDate || p.installDate || 'Unknown',
+              springs: p.springs || (p.springSize ? [{ id: generateId(), size: p.springSize }] : [{ id: generateId(), size: '' }])
           }));
       }
       if (initialContact?.doorProfile) {
@@ -30,7 +31,8 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
               id: generateId(),
               doorInstallDate: oldP.installDate || 'Unknown',
               springInstallDate: oldP.installDate || 'Unknown',
-              openerInstallDate: oldP.installDate || 'Unknown'
+              openerInstallDate: oldP.installDate || 'Unknown',
+              springs: [{ id: generateId(), size: oldP.springSize || '' }]
             }];
       }
       return [{
@@ -39,6 +41,7 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
         doorType: '',
         springSystem: '',
         springSize: '',
+        springs: [{ id: generateId(), size: '' }],
         openerBrand: '',
         openerModel: '',
         doorInstallDate: 'Unknown',
@@ -111,6 +114,35 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
   const handleDoorProfileChange = (id, field, value) => {
     setDoorProfiles(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
+
+  const handleSpringCountChange = (profileId, count) => {
+      const newCount = Math.max(1, Math.min(4, count)); // Limit between 1 and 4
+      setDoorProfiles(prev => prev.map(p => {
+          if (p.id !== profileId) return p;
+          
+          const currentSprings = p.springs || [];
+          if (newCount > currentSprings.length) {
+              // Add springs
+              const toAdd = newCount - currentSprings.length;
+              const newSprings = Array.from({ length: toAdd }, () => ({ id: generateId(), size: '' }));
+              return { ...p, springs: [...currentSprings, ...newSprings] };
+          } else if (newCount < currentSprings.length) {
+              // Remove springs from the end
+              return { ...p, springs: currentSprings.slice(0, newCount) };
+          }
+          return p;
+      }));
+  };
+
+  const handleSpringSizeChange = (profileId, springId, value) => {
+      setDoorProfiles(prev => prev.map(p => {
+          if (p.id !== profileId) return p;
+          return {
+              ...p,
+              springs: (p.springs || []).map(s => s.id === springId ? { ...s, size: value } : s)
+          };
+      }));
+  };
   
   const addDoorProfile = () => {
       setDoorProfiles(prev => [...prev, {
@@ -119,6 +151,7 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
         doorType: '',
         springSystem: '',
         springSize: '',
+        springs: [{ id: generateId(), size: '' }],
         openerBrand: '',
         openerModel: '',
         doorInstallDate: 'Unknown',
@@ -149,8 +182,14 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
         }];
     }
     
+    // Sync legacy springSize field with first spring for backward compatibility
+    const processedProfiles = doorProfiles.map(p => ({
+        ...p,
+        springSize: p.springs && p.springs.length > 0 ? p.springs[0].size : ''
+    }));
+
     // Filter empty door profiles
-    const finalDoorProfiles = doorProfiles.filter(p => 
+    const finalDoorProfiles = processedProfiles.filter(p => 
         p.dimensions || p.doorType || p.springSystem || p.openerBrand || p.openerModel
     );
 
@@ -352,22 +391,49 @@ const ContactForm = ({ initialContact, onSave, onCancel, defaultFields, initialJ
                             // Spring Details
                             React.createElement("div", { className: "mb-4 pb-4 border-b border-slate-200 dark:border-slate-600" },
                                 React.createElement("h5", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3" }, "Spring Details"),
-                                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
-                                    React.createElement("div", null,
-                                        React.createElement("label", { className: profileLabelClass }, "Spring System"),
-                                        React.createElement("select", { value: profile.springSystem, onChange: e => handleDoorProfileChange(profile.id, 'springSystem', e.target.value), className: inputStyles },
-                                            React.createElement("option", { value: "" }, "Select System..."),
-                                            React.createElement("option", { value: "Torsion" }, "Torsion"),
-                                            React.createElement("option", { value: "Extension" }, "Extension"),
-                                            React.createElement("option", { value: "TorqueMaster" }, "TorqueMaster"),
-                                            React.createElement("option", { value: "Other" }, "Other")
+                                React.createElement("div", { className: "grid grid-cols-1 gap-4" },
+                                    React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                                        React.createElement("div", null,
+                                            React.createElement("label", { className: profileLabelClass }, "System"),
+                                            React.createElement("select", { value: profile.springSystem, onChange: e => handleDoorProfileChange(profile.id, 'springSystem', e.target.value), className: inputStyles },
+                                                React.createElement("option", { value: "" }, "Select..."),
+                                                React.createElement("option", { value: "Torsion" }, "Torsion"),
+                                                React.createElement("option", { value: "Extension" }, "Extension"),
+                                                React.createElement("option", { value: "TorqueMaster" }, "TorqueMaster"),
+                                                React.createElement("option", { value: "Other" }, "Other")
+                                            )
+                                        ),
+                                        React.createElement("div", null,
+                                            React.createElement("label", { className: profileLabelClass }, "# Springs"),
+                                            React.createElement("select", { 
+                                                value: profile.springs?.length || 1, 
+                                                onChange: e => handleSpringCountChange(profile.id, parseInt(e.target.value)), 
+                                                className: inputStyles
+                                            },
+                                                React.createElement("option", { value: "1" }, "1"),
+                                                React.createElement("option", { value: "2" }, "2"),
+                                                React.createElement("option", { value: "3" }, "3"),
+                                                React.createElement("option", { value: "4" }, "4")
+                                            )
                                         )
                                     ),
+                                    
                                     React.createElement("div", null,
-                                         React.createElement("label", { className: profileLabelClass }, "Spring Size"),
-                                         React.createElement("input", { type: "text", placeholder: "e.g. .250 x 2 x 32", value: profile.springSize || '', onChange: e => handleDoorProfileChange(profile.id, 'springSize', e.target.value), className: inputStyles })
+                                        (profile.springs || []).map((spring, idx) => (
+                                            React.createElement("div", { key: spring.id, className: "mb-2 last:mb-0" },
+                                                React.createElement("label", { className: profileLabelClass }, `Spring #${idx + 1} Size`),
+                                                React.createElement("input", { 
+                                                    type: "text", 
+                                                    placeholder: "e.g. .250 x 2 x 32", 
+                                                    value: spring.size, 
+                                                    onChange: e => handleSpringSizeChange(profile.id, spring.id, e.target.value), 
+                                                    className: inputStyles 
+                                                })
+                                            )
+                                        ))
                                     ),
-                                    React.createElement("div", { className: "sm:col-span-2" },
+
+                                    React.createElement("div", null,
                                          renderDateInput("Spring Install Date", profile.id, 'springInstallDate', profile.springInstallDate)
                                     )
                                 )

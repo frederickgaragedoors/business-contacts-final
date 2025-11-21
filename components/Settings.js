@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon, EyeIcon } from './icons.js';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon, EyeIcon, MapPinIcon } from './icons.js';
 import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.js';
 import { getAllFiles } from '../db.js';
 import JobTemplateModal from './JobTemplateModal.js';
@@ -61,10 +61,13 @@ const Settings = ({
     onToggleAutoCalendarExport,
     showContactPhotos,
     onToggleShowContactPhotos,
+    mapSettings,
+    onUpdateMapSettings,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState(businessInfo);
     const [currentEmailSettings, setCurrentEmailSettings] = useState(emailSettings);
+    const [currentMapSettings, setCurrentMapSettings] = useState(mapSettings || { apiKey: '', homeAddress: '' });
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState(null);
     const [newCatalogItemName, setNewCatalogItemName] = useState('');
@@ -92,6 +95,10 @@ const Settings = ({
         }));
     };
 
+    const handleMapSettingsChange = (field, value) => {
+        setCurrentMapSettings(prev => ({ ...prev, [field]: value }));
+    };
+
     const handleLogoUpload = async (e) => {
         if (e.target.files && e.target.files[0]) {
             const dataUrl = await fileToDataUrl(e.target.files[0]);
@@ -110,6 +117,12 @@ const Settings = ({
         onUpdateEmailSettings(currentEmailSettings);
         onUpdateBusinessInfo(currentBusinessInfo); // Also save business info updates (for SMS template)
         alert('Settings saved.');
+    };
+
+    const handleMapSettingsSubmit = (e) => {
+        e.preventDefault();
+        onUpdateMapSettings(currentMapSettings);
+        alert('Map settings saved.');
     };
     
     const handleManualBackup = async () => {
@@ -273,6 +286,38 @@ const Settings = ({
                             )
                         ),
                         React.createElement("button", { type: "submit", className: "mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" }, "Save Business Info")
+                    )
+                ),
+
+                React.createElement(SettingsSection, { title: "Map & Route Settings", subtitle: "Configure your starting location and API key for routing." },
+                    React.createElement("form", { onSubmit: handleMapSettingsSubmit },
+                        React.createElement("div", { className: "mt-2 space-y-4" },
+                            React.createElement("div", null,
+                                React.createElement("label", { htmlFor: "home-address", className: labelStyles }, "Home / Base Address"),
+                                React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400 mb-1" }, "Used as the starting and ending point for your daily routes."),
+                                React.createElement("textarea", {
+                                    id: "home-address",
+                                    value: currentMapSettings.homeAddress || '',
+                                    onChange: e => handleMapSettingsChange('homeAddress', e.target.value),
+                                    rows: 2,
+                                    className: inputStyles,
+                                    placeholder: "e.g. 123 Warehouse Blvd, Springfield"
+                                })
+                            ),
+                            React.createElement("div", null,
+                                React.createElement("label", { htmlFor: "api-key", className: labelStyles }, "Google Maps API Key"),
+                                React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400 mb-1" }, "Required for routing, maps, and travel time calculations."),
+                                React.createElement("input", {
+                                    type: "password",
+                                    id: "api-key",
+                                    value: currentMapSettings.apiKey || '',
+                                    onChange: e => handleMapSettingsChange('apiKey', e.target.value),
+                                    className: inputStyles,
+                                    placeholder: "AIza..."
+                                })
+                            )
+                        ),
+                        React.createElement("button", { type: "submit", className: "mt-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" }, "Save Map Settings")
                     )
                 ),
 

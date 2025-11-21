@@ -217,6 +217,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 doorInstallDate: p.doorInstallDate || p.installDate || 'Unknown',
                 springInstallDate: p.springInstallDate || p.installDate || 'Unknown',
                 openerInstallDate: p.openerInstallDate || p.installDate || 'Unknown',
+                springs: p.springs || (p.springSize ? [{ id: generateId(), size: p.springSize }] : [])
             }));
         }
         if (contact.doorProfile) {
@@ -226,6 +227,7 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                 doorInstallDate: oldP.installDate || 'Unknown',
                 springInstallDate: oldP.installDate || 'Unknown',
                 openerInstallDate: oldP.installDate || 'Unknown',
+                springs: [{ id: generateId(), size: oldP.springSize || '' }]
             }];
         }
         return [];
@@ -340,9 +342,22 @@ const ContactDetail = ({ contact, defaultFields, onEdit, onDelete, onClose, addF
                                                 React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "System"),
                                                 React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.springSystem || '-')
                                             ),
-                                            React.createElement("div", null,
-                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Size"),
-                                                React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.springSize || '-')
+                                            React.createElement("div", { className: "col-span-2" },
+                                                React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, 
+                                                    `Configuration (${profile.springs?.length || 0} Springs)`
+                                                ),
+                                                (profile.springs && profile.springs.length > 0) ? (
+                                                    React.createElement("ul", { className: "text-sm font-medium text-slate-900 dark:text-slate-200 space-y-1" },
+                                                        profile.springs.map((s, i) => (
+                                                            React.createElement("li", { key: s.id, className: "flex w-full max-w-[200px] items-center" },
+                                                                React.createElement("span", { className: "text-slate-500 dark:text-slate-400 text-xs mr-2" }, `#${i+1}:`),
+                                                                React.createElement("span", null, s.size || 'N/A')
+                                                            )
+                                                        ))
+                                                    )
+                                                ) : (
+                                                    React.createElement("p", { className: "text-sm font-medium text-slate-900 dark:text-slate-200" }, profile.springSize || '-')
+                                                )
                                             ),
                                             React.createElement("div", null,
                                                 React.createElement("p", { className: "text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5" }, "Installed"),
