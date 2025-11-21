@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useState, useCallback } from 'react';
 import { Contact, FileAttachment, CustomField, DefaultFieldSetting, JobTicket, DoorProfile } from '../types.ts';
 import { UserCircleIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.tsx';
@@ -23,7 +27,6 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
     initialContact?.customFields || defaultFields?.map(df => ({ id: generateId(), label: df.label, value: '' })) || []
   );
   
-  // Handle legacy single profile or new array with new date fields
   const [doorProfiles, setDoorProfiles] = useState<DoorProfile[]>(() => {
       if (initialContact?.doorProfiles) {
           return initialContact.doorProfiles.map(p => ({
@@ -31,6 +34,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
               doorInstallDate: p.doorInstallDate || (p as any).installDate || 'Unknown',
               springInstallDate: p.springInstallDate || (p as any).installDate || 'Unknown',
               openerInstallDate: p.openerInstallDate || (p as any).installDate || 'Unknown',
+              springs: p.springs || (p.springSize ? [{ id: generateId(), size: p.springSize }] : [{ id: generateId(), size: '' }])
           }));
       }
       if ((initialContact as any)?.doorProfile) {
@@ -40,7 +44,8 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
               id: generateId(),
               doorInstallDate: oldP.installDate || 'Unknown',
               springInstallDate: oldP.installDate || 'Unknown',
-              openerInstallDate: oldP.installDate || 'Unknown'
+              openerInstallDate: oldP.installDate || 'Unknown',
+              springs: [{ id: generateId(), size: oldP.springSize || '' }]
             }];
       }
       return [{
@@ -49,6 +54,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
         doorType: '',
         springSystem: '',
         springSize: '',
+        springs: [{ id: generateId(), size: '' }],
         openerBrand: '',
         openerModel: '',
         doorInstallDate: 'Unknown',
@@ -122,6 +128,35 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
     setDoorProfiles(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
+  const handleSpringCountChange = (profileId: string, count: number) => {
+      const newCount = Math.max(1, Math.min(4, count)); // Limit between 1 and 4 for UI sanity
+      setDoorProfiles(prev => prev.map(p => {
+          if (p.id !== profileId) return p;
+          
+          const currentSprings = p.springs || [];
+          if (newCount > currentSprings.length) {
+              // Add springs
+              const toAdd = newCount - currentSprings.length;
+              const newSprings = Array.from({ length: toAdd }, () => ({ id: generateId(), size: '' }));
+              return { ...p, springs: [...currentSprings, ...newSprings] };
+          } else if (newCount < currentSprings.length) {
+              // Remove springs from the end
+              return { ...p, springs: currentSprings.slice(0, newCount) };
+          }
+          return p;
+      }));
+  };
+
+  const handleSpringSizeChange = (profileId: string, springId: string, value: string) => {
+      setDoorProfiles(prev => prev.map(p => {
+          if (p.id !== profileId) return p;
+          return {
+              ...p,
+              springs: (p.springs || []).map(s => s.id === springId ? { ...s, size: value } : s)
+          };
+      }));
+  };
+
   const addDoorProfile = () => {
       setDoorProfiles(prev => [...prev, {
         id: generateId(),
@@ -129,6 +164,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
         doorType: '',
         springSystem: '',
         springSize: '',
+        springs: [{ id: generateId(), size: '' }],
         openerBrand: '',
         openerModel: '',
         doorInstallDate: 'Unknown',
@@ -159,8 +195,13 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
         }];
     }
 
-    // Filter empty door profiles
-    const finalDoorProfiles = doorProfiles.filter(p => 
+    // Sync legacy springSize field with first spring for backward compatibility
+    const processedProfiles = doorProfiles.map(p => ({
+        ...p,
+        springSize: p.springs && p.springs.length > 0 ? p.springs[0].size : ''
+    }));
+
+    const finalDoorProfiles = processedProfiles.filter(p => 
         p.dimensions || p.doorType || p.springSystem || p.openerBrand || p.openerModel
     );
 
@@ -180,7 +221,6 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
   const inputClass = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white";
   const labelClass = "block text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1";
 
-  // Helper component for date inputs with status options
   const renderDateInput = (label: string, profileId: string, field: keyof DoorProfile, value: string) => {
       const isDate = /^\d{4}-\d{2}-\d{2}$/.test(value);
       const selectValue = isDate ? 'date' : (value === 'Original' ? 'Original' : 'Unknown');
@@ -240,70 +280,75 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
       )}
       
       <div className="px-4 sm:px-6 py-6 flex-grow">
-        {/* Desktop: 2-column grid. Mobile: 1-column. */}
+        {/* 2-Column Grid on Desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             
-            {/* Left Column: Contact Info + Custom Fields */}
-            <div className="space-y-8">
-                {/* Basic Info */}
-                <div>
+            {/* Left Column: Contact Info */}
+            <div>
+                <div className="mb-4">
+                    <h3 className="text-lg font-medium text-slate-800 dark:text-slate-100">Contact Details</h3>
+                </div>
+                
+                <div className="bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-600 rounded-lg p-6">
+                    {/* Photo */}
                     <div className="flex flex-col items-center mb-6">
                         <div className="relative w-24 h-24">
                             {photoUrl ? (
-                                <img src={photoUrl} alt="Contact" className="w-24 h-24 rounded-full object-cover" />
+                                <img src={photoUrl} alt="Contact" className="w-24 h-24 rounded-full object-cover ring-2 ring-white dark:ring-slate-600 shadow-sm" />
                             ) : (
-                                <UserCircleIcon className="w-24 h-24 text-slate-300 dark:text-slate-600" />
+                                <UserCircleIcon className="w-24 h-24 text-slate-300 dark:text-slate-500" />
                             )}
-                            <label htmlFor="photo-upload" className="absolute -bottom-1 -right-1 p-2 bg-sky-500 text-white rounded-full cursor-pointer hover:bg-sky-600 transition-colors">
+                            <label htmlFor="photo-upload" className="absolute -bottom-1 -right-1 p-2 bg-sky-500 text-white rounded-full cursor-pointer hover:bg-sky-600 transition-colors shadow-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 <input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
                             </label>
                         </div>
                     </div>
 
+                    {/* Basic Inputs */}
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Full Name</label>
-                            <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white" />
+                            <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Email</label>
-                            <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white" />
+                            <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="phone" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Phone</label>
-                            <input type="tel" id="phone" value={phone} onChange={e => setPhone(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white" />
+                            <input type="tel" id="phone" value={phone} onChange={e => setPhone(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white" />
                         </div>
                         <div>
                             <label htmlFor="address" className="block text-sm font-medium text-slate-600 dark:text-slate-300">Address</label>
-                            <textarea id="address" value={address} onChange={e => setAddress(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white"></textarea>
+                            <textarea id="address" value={address} onChange={e => setAddress(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white"></textarea>
                         </div>
                     </div>
-                </div>
 
-                {/* Custom Fields */}
-                <div className="border-t dark:border-slate-700 pt-6">
-                    <h3 className="text-lg font-medium text-slate-800 dark:text-slate-100">Custom Fields</h3>
-                    <div className="mt-4 space-y-4">
-                        {customFields.map((field) => (
-                            <div key={field.id} className="flex items-end space-x-2">
-                                <div className="flex-1">
-                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Label</label>
-                                    <input type="text" value={field.label} onChange={(e) => handleCustomFieldChange(field.id, 'label', e.target.value)} placeholder="e.g. Company" className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm text-sm dark:text-white" />
+                    {/* Custom Fields */}
+                    <div className="border-t border-slate-200 dark:border-slate-600 mt-6 pt-6">
+                        <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-4">Custom Fields</h4>
+                        <div className="space-y-4">
+                            {customFields.map((field) => (
+                                <div key={field.id} className="flex items-end space-x-2">
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Label</label>
+                                        <input type="text" value={field.label} onChange={(e) => handleCustomFieldChange(field.id, 'label', e.target.value)} placeholder="e.g. Company" className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm text-sm dark:text-white" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Value</label>
+                                        <input type="text" value={field.value} onChange={(e) => handleCustomFieldChange(field.id, 'value', e.target.value)} placeholder="e.g. Acme Corp" className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm text-sm dark:text-white" />
+                                    </div>
+                                    <button type="button" onClick={() => removeCustomField(field.id)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full transition-colors">
+                                        <TrashIcon className="w-5 h-5"/>
+                                    </button>
                                 </div>
-                                <div className="flex-1">
-                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Value</label>
-                                    <input type="text" value={field.value} onChange={(e) => handleCustomFieldChange(field.id, 'value', e.target.value)} placeholder="e.g. Acme Corp" className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm text-sm dark:text-white" />
-                                </div>
-                                <button type="button" onClick={() => removeCustomField(field.id)} className="p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full transition-colors">
-                                    <TrashIcon className="w-5 h-5"/>
-                                </button>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                        <button type="button" onClick={addCustomField} className="mt-4 flex items-center px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/50 hover:bg-sky-100 dark:hover:bg-sky-900 transition-colors">
+                            <PlusIcon className="w-4 h-4 mr-2" /> Add Field
+                        </button>
                     </div>
-                    <button type="button" onClick={addCustomField} className="mt-4 flex items-center px-3 py-2 rounded-md text-sm font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/50 hover:bg-sky-100 dark:hover:bg-sky-900 transition-colors">
-                        <PlusIcon className="w-4 h-4 mr-2" /> Add Field
-                    </button>
                 </div>
             </div>
 
@@ -356,22 +401,49 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
                             {/* Spring Details */}
                             <div className="mb-4 pb-4 border-b border-slate-200 dark:border-slate-600">
                                 <h5 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3">Spring Details</h5>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className={labelClass}>Spring System</label>
-                                        <select value={profile.springSystem} onChange={e => handleDoorProfileChange(profile.id, 'springSystem', e.target.value)} className={inputClass}>
-                                            <option value="">Select System...</option>
-                                            <option value="Torsion">Torsion</option>
-                                            <option value="Extension">Extension</option>
-                                            <option value="TorqueMaster">TorqueMaster</option>
-                                            <option value="Other">Other</option>
-                                        </select>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={labelClass}>System</label>
+                                            <select value={profile.springSystem} onChange={e => handleDoorProfileChange(profile.id, 'springSystem', e.target.value)} className={inputClass}>
+                                                <option value="">Select...</option>
+                                                <option value="Torsion">Torsion</option>
+                                                <option value="Extension">Extension</option>
+                                                <option value="TorqueMaster">TorqueMaster</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}># Springs</label>
+                                            <select 
+                                                value={profile.springs?.length || 1} 
+                                                onChange={e => handleSpringCountChange(profile.id, parseInt(e.target.value))} 
+                                                className={inputClass}
+                                            >
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                            </select>
+                                        </div>
                                     </div>
+                                    
                                     <div>
-                                        <label className={labelClass}>Spring Size</label>
-                                        <input type="text" placeholder="e.g. .250 x 2 x 32" value={profile.springSize || ''} onChange={e => handleDoorProfileChange(profile.id, 'springSize', e.target.value)} className={inputClass} />
+                                        {profile.springs && profile.springs.map((spring, idx) => (
+                                            <div key={spring.id} className="mb-2 last:mb-0">
+                                                <label className={labelClass}>Spring #{idx + 1} Size</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="e.g. .250 x 2 x 32" 
+                                                    value={spring.size} 
+                                                    onChange={e => handleSpringSizeChange(profile.id, spring.id, e.target.value)} 
+                                                    className={inputClass} 
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div className="sm:col-span-2">
+
+                                    <div>
                                         {renderDateInput("Spring Install Date", profile.id, 'springInstallDate', profile.springInstallDate)}
                                     </div>
                                 </div>

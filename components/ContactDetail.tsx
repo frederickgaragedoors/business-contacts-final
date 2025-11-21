@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Contact, DefaultFieldSetting, FileAttachment, JobTicket, jobStatusColors, JobTemplate, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, PaymentStatus, BusinessInfo } from '../types.ts';
 import PhotoGalleryModal from './PhotoGalleryModal.tsx';
@@ -238,6 +242,8 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 doorInstallDate: p.doorInstallDate || (p as any).installDate || 'Unknown',
                 springInstallDate: p.springInstallDate || (p as any).installDate || 'Unknown',
                 openerInstallDate: p.openerInstallDate || (p as any).installDate || 'Unknown',
+                // Handle springs array creation for display if not present
+                springs: p.springs || (p.springSize ? [{ id: generateId(), size: p.springSize }] : [])
             }));
         }
         // Fallback for old data structure (single profile)
@@ -248,6 +254,7 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                 doorInstallDate: oldP.installDate || 'Unknown',
                 springInstallDate: oldP.installDate || 'Unknown',
                 openerInstallDate: oldP.installDate || 'Unknown',
+                springs: [{ id: generateId(), size: oldP.springSize || '' }]
             }];
         }
         return [];
@@ -365,9 +372,22 @@ const ContactDetail: React.FC<ContactDetailProps> = ({ contact, defaultFields, o
                                                         <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5">System</p>
                                                         <p className="text-sm font-medium text-slate-900 dark:text-slate-200">{profile.springSystem || '-'}</p>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5">Size</p>
-                                                        <p className="text-sm font-medium text-slate-900 dark:text-slate-200">{profile.springSize || '-'}</p>
+                                                    <div className="col-span-2">
+                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5">
+                                                            Configuration ({profile.springs?.length || 0} Springs)
+                                                        </p>
+                                                        {(profile.springs && profile.springs.length > 0) ? (
+                                                            <ul className="text-sm font-medium text-slate-900 dark:text-slate-200 space-y-1">
+                                                                {profile.springs.map((s, i) => (
+                                                                    <li key={s.id} className="flex w-full max-w-[200px] items-center">
+                                                                        <span className="text-slate-500 dark:text-slate-400 text-xs mr-2">#{i+1}:</span>
+                                                                        <span>{s.size || 'N/A'}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        ) : (
+                                                            <p className="text-sm font-medium text-slate-900 dark:text-slate-200">{profile.springSize || '-'}</p>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5">Installed</p>
