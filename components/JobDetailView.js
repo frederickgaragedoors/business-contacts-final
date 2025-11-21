@@ -1,4 +1,14 @@
 
+
+
+
+
+
+
+
+
+
+
 import React, { useState } from 'react';
 import { jobStatusColors, paymentStatusColors, paymentStatusLabels, DEFAULT_ON_MY_WAY_TEMPLATE } from '../types.js';
 import JobTicketModal from './JobTicketModal.js';
@@ -16,7 +26,7 @@ import {
   UserCircleIcon,
   ClipboardCheckIcon,
 } from './icons.js';
-import { calculateJobTicketTotal, formatTime, processTemplate, formatPhoneNumber } from '../utils.js';
+import { calculateJobTicketTotal, formatTime, processTemplate } from '../utils.js';
 
 const JobDetailView = ({
   contact,
@@ -50,19 +60,19 @@ const JobDetailView = ({
   }
   const displayBalance = totalCost - paidAmount;
 
+  // Determine target location for map/service
   const serviceLocation = ticket.jobLocation || contact.address;
   const isDifferentLocation = ticket.jobLocation && ticket.jobLocation !== contact.address;
 
-  const primaryPhone = ticket.jobLocationContactPhone || contact.phone;
-  const primaryName = ticket.jobLocationContactName || contact.name;
-
+  // SMS Link for "On My Way"
   const template = businessInfo.onMyWayTemplate || DEFAULT_ON_MY_WAY_TEMPLATE;
   const smsBody = processTemplate(template, {
-    customerName: primaryName.split(' ')[0],
+    customerName: contact.name.split(' ')[0],
     businessName: businessInfo.name || 'your technician'
   });
-  const smsLink = `sms:${primaryPhone}?body=${encodeURIComponent(smsBody)}`;
+  const smsLink = `sms:${contact.phone}?body=${encodeURIComponent(smsBody)}`;
   
+  // Inspection Summary
   const inspectionItems = ticket.inspection || [];
   const totalInspectionItems = inspectionItems.length;
   const failedItems = inspectionItems.filter(i => i.status === 'Fail').length;
@@ -72,148 +82,106 @@ const JobDetailView = ({
   return (
     React.createElement(React.Fragment, null,
       React.createElement("div", { className: "h-full flex flex-col bg-slate-100 dark:bg-slate-900 overflow-y-auto" },
-        /* Header with Action Buttons */
-        React.createElement("div", { className: "p-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10" },
-          React.createElement("div", { className: "flex items-center" },
-            React.createElement("button", { onClick: onBack, className: "p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" },
-                React.createElement(ArrowLeftIcon, { className: "w-6 h-6 text-slate-600 dark:text-slate-300" })
-            ),
-            React.createElement("h2", { className: "ml-4 font-bold text-lg text-slate-700 dark:text-slate-200" },
-                "Job Details"
-            )
+        React.createElement("div", { className: "p-4 flex items-center border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10" },
+          React.createElement("button", { onClick: onBack, className: "p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700" },
+            React.createElement(ArrowLeftIcon, { className: "w-6 h-6 text-slate-600 dark:text-slate-300" })
           ),
-          React.createElement("div", { className: "flex items-center space-x-1 sm:space-x-2" },
-             React.createElement("button", { 
-                onClick: onViewInvoice, 
-                className: "p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors",
-                title: "View PDF"
-             },
-                React.createElement(ClipboardListIcon, { className: "w-5 h-5" })
-             ),
-             React.createElement("button", { 
-                onClick: () => setIsJobTicketModalOpen(true), 
-                className: "p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors",
-                title: "Edit Job"
-             },
-                React.createElement(EditIcon, { className: "w-5 h-5" })
-             ),
-             React.createElement("button", { 
-                onClick: onDeleteTicket, 
-                className: "flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 transition-colors",
-                title: "Delete Job"
-             },
-                React.createElement(TrashIcon, { className: "w-5 h-5" })
-             )
+          React.createElement("h2", { className: "ml-4 flex-grow font-bold text-lg text-slate-700 dark:text-slate-200" },
+            "Job Details"
           )
         ),
 
-        /* Compact Status Bar */
-        React.createElement("div", { className: "bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between gap-4" },
-            React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2" },
-                 React.createElement("span", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase" }, "Status"),
-                 React.createElement("span", { className: `px-2 py-0.5 rounded text-sm font-bold ${statusColor.base} ${statusColor.text} inline-block` }, ticket.status)
-            ),
-            React.createElement("div", { className: "flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-right sm:text-left" },
-                 React.createElement("span", { className: "text-xs font-bold text-slate-500 dark:text-slate-400 uppercase" }, "Payment"),
-                 React.createElement("span", { className: `px-2 py-0.5 rounded text-sm font-bold ${paymentStatusColor.base} ${paymentStatusColor.text} inline-block` }, paymentStatusLabel)
-            )
-        ),
-
         React.createElement("div", { className: "px-4 sm:px-6 py-6 flex-grow space-y-6" },
-          
-          /* Job Logistics Card - Ticket Stub Style */
-          React.createElement("div", { className: "bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col" },
-            /* Header Strip */
-            React.createElement("div", { className: "bg-slate-800 text-white p-3 flex justify-between items-center" },
-                React.createElement("div", { className: "flex space-x-4" },
+        
+          // Job Overview Card (Combined Notes & Job Info)
+          React.createElement("div", { className: "bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6" },
+            React.createElement("div", { className: "flex justify-between items-start mb-4" },
+                 React.createElement("h3", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100" }, "Job Overview"),
+                 React.createElement("div", { className: "flex flex-wrap justify-end gap-2" },
+                     React.createElement("span", { className: `px-3 py-1 text-sm font-medium rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}` },
+                        paymentStatusLabel
+                    ),
+                     React.createElement("span", { className: `px-3 py-1 text-sm font-medium rounded-full ${statusColor.base} ${statusColor.text}` },
+                        ticket.status
+                    )
+                 )
+            ),
+            
+            // Notes
+            React.createElement("div", { className: "mb-6" },
+               React.createElement("p", { className: "text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words text-base" },
+                  ticket.notes || 'No notes provided for this job.'
+               )
+            ),
+
+            // Meta Data
+            React.createElement("div", { className: "flex flex-col items-start gap-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-6 border border-slate-100 dark:border-slate-700" },
+                React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4 w-full" },
                     React.createElement("div", null,
-                        React.createElement("span", { className: "text-[10px] uppercase opacity-70 block" }, "Date"),
-                        React.createElement("span", { className: "font-bold" },
-                            new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+                        React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" }, "Date"),
+                        React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" },
+                            new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }),
+                            ticket.time && React.createElement("span", { className: "ml-2 text-slate-600 dark:text-slate-300 font-normal" }, `at ${formatTime(ticket.time)}`)
                         )
                     ),
                     React.createElement("div", null,
-                        React.createElement("span", { className: "text-[10px] uppercase opacity-70 block" }, "Time"),
-                        React.createElement("span", { className: "font-bold" }, ticket.time ? formatTime(ticket.time) : 'Anytime')
+                        React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" }, "Job ID"),
+                        React.createElement("p", { className: "text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5" }, ticket.id)
                     )
                 ),
-                React.createElement("div", { className: "text-right" },
-                    React.createElement("span", { className: "text-[10px] uppercase opacity-70 block" }, "Ticket #"),
-                    React.createElement("span", { className: "font-mono font-bold text-sky-400" }, ticket.id)
-                )
-            ),
-
-            /* Body */
-            React.createElement("div", { className: "p-5 pb-2" },
-                /* 1. Notes (Top Priority) */
-                React.createElement("div", { className: "mb-6" },
-                    React.createElement("span", { className: "text-xs font-bold text-slate-400 uppercase mb-1 block" }, "Work Notes"),
-                    React.createElement("p", { className: "text-slate-800 dark:text-slate-200 text-base whitespace-pre-wrap break-words" },
-                        ticket.notes || 'No notes provided for this job.'
-                    )
-                ),
-
-                React.createElement("div", { className: "border-t border-slate-100 dark:border-slate-700 pt-4 grid grid-cols-2 gap-4" },
-                    /* Location Col */
-                    React.createElement("div", { className: "min-w-0" },
-                            React.createElement("p", { className: "text-xs font-bold text-slate-400 uppercase mb-2 flex items-center" },
-                                React.createElement(MapPinIcon, { className: "w-3 h-3 mr-1 flex-shrink-0" }), " Site Location"
-                            ),
-                            React.createElement("a", {
-                                href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(serviceLocation)}`,
-                                target: "_blank",
-                                rel: "noopener noreferrer",
-                                className: "font-semibold text-sm text-slate-800 dark:text-slate-200 hover:text-sky-600 hover:underline whitespace-pre-line block break-words"
-                            },
-                                serviceLocation || 'No address provided'
-                            ),
+                React.createElement("div", { className: "w-full pt-2 border-t border-slate-200 dark:border-slate-600 mt-1" },
+                    React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center" }, 
+                        "Service Location",
+                        isDifferentLocation && React.createElement("span", { className: "ml-2 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 font-bold" }, "Different from Billing")
+                    ),
+                    React.createElement("div", { className: "flex items-start mt-1" },
+                        React.createElement(MapPinIcon, { className: "w-4 h-4 text-slate-400 mr-1.5 mt-0.5 flex-shrink-0" }),
+                        React.createElement("a", {
+                            href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(serviceLocation)}`,
+                            target: "_blank",
+                            rel: "noopener noreferrer",
+                            className: "text-sm font-semibold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline whitespace-pre-line"
+                        }, serviceLocation || 'No address provided')
+                    ),
+                    
+                    // Site Contact
+                     (ticket.jobLocationContactName || ticket.jobLocationContactPhone) && (
+                        React.createElement("div", { className: "mt-3 pl-1" },
+                            React.createElement("p", { className: "text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1" }, "Site Contact"),
                             ticket.jobLocationContactName && (
-                                React.createElement("p", { className: "text-xs text-slate-500 mt-1 truncate" }, `Contact: ${ticket.jobLocationContactName}`)
+                                React.createElement("div", { className: "flex items-center mb-1" },
+                                    React.createElement(UserCircleIcon, { className: "w-4 h-4 text-slate-400 mr-2" }),
+                                    React.createElement("span", { className: "text-sm font-medium text-slate-700 dark:text-slate-200" }, ticket.jobLocationContactName)
+                                )
                             ),
                             ticket.jobLocationContactPhone && (
-                                React.createElement("div", { className: "flex items-center mt-1 space-x-2" },
-                                    React.createElement("a", { href: `tel:${ticket.jobLocationContactPhone}`, className: "text-xs text-slate-500 hover:text-sky-600 hover:underline flex items-center" },
-                                       React.createElement(PhoneIcon, { className: "w-3 h-3 mr-1" }),
-                                       ticket.jobLocationContactPhone
+                                React.createElement("div", { className: "flex items-center" },
+                                    React.createElement(PhoneIcon, { className: "w-4 h-4 text-slate-400 mr-2" }),
+                                    React.createElement("span", { className: "text-sm text-slate-600 dark:text-slate-300 mr-2" }, ticket.jobLocationContactPhone),
+                                    React.createElement("a", { href: `tel:${ticket.jobLocationContactPhone}`, className: "p-1 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-900 rounded-full transition-colors", title: "Call" },
+                                        React.createElement(PhoneIcon, { className: "w-3 h-3" })
+                                    ),
+                                    React.createElement("a", { href: `sms:${ticket.jobLocationContactPhone}`, className: "p-1 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-900 rounded-full transition-colors", title: "Text" },
+                                        React.createElement(MessageIcon, { className: "w-3 h-3" })
                                     )
                                 )
                             )
-                    ),
-
-                    /* Client Col */
-                    React.createElement("div", { className: "min-w-0" },
-                            React.createElement("p", { className: "text-xs font-bold text-slate-400 uppercase mb-2 flex items-center" },
-                                React.createElement(UserCircleIcon, { className: "w-3 h-3 mr-1 flex-shrink-0" }), " Client / Billing"
-                            ),
-                            React.createElement("div", { className: "flex flex-col" },
-                                React.createElement("button", { onClick: onBack, className: "font-semibold text-sm text-slate-800 dark:text-slate-100 hover:underline text-left truncate max-w-full" },
-                                    contact.name
-                                ),
-                                React.createElement("a", { href: `tel:${contact.phone}`, className: "text-xs text-slate-500 mt-1 truncate hover:text-sky-600 hover:underline block" },
-                                    contact.phone
-                                ),
-                                React.createElement("a", { href: `mailto:${contact.email}`, className: "text-xs text-slate-500 hover:text-sky-600 block mt-0.5 truncate" }, contact.email)
-                            )
+                        )
                     )
                 )
             ),
 
-             /* Action Footer */
-            React.createElement("div", { className: "bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700 p-3" },
-                 React.createElement("div", { className: "grid grid-cols-3 gap-3" },
-                     React.createElement("a", { href: `tel:${primaryPhone}`, className: "flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-200 dark:hover:border-green-800 transition-all group" },
-                         React.createElement(PhoneIcon, { className: "w-5 h-5 text-green-600 dark:text-green-500 mb-1 group-hover:scale-110 transition-transform" }),
-                         React.createElement("span", { className: "text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-green-700 dark:group-hover:text-green-400" }, "Call")
-                     ),
-                     React.createElement("a", { href: `sms:${primaryPhone}`, className: "flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm hover:bg-sky-50 dark:hover:bg-sky-900/20 hover:border-sky-200 dark:hover:border-sky-800 transition-all group" },
-                         React.createElement(MessageIcon, { className: "w-5 h-5 text-sky-600 dark:text-sky-500 mb-1 group-hover:scale-110 transition-transform" }),
-                         React.createElement("span", { className: "text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-sky-700 dark:group-hover:text-sky-400" }, "Text")
-                     ),
-                     React.createElement("a", { href: smsLink, className: "flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all group" },
-                         React.createElement(CarIcon, { className: "w-5 h-5 text-indigo-600 dark:text-indigo-500 mb-1 group-hover:scale-110 transition-transform" }),
-                         React.createElement("span", { className: "text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-indigo-700 dark:group-hover:text-indigo-400" }, "On My Way")
-                     )
-                 )
+            // Actions
+            React.createElement("div", { className: "mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-center space-x-3" },
+                React.createElement("button", { onClick: () => setIsJobTicketModalOpen(true), className: "flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors" },
+                    React.createElement(EditIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Edit")
+                ),
+                 React.createElement("button", { onClick: onDeleteTicket, className: "flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 transition-colors" },
+                    React.createElement(TrashIcon, { className: "w-4 h-4" }), React.createElement("span", null, "Delete")
+                ),
+                 React.createElement("button", { onClick: onViewInvoice, className: "flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors" },
+                    React.createElement(ClipboardListIcon, { className: "w-4 h-4" }), React.createElement("span", null, "PDF")
+                )
             )
           ),
           
@@ -259,6 +227,55 @@ const JobDetailView = ({
                        }, "Edit Inspection")
                   )
               )
+          ),
+
+          // Contact Info Card
+          React.createElement("div", { className: "bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6" },
+            React.createElement("h3", { className: "text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2" }, "Customer Information"),
+            React.createElement("button", { 
+                onClick: onBack,
+                className: "text-2xl font-bold text-slate-800 dark:text-slate-100 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors text-left" 
+            }, contact.name),
+            React.createElement("div", { className: "mt-4 space-y-3 text-sm" },
+              React.createElement("div", { className: "flex flex-wrap items-center justify-between gap-2" },
+                React.createElement("div", { className: "flex items-center" },
+                    React.createElement(PhoneIcon, { className: "w-4 h-4 text-slate-400 mr-3" }),
+                    React.createElement("span", { className: "text-slate-600 dark:text-slate-300" }, contact.phone)
+                ),
+                React.createElement("div", { className: "flex flex-wrap gap-2" },
+                    React.createElement("a", { href: `tel:${contact.phone}`, className: "flex items-center space-x-1 px-2 py-1 rounded bg-sky-500 text-white hover:bg-sky-600 text-xs font-medium transition-colors" },
+                        React.createElement(PhoneIcon, { className: "w-3 h-3" }),
+                        React.createElement("span", null, "Call")
+                    ),
+                    React.createElement("a", { href: `sms:${contact.phone}`, className: "flex items-center space-x-1 px-2 py-1 rounded bg-sky-500 text-white hover:bg-sky-600 text-xs font-medium transition-colors" },
+                        React.createElement(MessageIcon, { className: "w-3 h-3" }),
+                        React.createElement("span", null, "Text")
+                    ),
+                    React.createElement("a", { href: smsLink, className: "flex items-center space-x-1 px-2 py-1 rounded bg-teal-500 text-white hover:bg-teal-600 text-xs font-medium transition-colors" },
+                        React.createElement(CarIcon, { className: "w-3 h-3" }),
+                        React.createElement("span", null, "On My Way")
+                    )
+                )
+              ),
+              React.createElement("div", { className: "flex items-center" },
+                React.createElement("div", { className: "flex items-center" },
+                  React.createElement(MailIcon, { className: "w-4 h-4 text-slate-400 mr-3" }),
+                  React.createElement("a", { href: `mailto:${contact.email}`, className: "text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors" }, contact.email)
+                )
+              ),
+              React.createElement("div", { className: "flex items-start" },
+                React.createElement(MapPinIcon, { className: "w-4 h-4 text-slate-400 mr-3 mt-1" }),
+                React.createElement("div", null,
+                    React.createElement("span", { className: "text-xs text-slate-400 uppercase font-bold mb-0.5 block" }, "Billing Address"),
+                    React.createElement("a", { 
+                        href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`,
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                        className: "text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors whitespace-pre-line" 
+                    }, contact.address)
+                )
+              )
+            )
           ),
 
           // Costs Card

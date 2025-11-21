@@ -1,6 +1,15 @@
 
+
+
+
+
+
+
+
+
+
 import React, { useState } from 'react';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon, EyeIcon } from './icons.js';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon } from './icons.js';
 import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.js';
 import { getAllFiles } from '../db.js';
 import JobTemplateModal from './JobTemplateModal.js';
@@ -59,8 +68,6 @@ const Settings = ({
     contacts,
     autoCalendarExportEnabled,
     onToggleAutoCalendarExport,
-    showContactPhotos,
-    onToggleShowContactPhotos,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState(businessInfo);
@@ -169,7 +176,7 @@ const Settings = ({
         downloadICSFile(icsContent);
     };
 
-    const inputStyles = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white";
+    const inputStyles = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white";
     const labelStyles = "block text-sm font-medium text-slate-600 dark:text-slate-300";
 
     return (
@@ -193,23 +200,6 @@ const Settings = ({
                                 className: `flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${currentTheme === themeOption.toLowerCase() ? 'bg-white dark:bg-slate-800 text-sky-600 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`
                             }, themeOption)
                         ))
-                    )
-                ),
-                
-                 React.createElement(SettingsSection, { title: "Display Preferences", subtitle: "Customize the application layout." },
-                    React.createElement("div", { className: "mt-2 space-y-3" },
-                         React.createElement("div", { className: "flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg" },
-                            React.createElement("div", null,
-                                React.createElement("p", { className: "font-medium text-slate-700 dark:text-slate-200" }, "Show Contact Photos"),
-                                React.createElement("p", { className: "text-xs text-slate-500 dark:text-slate-400" }, "Display the profile picture on the contact details page.")
-                            ),
-                            React.createElement("button", {
-                                onClick: () => onToggleShowContactPhotos(!showContactPhotos),
-                                className: `relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 ${showContactPhotos ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`
-                            },
-                                React.createElement("span", { className: `inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${showContactPhotos ? 'translate-x-5' : 'translate-x-0'}` })
-                            )
-                        )
                     )
                 ),
 
@@ -455,7 +445,7 @@ const Settings = ({
                     )
                 ),
 
-                React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6 mb-8" },
+                React.createElement("div", { className: "mt-8 border-t dark:border-slate-700 pt-6" },
                     React.createElement("h3", { className: "text-xl font-semibold text-slate-800 dark:text-slate-100" }, "Backup & Restore"),
                     React.createElement("p", { className: "mt-1 text-sm text-slate-500 dark:text-slate-400" }, "Manage your application data. Backups include all contacts, custom fields, and work logs."),
                     React.createElement("div", { className: "mt-6 space-y-3" },
@@ -498,7 +488,6 @@ const Settings = ({
                         )
                     )
                 )
-
             ),
             isTemplateModalOpen && React.createElement(JobTemplateModal, { template: editingTemplate, onSave: handleSaveTemplate, onClose: () => { setIsTemplateModalOpen(false); setEditingTemplate(null); } })
         )

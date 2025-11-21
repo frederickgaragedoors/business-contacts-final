@@ -1,7 +1,16 @@
 
+
+
+
+
+
+
+
+
+
 import React, { useState } from 'react';
 import { DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, Contact, EmailSettings, CatalogItem, DEFAULT_ON_MY_WAY_TEMPLATE } from '../types.ts';
-import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon, EyeIcon } from './icons.tsx';
+import { ArrowLeftIcon, TrashIcon, PlusIcon, DownloadIcon, UploadIcon, UserCircleIcon, EditIcon, CalendarIcon, ChevronDownIcon } from './icons.tsx';
 import { saveJsonFile, fileToDataUrl, generateICSContent, downloadICSFile } from '../utils.ts';
 import { getAllFiles } from '../db.ts';
 import JobTemplateModal from './JobTemplateModal.tsx';
@@ -36,11 +45,9 @@ interface SettingsProps {
     contacts: Contact[];
     autoCalendarExportEnabled: boolean;
     onToggleAutoCalendarExport: (enabled: boolean) => void;
-    showContactPhotos: boolean;
-    onToggleShowContactPhotos: (enabled: boolean) => void;
 }
 
-const SettingsSection = ({ title, subtitle, children, defaultOpen = false }: { title: string, subtitle?: string, children?: React.ReactNode, defaultOpen?: boolean }) => {
+const SettingsSection = ({ title, subtitle, children, defaultOpen = false }: { title: string, subtitle?: string, children: React.ReactNode, defaultOpen?: boolean }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
     <div className="border-t dark:border-slate-700">
@@ -93,8 +100,6 @@ const Settings: React.FC<SettingsProps> = ({
     contacts,
     autoCalendarExportEnabled,
     onToggleAutoCalendarExport,
-    showContactPhotos,
-    onToggleShowContactPhotos,
 }) => {
     const [newFieldLabel, setNewFieldLabel] = useState('');
     const [currentBusinessInfo, setCurrentBusinessInfo] = useState<BusinessInfo>(businessInfo);
@@ -235,23 +240,6 @@ const Settings: React.FC<SettingsProps> = ({
                         ))}
                     </div>
                 </div>
-
-                <SettingsSection title="Display Preferences" subtitle="Customize the application layout.">
-                    <div className="mt-2 space-y-3">
-                         <div className="flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                            <div>
-                                <p className="font-medium text-slate-700 dark:text-slate-200">Show Contact Photos</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Display the profile picture on the contact details page.</p>
-                            </div>
-                            <button
-                                onClick={() => onToggleShowContactPhotos(!showContactPhotos)}
-                                className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 ${showContactPhotos ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                            >
-                                <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${showContactPhotos ? 'translate-x-5' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-                    </div>
-                </SettingsSection>
 
                 <SettingsSection title="Business Information" subtitle="This info will appear on your estimates and receipts.">
                      <form onSubmit={handleBusinessInfoSubmit}>
@@ -541,7 +529,7 @@ const Settings: React.FC<SettingsProps> = ({
                       </div>
                 </div>
 
-                <div className="mt-8 border-t dark:border-slate-700 pt-6 mb-8">
+                <div className="mt-8 border-t dark:border-slate-700 pt-6">
                     <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Backup & Restore</h3>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage your application data. Backups include all contacts, custom fields, and work logs.</p>
                     <div className="mt-6 space-y-3">
@@ -595,7 +583,6 @@ const Settings: React.FC<SettingsProps> = ({
                         )}
                     </div>
                 </div>
-
             </div>
             {isTemplateModalOpen && (
                 <JobTemplateModal

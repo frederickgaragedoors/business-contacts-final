@@ -5,15 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -54,12 +45,6 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
         }
     }
 
-    // Logic to determine if inspection section should be shown
-    // Only show if there are items with status Pass, Fail, or Repaired.
-    const hasInspectionResults = (ticket.inspection || []).some(i => 
-        i.status === 'Pass' || i.status === 'Fail' || i.status === 'Repaired'
-    );
-
     const generatePdf = async () => {
         const doc = new jsPDF({
             orientation: 'portrait',
@@ -68,7 +53,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
         });
 
         const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 50; // Increased margin
+        const margin = 40;
         const startY = 40;
 
         let logoWidth = 0;
@@ -358,9 +343,6 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
                  doc.text(`$${cardBalance.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
                  innerY += 25; 
              } else {
-                 // Add "Job Total" here for card payments with no deposit
-                 doc.text("Job Total", rightBoxX + 15, innerY);
-                 doc.text(`$${cashTotal.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
                  innerY += 25;
              }
 
@@ -370,7 +352,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
              doc.setFontSize(11);
              doc.setFont('helvetica', 'bold');
              doc.setTextColor(0);
-             doc.text("Total", rightBoxX + 15, innerY); // Changed from Total Charge
+             doc.text("Total Charge", rightBoxX + 15, innerY);
              doc.text(`$${cardTotal.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
 
              finalY += boxHeight + 30;
@@ -492,7 +474,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
         }
 
         // --- Inspection Summary (if exists) ---
-        if (hasInspectionResults) {
+        if (ticket.inspection && ticket.inspection.length > 0) {
              if (finalY > doc.internal.pageSize.getHeight() - 150) {
                 doc.addPage();
                 finalY = 40;
@@ -507,8 +489,8 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
              finalY += 15;
              
              // Separate Pass from Fail/Repaired/NA
-             const failedOrRepaired = (ticket.inspection || []).filter(i => i.status === 'Fail' || i.status === 'Repaired');
-             const passed = (ticket.inspection || []).filter(i => i.status === 'Pass');
+             const failedOrRepaired = ticket.inspection.filter(i => i.status === 'Fail' || i.status === 'Repaired');
+             const passed = ticket.inspection.filter(i => i.status === 'Pass');
              
              doc.setFontSize(10);
              doc.setFont('helvetica', 'normal');
@@ -683,7 +665,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
                         top: 0;
                         width: 100%;
                         margin: 0 !important;
-                        padding: 20mm !important;
+                        padding: 0 !important;
                         box-shadow: none !important;
                     }
                     @page {
@@ -782,7 +764,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
                                     React.createElement("span", { className: "font-semibold text-slate-600" }, "Job ID:"), ` ${ticket.id}`
                                 ),
                                 React.createElement("p", null,
-                                    React.createElement("span", { className: "font-semibold text-slate-600" }, "Date:"), ` ${new Date(ticket.date).toLocaleDateString()}`
+                                    React.createElement("span", { className: "font-semibold text-slate-600" }, "Date:"), ` ${new Date(ticket.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}`
                                 )
                             )
                         )
@@ -815,7 +797,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
                             React.createElement("thead", null,
                                 React.createElement("tr", null,
                                     React.createElement("th", { className: "p-3 text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-1/2" }, "Description"),
-                                    React.createElement("th", { className: "p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[15%] " }, "Qty"),
+                                    React.createElement("th", { className: "p-3 text-center text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[15%]" }, "Qty"),
                                     React.createElement("th", { className: "p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[20%]" }, "Unit Price"),
                                     React.createElement("th", { className: "p-3 text-right text-sm font-semibold text-slate-600 uppercase border-b-2 border-slate-200 w-[20%]" }, "Amount")
                                 )
@@ -910,7 +892,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
                                                     ),
 
                                                     React.createElement("div", { className: "flex justify-between items-end border-t border-sky-200 pt-2 mt-4" },
-                                                        React.createElement("span", { className: "text-slate-700 font-bold" }, "Total"),
+                                                        React.createElement("span", { className: "text-slate-700 font-bold" }, "Total Charge"),
                                                         React.createElement("span", { className: "font-bold text-lg text-slate-800" }, `$${cardTotal.toFixed(2)}`)
                                                     )
                                                 )
@@ -921,7 +903,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
                                                         React.createElement("span", { className: "text-slate-800" }, `$${cashTotal.toFixed(2)}`)
                                                     ),
                                                     React.createElement("div", { className: "flex justify-between items-end border-t border-sky-200 pt-1 mt-1" },
-                                                        React.createElement("span", { className: "text-slate-700 font-medium" }, "Total"),
+                                                        React.createElement("span", { className: "text-slate-700 font-medium" }, "Total Charge"),
                                                         React.createElement("span", { className: "font-bold text-lg text-slate-800" }, `$${cardTotal.toFixed(2)}`)
                                                     )
                                                 )
@@ -1009,7 +991,7 @@ const InvoiceView = ({ contact, ticket, businessInfo, emailSettings, onClose, ad
                         )
                      ),
 
-                     hasInspectionResults && (
+                     ticket.inspection && ticket.inspection.length > 0 && (
                         React.createElement("section", { className: "mt-8 pt-6 border-t border-slate-200" },
                             React.createElement("h3", { className: "text-sm font-bold text-slate-700 uppercase mb-3" }, "25-Point Safety Inspection Summary"),
                             
