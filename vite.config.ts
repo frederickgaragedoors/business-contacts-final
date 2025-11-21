@@ -50,8 +50,9 @@ export default defineConfig(({ mode }) => {
       define: {
         // deeply polyfill process.env to prevent 'process is not defined' errors in some libs
         'process.env': {},
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        // Use || '' to ensure it returns a string even if the env var is undefined during build
+        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || '')
       },
       resolve: {
         alias: {
