@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
@@ -12,7 +10,8 @@ import CalendarView from './components/CalendarView.tsx';
 import InvoiceView from './components/InvoiceView.tsx';
 import JobDetailView from './components/JobDetailView.tsx';
 import ContactSelectorModal from './components/ContactSelectorModal.tsx';
-import { Contact, ViewState, DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, JobTicket, FileAttachment, EmailSettings, DEFAULT_EMAIL_SETTINGS, CatalogItem } from './types.ts';
+import RouteView from './components/RouteView.tsx';
+import { Contact, ViewState, DefaultFieldSetting, BusinessInfo, JobTemplate, JobStatus, ALL_JOB_STATUSES, JobTicket, FileAttachment, EmailSettings, DEFAULT_EMAIL_SETTINGS, CatalogItem, MapSettings } from './types.ts';
 import { generateId } from './utils.ts';
 import { addFiles, deleteFiles, clearAndAddFiles } from './db.ts';
 
@@ -171,7 +170,6 @@ const getInitialState = <T,>(key: string, defaultValue: T): T => {
 
 function App() {
   // State definitions
-  // Initialize with sample data if no contacts exist
   const [contacts, setContacts] = useState<Contact[]>(() => {
       const saved = localStorage.getItem('contacts');
       if (saved) {
@@ -196,6 +194,7 @@ function App() {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark' | 'system'>(() => getInitialState('theme', 'system'));
   const [autoCalendarExportEnabled, setAutoCalendarExportEnabled] = useState<boolean>(() => getInitialState('autoCalendarExportEnabled', false));
   const [showContactPhotos, setShowContactPhotos] = useState<boolean>(() => getInitialState('showContactPhotos', true));
+  const [mapSettings, setMapSettings] = useState<MapSettings>(() => getInitialState('mapSettings', { apiKey: '', homeAddress: '' }));
   
   const [contactSelectorDate, setContactSelectorDate] = useState<Date | null>(null);
 
@@ -212,6 +211,7 @@ function App() {
   useEffect(() => localStorage.setItem('theme', JSON.stringify(currentTheme)), [currentTheme]);
   useEffect(() => localStorage.setItem('autoCalendarExportEnabled', JSON.stringify(autoCalendarExportEnabled)), [autoCalendarExportEnabled]);
   useEffect(() => localStorage.setItem('showContactPhotos', JSON.stringify(showContactPhotos)), [showContactPhotos]);
+  useEffect(() => localStorage.setItem('mapSettings', JSON.stringify(mapSettings)), [mapSettings]);
 
   // Theme handling
   useEffect(() => {
@@ -232,13 +232,13 @@ function App() {
   // Auto Backup Logic
   useEffect(() => {
       if (autoBackupEnabled) {
-          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos });
+          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, mapSettings });
           // Only update if data changed (simple string comparison for now)
           if (!lastAutoBackup || lastAutoBackup.data !== data) {
               setLastAutoBackup({ timestamp: new Date().toISOString(), data });
           }
       }
-  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, autoBackupEnabled]); 
+  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, mapSettings, autoBackupEnabled]); 
 
   // Derived state
   const selectedContact = useMemo(() => {
@@ -279,14 +279,12 @@ function App() {
         const newContact = { ...cleanContactData, id: generateId() };
         setContacts([...contacts, newContact]);
         
-        // If we are coming from the calendar flow (indicated by initialJobDate in the current viewState),
-        // we want to open the newly created ticket immediately.
+        // If we are coming from the calendar flow
         if (viewState.type === 'new_form' && viewState.initialJobDate) {
             const createdTicket = newContact.jobTickets.find(t => t.date === viewState.initialJobDate);
             if (createdTicket) {
                 setViewState({ type: 'detail', id: newContact.id, openJobId: createdTicket.id });
             } else {
-                // Fallback if ticket creation failed for some reason (should not happen)
                 setViewState({ type: 'detail', id: newContact.id, initialJobDate: viewState.initialJobDate });
             }
         } else {
@@ -308,10 +306,7 @@ function App() {
 
   const handleAddFilesToContact = async (contactId: string, files: FileAttachment[]) => {
       try {
-        // Save full file data to IndexedDB
         await addFiles(files);
-        
-        // Strip dataUrl for State/LocalStorage
         const filesForState = files.map(f => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { dataUrl, ...rest } = f;
@@ -351,8 +346,8 @@ function App() {
           if (data.partsCatalog) setPartsCatalog(data.partsCatalog);
           if (data.enabledStatuses) setEnabledStatuses(data.enabledStatuses);
           if (data.showContactPhotos !== undefined) setShowContactPhotos(data.showContactPhotos);
+          if (data.mapSettings) setMapSettings(data.mapSettings);
           
-          // Ensure contacts loaded from backup don't contain dataUrls in the file list
           if (data.contacts) {
               const cleanContacts = data.contacts.map((c: Contact) => ({
                   ...c,
@@ -372,7 +367,7 @@ function App() {
       }
   };
 
-  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos };
+  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, mapSettings };
 
   const renderView = () => {
       switch (viewState.type) {
@@ -383,6 +378,12 @@ function App() {
                   contacts={contacts} 
                   onViewJob={(contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId })} 
                   onAddJob={(date) => setContactSelectorDate(date)}
+              />;
+          case 'route':
+              return <RouteView 
+                  contacts={contacts} 
+                  mapSettings={mapSettings} 
+                  onGoToSettings={() => setViewState({ type: 'settings' })}
               />;
           case 'list':
               return <ContactList contacts={contacts} selectedContactId={null} onSelectContact={(id) => setViewState({ type: 'detail', id })} />;
@@ -453,6 +454,8 @@ function App() {
                   onToggleAutoCalendarExport={setAutoCalendarExportEnabled}
                   showContactPhotos={showContactPhotos}
                   onToggleShowContactPhotos={setShowContactPhotos}
+                  mapSettings={mapSettings}
+                  onUpdateMapSettings={setMapSettings}
               />;
           case 'invoice':
               const invoiceContact = contacts.find(c => c.id === viewState.contactId);
@@ -511,6 +514,7 @@ function App() {
           onGoToDashboard={() => setViewState({ type: 'dashboard' })}
           onGoToList={() => setViewState({ type: 'list' })}
           onGoToCalendar={() => setViewState({ type: 'calendar' })}
+          onGoToRoute={() => setViewState({ type: 'route' })}
       />
       <main className="flex-grow overflow-hidden relative">
         {renderView()}

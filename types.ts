@@ -1,8 +1,4 @@
 
-
-
-
-
 export interface FileAttachment {
   id: string;
   name: string;
@@ -144,6 +140,11 @@ export interface BusinessInfo {
   defaultProcessingFeeRate?: number;
 }
 
+export interface MapSettings {
+  apiKey: string;
+  homeAddress: string;
+}
+
 export interface EmailTemplate {
   subject: string;
   body: string;
@@ -203,5 +204,6 @@ export type ViewState =
   | { type: 'settings' }
   | { type: 'dashboard' }
   | { type: 'calendar' }
+  | { type: 'route' }
   | { type: 'invoice'; contactId: string; ticketId: string; from?: 'contact_detail' | 'job_detail' }
   | { type: 'job_detail'; contactId: string; ticketId: string };

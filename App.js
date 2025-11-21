@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.js';
 import ContactList from './components/ContactList.js';
@@ -9,6 +10,7 @@ import CalendarView from './components/CalendarView.js';
 import InvoiceView from './components/InvoiceView.js';
 import JobDetailView from './components/JobDetailView.js';
 import ContactSelectorModal from './components/ContactSelectorModal.js';
+import RouteView from './components/RouteView.js';
 import { generateId } from './utils.js';
 import { addFiles, deleteFiles, clearAndAddFiles } from './db.js';
 import { ALL_JOB_STATUSES, DEFAULT_EMAIL_SETTINGS } from './types.js';
@@ -38,6 +40,7 @@ const getSampleContacts = () => {
                     doorType: 'Sectional',
                     springSystem: 'Torsion',
                     springSize: '.250x2x32',
+                    springs: [{ id: 'S-1', size: '.250x2x32' }, { id: 'S-2', size: '.250x2x32' }],
                     openerBrand: 'LiftMaster',
                     openerModel: '8550W',
                     doorInstallDate: '2021-05-12',
@@ -76,6 +79,7 @@ const getSampleContacts = () => {
                     doorType: 'One-piece',
                     springSystem: 'Extension',
                     springSize: '',
+                    springs: [{ id: 'S-3', size: 'Extension 140lb' }],
                     openerBrand: 'Genie',
                     openerModel: 'Aladdin Connect',
                     doorInstallDate: 'Original',
@@ -88,6 +92,7 @@ const getSampleContacts = () => {
                     doorType: 'Sectional',
                     springSystem: 'Torsion',
                     springSize: '.218x1.75x28',
+                    springs: [{ id: 'S-4', size: '.218x1.75x28' }],
                     openerBrand: 'Chamberlain',
                     openerModel: 'B970',
                     doorInstallDate: '2020-02-15',
@@ -186,6 +191,7 @@ function App() {
   const [currentTheme, setCurrentTheme] = useState(() => getInitialState('theme', 'system'));
   const [autoCalendarExportEnabled, setAutoCalendarExportEnabled] = useState(() => getInitialState('autoCalendarExportEnabled', false));
   const [showContactPhotos, setShowContactPhotos] = useState(() => getInitialState('showContactPhotos', true));
+  const [mapSettings, setMapSettings] = useState(() => getInitialState('mapSettings', { apiKey: '', homeAddress: '' }));
   
   const [contactSelectorDate, setContactSelectorDate] = useState(null);
 
@@ -201,6 +207,7 @@ function App() {
   useEffect(() => localStorage.setItem('theme', JSON.stringify(currentTheme)), [currentTheme]);
   useEffect(() => localStorage.setItem('autoCalendarExportEnabled', JSON.stringify(autoCalendarExportEnabled)), [autoCalendarExportEnabled]);
   useEffect(() => localStorage.setItem('showContactPhotos', JSON.stringify(showContactPhotos)), [showContactPhotos]);
+  useEffect(() => localStorage.setItem('mapSettings', JSON.stringify(mapSettings)), [mapSettings]);
 
   useEffect(() => {
       const applyTheme = () => {
@@ -219,12 +226,12 @@ function App() {
 
   useEffect(() => {
       if (autoBackupEnabled) {
-          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos });
+          const data = JSON.stringify({ contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, mapSettings });
           if (!lastAutoBackup || lastAutoBackup.data !== data) {
               setLastAutoBackup({ timestamp: new Date().toISOString(), data });
           }
       }
-  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, autoBackupEnabled]); 
+  }, [contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, mapSettings, autoBackupEnabled]); 
 
   const selectedContact = useMemo(() => {
     if (viewState.type === 'detail' || viewState.type === 'edit_form') {
@@ -331,6 +338,7 @@ function App() {
           if (data.partsCatalog) setPartsCatalog(data.partsCatalog);
           if (data.enabledStatuses) setEnabledStatuses(data.enabledStatuses);
           if (data.showContactPhotos !== undefined) setShowContactPhotos(data.showContactPhotos);
+          if (data.mapSettings) setMapSettings(data.mapSettings);
 
           // Ensure contacts loaded from backup don't contain dataUrls in the file list
           if (data.contacts) {
@@ -351,7 +359,7 @@ function App() {
       }
   };
 
-  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos };
+  const appStateForBackup = { contacts, defaultFields, businessInfo, emailSettings, jobTemplates, partsCatalog, enabledStatuses, showContactPhotos, mapSettings };
 
   const renderView = () => {
       switch (viewState.type) {
@@ -362,6 +370,13 @@ function App() {
                   contacts: contacts, 
                   onViewJob: (contactId, ticketId) => setViewState({ type: 'job_detail', contactId, ticketId }), 
                   onAddJob: (date) => setContactSelectorDate(date)
+              });
+          case 'route':
+              return React.createElement(RouteView, { 
+                  contacts: contacts, 
+                  mapSettings: mapSettings, 
+                  onGoToSettings: () => setViewState({ type: 'settings' }),
+                  onBack: () => setViewState({ type: 'dashboard' })
               });
           case 'list':
               return React.createElement(ContactList, { contacts: contacts, selectedContactId: null, onSelectContact: (id) => setViewState({ type: 'detail', id }) });
@@ -431,7 +446,9 @@ function App() {
                   autoCalendarExportEnabled: autoCalendarExportEnabled,
                   onToggleAutoCalendarExport: setAutoCalendarExportEnabled,
                   showContactPhotos: showContactPhotos,
-                  onToggleShowContactPhotos: setShowContactPhotos
+                  onToggleShowContactPhotos: setShowContactPhotos,
+                  mapSettings: mapSettings,
+                  onUpdateMapSettings: setMapSettings
               });
           case 'invoice':
               const invoiceContact = contacts.find(c => c.id === viewState.contactId);
@@ -489,7 +506,8 @@ function App() {
           onGoToSettings: () => setViewState({ type: 'settings' }),
           onGoToDashboard: () => setViewState({ type: 'dashboard' }),
           onGoToList: () => setViewState({ type: 'list' }),
-          onGoToCalendar: () => setViewState({ type: 'calendar' })
+          onGoToCalendar: () => setViewState({ type: 'calendar' }),
+          onGoToRoute: () => setViewState({ type: 'route' })
       }),
       React.createElement("main", { className: "flex-grow overflow-hidden relative" },
         renderView()
