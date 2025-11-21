@@ -36,10 +36,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # cache: 'npm' Removed to prevent errors if package-lock.json is not committed
 
       - name: Install dependencies
-        run: npm install
+        # Delete package-lock.json to prevent Windows-specific optional dependencies (like fsevents or electron binaries)
+        # from breaking the Linux build.
+        # Use --legacy-peer-deps to ignore potential conflicts that don't matter for the build
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps
         env:
           # CRITICAL: Skips downloading the Electron .exe/.binary which causes failures on Linux CI runners
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
