@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import React, { useState } from 'react';
 import { Contact, JobTicket, BusinessInfo, JobTemplate, jobStatusColors, JobStatus, CatalogItem, paymentStatusColors, paymentStatusLabels, DEFAULT_ON_MY_WAY_TEMPLATE, InspectionItem } from '../types.ts';
 import JobTicketModal from './JobTicketModal.tsx';
@@ -22,7 +16,7 @@ import {
   UserCircleIcon,
   ClipboardCheckIcon,
 } from './icons.tsx';
-import { calculateJobTicketTotal, formatTime, processTemplate } from '../utils.ts';
+import { calculateJobTicketTotal, formatTime, processTemplate, formatPhoneNumber } from '../utils.ts';
 
 interface JobDetailViewProps {
   contact: Contact;
@@ -73,13 +67,17 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
   const serviceLocation = ticket.jobLocation || contact.address;
   const isDifferentLocation = ticket.jobLocation && ticket.jobLocation !== contact.address;
 
+  // Prioritize Site Contact for communication actions
+  const primaryPhone = ticket.jobLocationContactPhone || contact.phone;
+  const primaryName = ticket.jobLocationContactName || contact.name;
+
   // SMS Link for "On My Way"
   const template = businessInfo.onMyWayTemplate || DEFAULT_ON_MY_WAY_TEMPLATE;
   const smsBody = processTemplate(template, {
-    customerName: contact.name.split(' ')[0],
+    customerName: primaryName.split(' ')[0],
     businessName: businessInfo.name || 'your technician'
   });
-  const smsLink = `sms:${contact.phone}?body=${encodeURIComponent(smsBody)}`;
+  const smsLink = `sms:${primaryPhone}?body=${encodeURIComponent(smsBody)}`;
   
   // Inspection Summary
   const inspectionItems = ticket.inspection || [];
@@ -87,114 +85,151 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
   const failedItems = inspectionItems.filter(i => i.status === 'Fail').length;
   const repairedItems = inspectionItems.filter(i => i.status === 'Repaired').length;
   const passedItems = inspectionItems.filter(i => i.status === 'Pass').length;
-  const inspectionStatus = totalInspectionItems === 0 ? 'Not Started' : 'In Progress';
 
   return (
     <>
       <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-900 overflow-y-auto">
-        <div className="p-4 flex items-center border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
-          <button onClick={onBack} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
-            <ArrowLeftIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-          </button>
-          <h2 className="ml-4 flex-grow font-bold text-lg text-slate-700 dark:text-slate-200">
-            Job Details
-          </h2>
+        {/* Header with Action Buttons */}
+        <div className="p-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+          <div className="flex items-center">
+            <button onClick={onBack} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+              <ArrowLeftIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+            </button>
+            <h2 className="ml-4 font-bold text-lg text-slate-700 dark:text-slate-200">
+              Job Details
+            </h2>
+          </div>
+          <div className="flex items-center space-x-1 sm:space-x-2">
+             <button 
+                onClick={onViewInvoice} 
+                className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+                title="View PDF"
+            >
+                <ClipboardListIcon className="w-5 h-5" />
+            </button>
+            <button 
+                onClick={() => setIsJobTicketModalOpen(true)} 
+                className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+                title="Edit Job"
+            >
+                <EditIcon className="w-5 h-5" />
+            </button>
+             <button 
+                onClick={onDeleteTicket} 
+                className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 transition-colors"
+                title="Delete Job"
+            >
+                <TrashIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Compact Status Bar */}
+        <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Status</span>
+                 <span className={`px-2 py-0.5 rounded text-sm font-bold ${statusColor.base} ${statusColor.text} inline-block`}>{ticket.status}</span>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-right sm:text-left">
+                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Payment</span>
+                 <span className={`px-2 py-0.5 rounded text-sm font-bold ${paymentStatusColor.base} ${paymentStatusColor.text} inline-block`}>{paymentStatusLabel}</span>
+            </div>
         </div>
 
         <div className="px-4 sm:px-6 py-6 flex-grow space-y-6">
           
-          {/* Job Overview Card (Combined Notes & Job Info) */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
-            <div className="flex justify-between items-start mb-4">
-                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Job Overview</h3>
-                 <div className="flex flex-wrap justify-end gap-2">
-                     <span className={`px-3 py-1 text-sm font-medium rounded-full ${paymentStatusColor.base} ${paymentStatusColor.text}`}>
-                        {paymentStatusLabel}
-                    </span>
-                     <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusColor.base} ${statusColor.text}`}>
-                        {ticket.status}
-                    </span>
-                 </div>
-            </div>
-            
-            {/* Notes Section */}
-            <div className="mb-6">
-               <p className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words text-base">
-                  {ticket.notes || 'No notes provided for this job.'}
-               </p>
-            </div>
-
-            {/* Meta Data Section */}
-            <div className="flex flex-col items-start gap-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-6 border border-slate-100 dark:border-slate-700">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          {/* Job Logistics Card - Ticket Stub Style */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
+            {/* Header Strip */}
+            <div className="bg-slate-800 text-white p-3 flex justify-between items-center">
+                <div className="flex space-x-4">
                     <div>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</p>
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
+                        <span className="text-[10px] uppercase opacity-70 block">Date</span>
+                        <span className="font-bold">
                             {new Date(ticket.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
-                            {ticket.time && <span className="ml-2 text-slate-600 dark:text-slate-300 font-normal">at {formatTime(ticket.time)}</span>}
-                        </p>
+                        </span>
                     </div>
                     <div>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Job ID</p>
-                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{ticket.id}</p>
+                        <span className="text-[10px] uppercase opacity-70 block">Time</span>
+                        <span className="font-bold">{ticket.time ? formatTime(ticket.time) : 'Anytime'}</span>
                     </div>
                 </div>
-                
-                <div className="w-full pt-2 border-t border-slate-200 dark:border-slate-600 mt-1">
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center">
-                        Service Location
-                        {isDifferentLocation && <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 font-bold">Different from Billing</span>}
+                <div className="text-right">
+                    <span className="text-[10px] uppercase opacity-70 block">Ticket #</span>
+                    <span className="font-mono font-bold text-sky-400">{ticket.id}</span>
+                </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 pb-2">
+                <div className="mb-6">
+                    <span className="text-xs font-bold text-slate-400 uppercase mb-1 block">Work Notes</span>
+                    <p className="text-slate-800 dark:text-slate-200 text-base whitespace-pre-wrap break-words">
+                        {ticket.notes || 'No notes provided for this job.'}
                     </p>
-                    <div className="flex items-start mt-1">
-                         <MapPinIcon className="w-4 h-4 text-slate-400 mr-1.5 mt-0.5 flex-shrink-0" />
-                         <a 
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(serviceLocation)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm font-semibold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 hover:underline whitespace-pre-line"
-                         >
-                            {serviceLocation || 'No address provided'}
-                         </a>
-                    </div>
-                    
-                    {/* Site Contact Info */}
-                    {(ticket.jobLocationContactName || ticket.jobLocationContactPhone) && (
-                        <div className="mt-3 pl-1">
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Site Contact</p>
+                </div>
+
+                <div className="border-t border-slate-100 dark:border-slate-700 pt-4 grid grid-cols-2 gap-4">
+                    {/* Location Col */}
+                    <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
+                            <MapPinIcon className="w-3 h-3 mr-1 flex-shrink-0" /> Site Location
+                            </p>
+                            <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(serviceLocation)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-semibold text-sm text-slate-800 dark:text-slate-200 hover:text-sky-600 hover:underline whitespace-pre-line block break-words"
+                            >
+                                {serviceLocation || 'No address provided'}
+                            </a>
                             {ticket.jobLocationContactName && (
-                                <div className="flex items-center mb-1">
-                                    <UserCircleIcon className="w-4 h-4 text-slate-400 mr-2" />
-                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{ticket.jobLocationContactName}</span>
-                                </div>
+                                <p className="text-xs text-slate-500 mt-1 truncate">Contact: {ticket.jobLocationContactName}</p>
                             )}
                             {ticket.jobLocationContactPhone && (
-                                <div className="flex items-center">
-                                    <PhoneIcon className="w-4 h-4 text-slate-400 mr-2" />
-                                    <span className="text-sm text-slate-600 dark:text-slate-300 mr-2">{ticket.jobLocationContactPhone}</span>
-                                    <a href={`tel:${ticket.jobLocationContactPhone}`} className="p-1 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-900 rounded-full transition-colors" title="Call">
-                                        <PhoneIcon className="w-3 h-3" />
-                                    </a>
-                                    <a href={`sms:${ticket.jobLocationContactPhone}`} className="p-1 text-sky-500 hover:bg-sky-100 dark:hover:bg-sky-900 rounded-full transition-colors" title="Text">
-                                        <MessageIcon className="w-3 h-3" />
+                                <div className="flex items-center mt-1 space-x-2">
+                                    <a href={`tel:${ticket.jobLocationContactPhone}`} className="text-xs text-slate-500 hover:text-sky-600 hover:underline flex items-center">
+                                       <PhoneIcon className="w-3 h-3 mr-1" />
+                                       {ticket.jobLocationContactPhone}
                                     </a>
                                 </div>
                             )}
-                        </div>
-                    )}
+                    </div>
+
+                    {/* Client Col */}
+                    <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
+                            <UserCircleIcon className="w-3 h-3 mr-1 flex-shrink-0" /> Client / Billing
+                            </p>
+                            <div className="flex flex-col">
+                                <button onClick={onBack} className="font-semibold text-sm text-slate-800 dark:text-slate-100 hover:underline text-left truncate max-w-full">
+                                    {contact.name}
+                                </button>
+                                <a href={`tel:${contact.phone}`} className="text-xs text-slate-500 mt-1 truncate hover:text-sky-600 hover:underline block">
+                                    {contact.phone}
+                                </a>
+                                <a href={`mailto:${contact.email}`} className="text-xs text-slate-500 hover:text-sky-600 block mt-0.5 truncate">{contact.email}</a>
+                            </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Actions */}
-            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-center space-x-3">
-                <button onClick={() => setIsJobTicketModalOpen(true)} className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors">
-                    <EditIcon className="w-4 h-4" /><span>Edit</span>
-                </button>
-                 <button onClick={onDeleteTicket} className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900 transition-colors">
-                    <TrashIcon className="w-4 h-4" /><span>Delete</span>
-                </button>
-                 <button onClick={onViewInvoice} className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors">
-                    <ClipboardListIcon className="w-4 h-4" /><span>PDF</span>
-                </button>
+             {/* Action Footer */}
+            <div className="bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700 p-3">
+                 <div className="grid grid-cols-3 gap-3">
+                     <a href={`tel:${primaryPhone}`} className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-200 dark:hover:border-green-800 transition-all group">
+                         <PhoneIcon className="w-5 h-5 text-green-600 dark:text-green-500 mb-1 group-hover:scale-110 transition-transform" />
+                         <span className="text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-green-700 dark:group-hover:text-green-400">Call</span>
+                     </a>
+                     <a href={`sms:${primaryPhone}`} className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm hover:bg-sky-50 dark:hover:bg-sky-900/20 hover:border-sky-200 dark:hover:border-sky-800 transition-all group">
+                         <MessageIcon className="w-5 h-5 text-sky-600 dark:text-sky-500 mb-1 group-hover:scale-110 transition-transform" />
+                         <span className="text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-sky-700 dark:group-hover:text-sky-400">Text</span>
+                     </a>
+                     <a href={smsLink} className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all group">
+                         <CarIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-500 mb-1 group-hover:scale-110 transition-transform" />
+                         <span className="text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-indigo-700 dark:group-hover:text-indigo-400">On My Way</span>
+                     </a>
+                 </div>
             </div>
           </div>
           
@@ -244,57 +279,6 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                        </button>
                   </div>
               )}
-          </div>
-
-          {/* Customer Info Card */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4 border-b dark:border-slate-700 pb-2">Customer Information</h3>
-            <button 
-                onClick={onBack} 
-                className="text-2xl font-bold text-slate-800 dark:text-slate-100 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors text-left" 
-            >
-                {contact.name}
-            </button>
-            <div className="mt-4 space-y-3 text-sm">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center">
-                    <PhoneIcon className="w-4 h-4 text-slate-400 mr-3" />
-                    <span className="text-slate-600 dark:text-slate-300">{contact.phone}</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    <a href={`tel:${contact.phone}`} className="flex items-center space-x-1 px-2 py-1 rounded bg-sky-500 text-white hover:bg-sky-600 text-xs font-medium transition-colors">
-                        <PhoneIcon className="w-3 h-3" />
-                        <span>Call</span>
-                    </a>
-                    <a href={`sms:${contact.phone}`} className="flex items-center space-x-1 px-2 py-1 rounded bg-sky-500 text-white hover:bg-sky-600 text-xs font-medium transition-colors">
-                        <MessageIcon className="w-3 h-3" />
-                        <span>Text</span>
-                    </a>
-                    <a href={smsLink} className="flex items-center space-x-1 px-2 py-1 rounded bg-teal-500 text-white hover:bg-teal-600 text-xs font-medium transition-colors">
-                        <CarIcon className="w-3 h-3" />
-                        <span>On My Way</span>
-                    </a>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <MailIcon className="w-4 h-4 text-slate-400 mr-3" />
-                <a href={`mailto:${contact.email}`} className="text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors">{contact.email}</a>
-              </div>
-              <div className="flex items-start">
-                <MapPinIcon className="w-4 h-4 text-slate-400 mr-3 mt-1" />
-                <div>
-                    <span className="text-xs text-slate-400 uppercase font-bold mb-0.5 block">Billing Address</span>
-                    <a 
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:underline transition-colors whitespace-pre-line" 
-                    >
-                        {contact.address}
-                    </a>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Costs Card */}
