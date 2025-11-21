@@ -1,15 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -60,6 +49,12 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             displayTitle = 'INVOICE';
         }
     }
+    
+    // Logic to determine if inspection section should be shown
+    // Only show if there are items with status Pass, Fail, or Repaired.
+    const hasInspectionResults = (ticket.inspection || []).some(i => 
+        i.status === 'Pass' || i.status === 'Fail' || i.status === 'Repaired'
+    );
 
     const generatePdf = async () => {
         const doc = new jsPDF({
@@ -69,7 +64,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
         });
 
         const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 40;
+        const margin = 50; // Increased margin slightly
         const startY = 40;
 
         let logoWidth = 0;
@@ -359,6 +354,9 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                  doc.text(`$${cardBalance.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
                  innerY += 25; 
              } else {
+                 // Add "Job Total" here for card payments with no deposit
+                 doc.text("Job Total", rightBoxX + 15, innerY);
+                 doc.text(`$${cashTotal.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
                  innerY += 25;
              }
 
@@ -368,7 +366,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
              doc.setFontSize(11);
              doc.setFont('helvetica', 'bold');
              doc.setTextColor(0);
-             doc.text("Total Charge", rightBoxX + 15, innerY);
+             doc.text("Total", rightBoxX + 15, innerY); // Changed from Total Charge
              doc.text(`$${cardTotal.toFixed(2)}`, rightBoxX + boxWidth - 15, innerY, { align: 'right' });
 
              finalY += boxHeight + 30;
@@ -491,7 +489,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
         }
 
         // --- Inspection Summary (if exists) ---
-        if (ticket.inspection && ticket.inspection.length > 0) {
+        if (hasInspectionResults) {
              if (finalY > doc.internal.pageSize.getHeight() - 150) {
                 doc.addPage();
                 finalY = 40;
@@ -506,8 +504,8 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
              finalY += 15;
              
              // Separate Pass from Fail/Repaired/NA
-             const failedOrRepaired = ticket.inspection.filter(i => i.status === 'Fail' || i.status === 'Repaired');
-             const passed = ticket.inspection.filter(i => i.status === 'Pass');
+             const failedOrRepaired = (ticket.inspection || []).filter(i => i.status === 'Fail' || i.status === 'Repaired');
+             const passed = (ticket.inspection || []).filter(i => i.status === 'Pass');
              
              doc.setFontSize(10);
              doc.setFont('helvetica', 'normal');
@@ -577,7 +575,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
             
             try {
                  const dataUrl = await fileToDataUrl(pdfFile);
-                 const newFileAttachment: FileAttachment = {
+                 const newFileAttachment = {
                     id: generateId(),
                     name: fileName,
                     type: 'application/pdf',
@@ -658,7 +656,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
              }
         } catch (error) {
             console.error("Share failed:", error);
-             if (error instanceof Error && error.name !== 'AbortError') {
+             if (error.name !== 'AbortError') {
                 alert("Share failed. Please try downloading or using the Email button.");
             }
         } finally {
@@ -682,7 +680,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         top: 0;
                         width: 100%;
                         margin: 0 !important;
-                        padding: 0 !important;
+                        padding: 20mm !important;
                         box-shadow: none !important;
                     }
                     @page {
@@ -921,7 +919,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                                                     </div>
 
                                                     <div className="flex justify-between items-end border-t border-sky-200 pt-2 mt-4">
-                                                        <span className="text-slate-700 font-bold">Total Charge</span>
+                                                        <span className="text-slate-700 font-bold">Total</span>
                                                         <span className="font-bold text-lg text-slate-800">${cardTotal.toFixed(2)}</span>
                                                     </div>
                                                 </>
@@ -932,7 +930,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                                                         <span className="text-slate-800">${cashTotal.toFixed(2)}</span>
                                                     </div>
                                                     <div className="flex justify-between items-end border-t border-sky-200 pt-1 mt-1">
-                                                        <span className="text-slate-700 font-medium">Total Charge</span>
+                                                        <span className="text-slate-700 font-medium">Total</span>
                                                         <span className="font-bold text-lg text-slate-800">${cardTotal.toFixed(2)}</span>
                                                     </div>
                                                 </>
@@ -1020,7 +1018,7 @@ const InvoiceView: React.FC<InvoiceViewProps> = ({ contact, ticket, businessInfo
                         </section>
                      )}
 
-                     {ticket.inspection && ticket.inspection.length > 0 && (
+                     {hasInspectionResults && (
                         <section className="mt-8 pt-6 border-t border-slate-200">
                             <h3 className="text-sm font-bold text-slate-700 uppercase mb-3">25-Point Safety Inspection Summary</h3>
                             
