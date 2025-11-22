@@ -1,11 +1,16 @@
+
 import { JobTicket, Contact } from './types.ts';
 
 /**
- * Generates a 7-character uppercase alphanumeric ID.
+ * Generates a short, secure uppercase alphanumeric ID.
  */
 export const generateId = (): string => {
-  // This provides a simple, short, and reasonably unique ID for this application's scale.
-  // It's not cryptographically secure, but it's sufficient for non-sensitive, client-side identifiers.
+  // Use crypto API if available for better entropy
+  // Cast to any because TS might not know about randomUUID in older lib targets or specific envs
+  const c = typeof crypto !== 'undefined' ? crypto : null;
+  if (c && typeof (c as any).randomUUID === 'function') {
+    return (c as any).randomUUID().split('-')[0].toUpperCase();
+  }
   return Math.random().toString(36).substring(2, 9).toUpperCase();
 };
 
@@ -252,30 +257,72 @@ export const processTemplate = (template: string, data: Record<string, string>):
   });
 };
 
+let googleMapsPromise: Promise<void> | null = null;
+let loadedApiKey: string | null = null;
+
 /**
  * Loads the Google Maps API script.
+ * Checks if a script is already present and if the API Key matches.
+ * If the API key has changed, it reloads the script.
  */
 export const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') return reject(new Error("Window not defined"));
-    if ((window as any).google && (window as any).google.maps && (window as any).google.maps.places) {
-      return resolve();
-    }
+
     const scriptId = 'google-maps-script';
-    if (document.getElementById(scriptId)) {
-        // Script already added but might not be loaded yet. 
-        // For simplicity in this context, we assume it will load if added.
-        // In a robust app, we'd track loading state more precisely.
-        return resolve();
+    const existingScript = document.getElementById(scriptId) as HTMLScriptElement;
+
+    // Check if script exists
+    if (existingScript) {
+        const src = existingScript.src;
+        // Check if the key matches
+        if (src.includes(`key=${apiKey}`)) {
+             // Already loaded or loading with correct key
+             if ((window as any).google && (window as any).google.maps && (window as any).google.maps.places) {
+                return resolve();
+             }
+             // Wait for it to be ready
+             const interval = setInterval(() => {
+                if ((window as any).google && (window as any).google.maps && (window as any).google.maps.places) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, 100);
+            // Timeout to prevent infinite loop
+            setTimeout(() => {
+                clearInterval(interval);
+                if ((window as any).google) resolve();
+                else reject(new Error("Google Maps failed to load"));
+            }, 5000);
+            return;
+        } else {
+            // API Key changed, remove old script
+            existingScript.remove();
+            (window as any).google = undefined;
+            googleMapsPromise = null;
+        }
     }
 
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = (e) => reject(e);
-    document.head.appendChild(script);
+    if (googleMapsPromise && loadedApiKey === apiKey) {
+        return googleMapsPromise.then(resolve).catch(reject);
+    }
+
+    loadedApiKey = apiKey;
+    googleMapsPromise = new Promise((res, rej) => {
+        const script = document.createElement('script');
+        script.id = scriptId;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => res();
+        script.onerror = (e) => {
+            googleMapsPromise = null;
+            loadedApiKey = null;
+            rej(e);
+        };
+        document.head.appendChild(script);
+    });
+
+    googleMapsPromise.then(resolve).catch(reject);
   });
 };

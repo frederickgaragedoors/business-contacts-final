@@ -22,28 +22,22 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['icons/icon.svg'], 
+          includeAssets: ['icons/icon.svg'],
           manifest: {
-            name: "Business Contacts Manager",
-            short_name: "Contacts",
-            description: "A modern and sleek business contacts application.",
-            theme_color: "#0ea5e9",
-            background_color: "#f1f5f9",
-            display: "standalone",
-            start_url: "./",
-            scope: "./",
+            name: 'Business Contacts Manager',
+            short_name: 'Contacts',
+            description: 'Manage your business contacts, jobs, and invoices.',
+            theme_color: '#0ea5e9',
+            background_color: '#0f172a',
+            display: 'standalone',
             icons: [
               {
-                src: "./icons/icon.svg",
-                sizes: "any",
-                type: "image/svg+xml"
+                src: 'icons/icon.svg',
+                sizes: '512x512',
+                type: 'image/svg+xml',
+                purpose: 'any maskable'
               }
             ]
-          },
-          workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-            maximumFileSizeToCacheInBytes: 4000000,
-            navigateFallback: null // Disable fallback for relative paths on GH Pages
           }
         })
       ],

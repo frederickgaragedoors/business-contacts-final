@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header.tsx';
 import ContactList from './components/ContactList.tsx';
@@ -175,7 +173,11 @@ function App() {
   const [contacts, setContacts] = useState<Contact[]>(() => {
       const saved = localStorage.getItem('contacts');
       if (saved) {
-          try { return JSON.parse(saved); } catch(e) { console.error(e); }
+          try { 
+            const parsed = JSON.parse(saved);
+            // Robust check to ensure we have an array
+            if(Array.isArray(parsed)) return parsed; 
+          } catch(e) { console.error(e); }
       }
       return getSampleContacts();
   });
@@ -389,7 +391,12 @@ function App() {
                   onBack={() => setViewState({ type: 'dashboard' })}
               />;
           case 'list':
-              return <ContactList contacts={contacts} selectedContactId={null} onSelectContact={(id) => setViewState({ type: 'detail', id })} />;
+              return <ContactList 
+                contacts={contacts} 
+                selectedContactId={null} 
+                onSelectContact={(id) => setViewState({ type: 'detail', id })}
+                onAddJob={(id) => setViewState({ type: 'detail', id, initialJobDate: new Date().toISOString().split('T')[0] })}
+              />;
           case 'detail':
               if (!selectedContact) return <div className="p-4">Contact not found</div>;
               return <ContactDetail 
@@ -514,6 +521,11 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      <style>{`
+        .pac-container {
+            z-index: 99999 !important;
+        }
+      `}</style>
       <Header 
           currentView={viewState.type} 
           onNewContact={() => setViewState({ type: 'new_form' })}
