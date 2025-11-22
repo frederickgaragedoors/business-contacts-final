@@ -20,6 +20,10 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(today.getDate() - 3);
     threeDaysAgo.setHours(0, 0, 0, 0);
@@ -45,18 +49,18 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
     }, [allJobs]);
     
+    const statusOrder: Record<JobStatus, number> = {
+        'Estimate Scheduled': 1,
+        'Scheduled': 2,
+        'In Progress': 3,
+        'Quote Sent': 4,
+        'Awaiting Parts': 5,
+        'Completed': 6,
+        'Paid': 7,
+        'Declined': 8,
+    };
+
     const todaysJobs = useMemo(() => {
-        const statusOrder: Record<JobStatus, number> = {
-          'Estimate Scheduled': 1,
-          'Scheduled': 2,
-          'In Progress': 3,
-          'Quote Sent': 4,
-          'Awaiting Parts': 5,
-          'Completed': 6,
-          'Paid': 7,
-          'Declined': 8,
-        };
-    
         return allJobs
             .filter(job => {
                 if (!job.date) return false;
@@ -66,6 +70,23 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
             })
             .sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
     }, [allJobs, today]);
+
+    const tomorrowsJobs = useMemo(() => {
+        return allJobs
+            .filter(job => {
+                if (!job.date) return false;
+                const jobDate = parseDateAsLocal(job.date);
+                return (job.status === 'Estimate Scheduled' || job.status === 'Scheduled' || job.status === 'In Progress') &&
+                       jobDate.getTime() === tomorrow.getTime();
+            })
+            .sort((a, b) => {
+                // Sort by time, then status
+                const timeA = a.time || '23:59';
+                const timeB = b.time || '23:59';
+                if (timeA !== timeB) return timeA.localeCompare(timeB);
+                return statusOrder[a.status] - statusOrder[b.status];
+            });
+    }, [allJobs, tomorrow]);
 
     const quotesToFollowUp = useMemo(() => {
         return allJobs.filter(job => {
@@ -80,10 +101,11 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
             .filter(job => {
                  if (!job.date) return false;
                  const jobDate = parseDateAsLocal(job.date);
-                 return (job.status === 'Scheduled' || job.status === 'Estimate Scheduled') && jobDate > today;
+                 // Filter for jobs strictly AFTER tomorrow
+                 return (job.status === 'Scheduled' || job.status === 'Estimate Scheduled') && jobDate.getTime() > tomorrow.getTime();
             })
             .sort((a, b) => parseDateAsLocal(a.date).getTime() - parseDateAsLocal(b.date).getTime());
-    }, [allJobs, today]);
+    }, [allJobs, tomorrow]);
 
     const JobCard: React.FC<{ job: JobWithContact }> = ({ job }) => {
         const statusColor = jobStatusColors[job.status];
@@ -91,10 +113,20 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
         const paymentStatusColor = paymentStatusColors[paymentStatus];
         const paymentStatusLabel = paymentStatusLabels[paymentStatus];
 
+        const handleKeyDown = (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onViewJobDetail(job.contactId, job.id);
+            }
+        };
+
         return (
             <li 
                 onClick={() => onViewJobDetail(job.contactId, job.id)}
-                className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer card-hover"
+                onKeyDown={handleKeyDown}
+                role="button"
+                tabIndex={0}
+                className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-sky-500 dark:hover:border-sky-500 cursor-pointer card-hover outline-none focus:ring-2 focus:ring-sky-500"
             >
                 <div className="flex justify-between items-start space-x-2">
                     <div className="min-w-0">
@@ -131,10 +163,17 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
         </section>
     );
 
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour >= 3 && hour < 12) return 'Good Morning';
+        if (hour >= 12 && hour < 17) return 'Good Afternoon';
+        return 'Good Evening';
+    };
+
     return (
         <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-900 overflow-y-auto">
             <div className="px-4 sm:px-6 py-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">Good Morning!</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">{getGreeting()}!</h1>
                 <p className="mt-1 text-slate-500 dark:text-slate-400">Here's a summary of your business activity.</p>
             </div>
             <div className="px-4 sm:px-6 py-6 flex-grow">
@@ -145,10 +184,15 @@ const Dashboard: React.FC<DashboardProps> = ({ contacts, onViewJobDetail }) => {
                             jobs={todaysJobs} 
                             emptyMessage="Nothing scheduled for today." 
                         />
+                        <Section 
+                            title="Tomorrow's Work" 
+                            jobs={tomorrowsJobs} 
+                            emptyMessage="Nothing scheduled for tomorrow." 
+                        />
                          <Section 
                             title="Upcoming Work" 
                             jobs={upcomingWork} 
-                            emptyMessage="No upcoming jobs scheduled." 
+                            emptyMessage="No other upcoming jobs scheduled." 
                         />
                         <Section 
                             title="Awaiting Parts" 

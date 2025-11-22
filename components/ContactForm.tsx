@@ -1,7 +1,9 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Contact, FileAttachment, CustomField, DefaultFieldSetting, JobTicket, DoorProfile } from '../types.ts';
 import { UserCircleIcon, ArrowLeftIcon, FileIcon, TrashIcon, PlusIcon } from './icons.tsx';
-import { fileToDataUrl, formatFileSize, generateId, loadGoogleMapsScript } from '../utils.ts';
+import { fileToDataUrl, formatFileSize, generateId } from '../utils.ts';
+import { useGoogleMaps } from '../hooks/useGoogleMaps.ts';
 
 // Declare google for TS
 declare const google: any;
@@ -27,6 +29,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
   );
   
   const addressInputRef = useRef<HTMLInputElement>(null);
+  const { isLoaded: isMapsLoaded } = useGoogleMaps(apiKey);
 
   const [doorProfiles, setDoorProfiles] = useState<DoorProfile[]>(() => {
       if (initialContact?.doorProfiles) {
@@ -68,22 +71,20 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
 
   // Initialize Google Maps Autocomplete
   useEffect(() => {
-    if (apiKey && addressInputRef.current) {
-        loadGoogleMapsScript(apiKey).then(() => {
-            if (addressInputRef.current && (window as any).google && (window as any).google.maps) {
-                const autocomplete = new (window as any).google.maps.places.Autocomplete(addressInputRef.current, {
-                    types: ['address'],
-                });
-                autocomplete.addListener('place_changed', () => {
-                    const place = autocomplete.getPlace();
-                    if (place.formatted_address) {
-                        setAddress(place.formatted_address);
-                    }
-                });
+    if (isMapsLoaded && addressInputRef.current && (window as any).google && (window as any).google.maps) {
+        const autocomplete = new (window as any).google.maps.places.Autocomplete(addressInputRef.current, {
+            fields: ['formatted_address', 'geometry', 'name'],
+        });
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (place.formatted_address) {
+                setAddress(place.formatted_address);
+            } else if (place.name) {
+                setAddress(place.name);
             }
-        }).catch(err => console.error("Error loading Google Maps:", err));
+        });
     }
-  }, [apiKey]);
+  }, [isMapsLoaded]);
 
   const handlePhotoChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
@@ -347,8 +348,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ initialContact, onSave, onCan
                                 id="address" 
                                 value={address} 
                                 onChange={e => setAddress(e.target.value)} 
+                                onKeyDown={e => { if(e.key === 'Enter') e.preventDefault(); }}
                                 placeholder=""
                                 className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm dark:text-white"
+                                autoComplete="off"
                             />
                         </div>
                     </div>

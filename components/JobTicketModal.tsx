@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { JobTicket, JobStatus, Part, JobTemplate, ALL_JOB_STATUSES, CatalogItem, PaymentStatus } from '../types.ts';
 import { XIcon, PlusIcon, TrashIcon } from './icons.tsx';
-import { generateId, calculateJobTicketTotal, loadGoogleMapsScript } from '../utils.ts';
+import { generateId, calculateJobTicketTotal } from '../utils.ts';
+import { useGoogleMaps } from '../hooks/useGoogleMaps.ts';
 
 // Declare google for TS
 declare const google: any;
@@ -36,6 +38,7 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
   const [deposit, setDeposit] = useState<number | ''>(0);
 
   const locationInputRef = useRef<HTMLInputElement>(null);
+  const { isLoaded: isMapsLoaded } = useGoogleMaps(apiKey);
 
   useEffect(() => {
     if (entry) {
@@ -74,22 +77,20 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
 
   // Initialize Google Maps Autocomplete
   useEffect(() => {
-    if (apiKey && locationInputRef.current) {
-        loadGoogleMapsScript(apiKey).then(() => {
-            if (locationInputRef.current && (window as any).google && (window as any).google.maps) {
-                const autocomplete = new (window as any).google.maps.places.Autocomplete(locationInputRef.current, {
-                    types: ['address'],
-                });
-                autocomplete.addListener('place_changed', () => {
-                    const place = autocomplete.getPlace();
-                    if (place.formatted_address) {
-                        setJobLocation(place.formatted_address);
-                    }
-                });
+    if (isMapsLoaded && locationInputRef.current && (window as any).google && (window as any).google.maps) {
+        const autocomplete = new (window as any).google.maps.places.Autocomplete(locationInputRef.current, {
+            fields: ['formatted_address', 'geometry', 'name'],
+        });
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (place.formatted_address) {
+                setJobLocation(place.formatted_address);
+            } else if (place.name) {
+                setJobLocation(place.name);
             }
-        }).catch(err => console.error("Error loading Google Maps:", err));
+        });
     }
-  }, [apiKey]);
+  }, [isMapsLoaded]);
 
   const handleAddPart = () => {
     setParts([...parts, { id: generateId(), name: '', cost: 0, quantity: 1 }]);
@@ -263,8 +264,10 @@ const JobTicketModal: React.FC<JobTicketModalProps> = ({ entry, onSave, onClose,
                         id="job-location"
                         value={jobLocation}
                         onChange={e => setJobLocation(e.target.value)}
+                        onKeyDown={e => { if(e.key === 'Enter') e.preventDefault(); }}
                         className={`mt-1 ${inputStyles}`}
                         placeholder="Leave empty if same as billing..."
+                        autoComplete="off"
                     />
                     {contactAddress && contactAddress !== jobLocation && (
                         <button 
